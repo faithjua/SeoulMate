@@ -2,6 +2,7 @@ package com.project.seoulmate.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.project.seoulmate.R
+import com.project.seoulmate.ui.theme.SeoulMateBackground
 
 data class Category(
     val name: String,
@@ -44,11 +46,15 @@ fun CategoryGrid(
         Category("안전/생활", R.drawable.ic_safety)
     )
 
+
+
     // Calculate rows needed (12 items / 4 columns = 3 rows)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp) // Outer padding
+            .background(color = SeoulMateBackground, shape = RoundedCornerShape(16.dp)) // Grey background
+            .padding(horizontal = 24.dp, vertical = 16.dp), // Inner padding
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         val chunkedCategories = categories.chunked(4)
