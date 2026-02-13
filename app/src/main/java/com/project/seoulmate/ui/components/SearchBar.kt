@@ -1,9 +1,14 @@
 package com.project.seoulmate.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -18,50 +23,48 @@ import com.project.seoulmate.R
 @Composable
 fun SearchBar(
     modifier: Modifier = Modifier,
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {} // Lambda function callback for when search is clicked
 ) {
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
+    // Surface is a basic building block that handles background color, shape, and elevation.
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(52.dp), // Slightly taller
-        placeholder = {
-            Text(
-                text = "10,000개 이상의 서울 만남 검색",
-                style = TextStyle(
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF5E5E5E), // Darker gray for readability
-                )
-            )
-        },
-        leadingIcon = {
+            .fillMaxWidth() // Stretch to fill width
+            .height(50.dp)  // Set fixed height
+            .padding(horizontal = 24.dp) // Maintain consistent side padding
+            .clickable(onClick = onSearchClick), // Make the whole bar clickable
+        shape = RoundedCornerShape(12.dp), // Rounded corners
+        color = Color(0xFFF4F4F4), // Light grey background
+        // Border: 1dp thick, slightly transparent black
+        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f))
+    ) {
+        // Row arranges items horizontally: [Icon] [Text]
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp), // Padding inside the bar
+            verticalAlignment = Alignment.CenterVertically // Center items vertically
+        ) {
+            // 1. Search Icon
             Icon(
-                painter = painterResource(id = R.drawable.ic_search),
-                contentDescription = "검색",
-                tint = Color(0xFF6C60FD), // Brand color
-                modifier = Modifier.size(20.dp)
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = Color(0xFF6C60FD), // Brand color tint
+                modifier = Modifier.size(24.dp)
             )
-        },
-        shape = RoundedCornerShape(12.dp), // Less rounded
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledPlaceholderColor = Color(0xFF5E5E5E),
-            disabledLeadingIconColor = Color(0xFF6C60FD),
-            disabledBorderColor = Color.Transparent,
-            disabledContainerColor = Color(0xFFF5F5F7), // Very light gray background
             
-            // Enabled colors if we enable it later
-            focusedContainerColor = Color(0xFFF5F5F7),
-            unfocusedContainerColor = Color(0xFFF5F5F7),
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent
-        ),
-        singleLine = true,
-        readOnly = true,
-        enabled = false // Keep disabled for now as per original
-    )
+            Spacer(modifier = Modifier.width(12.dp)) // Space between icon and text
+
+            // 2. Placeholder Text
+            Text(
+                text = "어디로 가고 싶으신가요?", // "Where do you want to go?"
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    color = Color(0xFF5E5E5E) // Dark grey text color
+                ),
+                maxLines = 1
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)

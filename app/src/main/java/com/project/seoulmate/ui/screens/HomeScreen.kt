@@ -14,8 +14,13 @@ import com.project.seoulmate.ui.theme.SeoulMateTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen() {
+    // State to track which item in the bottom navigation is selected.
+    // 'remember' keeps the value across recompositions (redraws).
+    // 'mutableStateOf' makes it observable so UI updates when it changes.
     var selectedBottomItem by remember { mutableStateOf(0) }
 
+    // Scaffold is a standard Material Design layout structure.
+    // It provides slots for common UI elements like TopBar, BottomBar, FloatingActionButton, etc.
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -23,52 +28,57 @@ fun HomeScreen() {
                 onItemSelected = { selectedBottomItem = it }
             )
         },
-        containerColor = Color.White // Set background to white
+        containerColor = Color.White // Explicitly set background to white
     ) { paddingValues ->
+        // content lambda provides 'paddingValues' to avoid overlapping with the bottom bar.
+        
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .fillMaxSize() // Fill the entire available screen space
+                .padding(paddingValues) // Apply padding from Scaffold to avoid overlap
         ) {
-            // Main Content Area (Scrollable if needed, but here fixed for simplicity)
+            // Main Content Area
+            // We use another Column for the actual page content.
+            // Modifier.verticalScroll enables scrolling modification for this specific column.
             Column(
                 modifier = Modifier
-                    .weight(1f) // Fill remaining space
-                    .verticalScroll(rememberScrollState())
+                    .weight(1f) // Take up all remaining vertical space above the bottom bar
+                    .verticalScroll(rememberScrollState()) // Enable vertical scrolling
             ) {
-                // Top Bar
+                // 1. Top Bar (Logo and Translate button)
                 TopBar(
-                    onTranslateClick = { /* TODO: Translate */ }
+                    onTranslateClick = { /* TODO: Implement Translate feature */ }
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp)) // Add vertical space
 
-                // Search Bar
+                // 2. Search Bar
                 SearchBar(
-                    onSearchClick = { /* TODO: Search */ }
+                    onSearchClick = { /* TODO: Implement Search feature */ }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp)) // Increased spacing
+                Spacer(modifier = Modifier.height(24.dp)) 
 
-                // Category Grid
+                // 3. Category Grid
+                // Displays the grid of 12 icons. 
+                // Note: The Grid itself does NOT scroll; it moves as part of this parent Column.
                 CategoryGrid(
                     onCategoryClick = { category ->
-                        // TODO: Navigate
+                        // TODO: Handle navigation to category details
                         println("Selected: ${category.name}")
                     }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Recommendation Section (Bottom fixed or scrollable?)
-                // Based on design, it looks like it's part of the scrollable content or fills the bottom.
-                // Given the "Bottom Navigation", it should scroll.
+                // 4. Recommendation Section
+                // Horizontal scrollable list of "Meeting" ideas.
                 RecommendationSection(
                     modifier = Modifier.fillMaxWidth(),
-                    onSeeAllClick = { /* TODO: See All */ }
+                    onSeeAllClick = { /* TODO: Navigate to 'See All' page */ }
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp)) // Bottom padding
+                Spacer(modifier = Modifier.height(16.dp)) // Bottom padding for visual breathing room
             }
         }
     }

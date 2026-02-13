@@ -26,11 +26,13 @@ data class Category(
     @DrawableRes val icon: Int
 )
 
+// @Composable annotation tells the compiler that this function is intended to convert data into UI.
 @Composable
 fun CategoryGrid(
     modifier: Modifier = Modifier,
     onCategoryClick: (Category) -> Unit = {}
 ) {
+    // List of data items to display. We use a data class 'Category' to hold the name and icon resource.
     val categories = listOf(
         Category("관광", R.drawable.ic_tourism),
         Category("K-팝", R.drawable.ic_kpop),
@@ -46,31 +48,44 @@ fun CategoryGrid(
         Category("안전/생활", R.drawable.ic_safety)
     )
 
-
+    // Layout Choice Explanation:
+    // Originally, we might use LazyVerticalGrid here. However, this CategoryGrid is placed inside
+    // a Column in HomeScreen that is ALREADY scrollable (Modifier.verticalScroll).
+    // Nesting a scrollable grid (LazyVerticalGrid) inside another scrollable container (Column)
+    // causes a crash because the inner grid tries to expand infinitely.
+    // FIX: We use a simple Column and Row combination because we have a small, fixed number of items (12).
+    // This removes the scrolling capability from the grid itself, letting the parent HomeScreen handle scrolling.
 
     // Calculate rows needed (12 items / 4 columns = 3 rows)
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxWidth() // Take up full screen width
+            // Outer padding pushes the grey background away from the screen edges
             .padding(horizontal = 24.dp, vertical = 8.dp) // Outer padding
+            // Apply the grey background color with rounded corners
             .background(color = SeoulMateBackground, shape = RoundedCornerShape(16.dp)) // Grey background
+            // Inner padding pushes the content (icons) away from the edge of the grey background
             .padding(horizontal = 24.dp, vertical = 16.dp), // Inner padding
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp) // Space between rows
     ) {
+        // We split the list of 12 categories into chunks of 4 to create rows.
         val chunkedCategories = categories.chunked(4)
         chunkedCategories.forEach { rowCategories ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween // Distribute items evenly across the row
             ) {
                 rowCategories.forEach { category ->
                     CategoryItem(
                         category = category,
                         onClick = { onCategoryClick(category) },
+                        // Modifier.weight(1f) ensures each item takes up equal space.
+                        // This corresponds to '0dp' width and '1' weight in XML layouts.
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Fill empty spots if last row is incomplete (though here it is 12 items exactly)
+                // If a row has fewer than 4 items, we add invisible Spacers to fill the remaining slots.
+                // This ensures the existing items don't stretch weirdly to fill the row.
                 repeat(4 - rowCategories.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -87,25 +102,26 @@ fun CategoryItem(
 ) {
     Column(
         modifier = modifier
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clickable(onClick = onClick), // Make the entire item clickable
+        horizontalAlignment = Alignment.CenterHorizontally // Center icon and text horizontally
     ) {
-        // Icon with styling
+        // Display the icon image
         Image(
             painter = painterResource(id = category.icon),
-            contentDescription = category.name,
+            contentDescription = category.name, // Accessibility description
             modifier = Modifier
-                .size(48.dp) // Increased size based on visual
+                .size(48.dp) // Fixed size for the icon
                 // Shadow removed for cleaner look or adjusted if needed
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp)) // Space between icon and text
+        // Display the category name
         Text(
             text = category.name,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            maxLines = 1,
-            color = Color(0xFF6C60FD) // Keep the branding color
+            maxLines = 1, // Ensure text stays on one line
+            color = Color(0xFF6C60FD) // Brand color for text
         )
     }
 }

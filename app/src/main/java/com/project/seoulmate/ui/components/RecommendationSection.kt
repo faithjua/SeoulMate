@@ -27,6 +27,7 @@ import androidx.annotation.DrawableRes
 import com.project.seoulmate.R
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
 
+// @DrawableRes ensures we only pass valid drawable resource IDs (Integers) for the image.
 @Composable
 fun RecommendationSection(
     modifier: Modifier = Modifier,
@@ -35,15 +36,16 @@ fun RecommendationSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Clip the top corners to be rounded
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(SeoulMatePrimary)
+            .background(SeoulMatePrimary) // Purple brand background
             .padding(16.dp)
     ) {
-        // 헤더
+        // Header Row: "How about this meeting?" + Arrow Icon
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onSeeAllClick),
+                .clickable(onClick = onSeeAllClick), // Make the header clickable
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -64,22 +66,26 @@ fun RecommendationSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 카드 리스트 (가로 스크롤)
+        // Horizontal scrolling list for cards.
+        // LazyRow is efficient because it only renders items that are currently visible on screen.
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp), // Space between cards
             contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
+            // 'items' block is where we define what goes into the list
             items(1) {
+                // Card 1
                 RecommendationCard(
                     title = "창덕궁 탐방 및 맛집",
                     location = "창덕궁",
                     time = "금 오후 4-5시",
                     price = "₩20,000",
                     rating = "5.0",
-                    imageRes = R.drawable.img_recommend_1,
+                    imageRes = R.drawable.img_recommend_1, // Using placeholder image
                     tags = listOf("혼잡", "#관광", "#한식")
                 )
                 Spacer(modifier = Modifier.width(16.dp))
+                // Card 2
                 RecommendationCard(
                     title = "한강 요트 투어",
                     location = "반포한강공원",
@@ -108,39 +114,42 @@ fun RecommendationCard(
         modifier = Modifier
             .width(200.dp)
             .height(280.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(20.dp), // Rounded corners for the whole card
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Drop shadow
     ) {
+        // Box allows us to stack elements on top of each other (layers).
+        // Order: Bottom -> Top
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Image
+            // Layer 1 [Bottom]: Background Image
             Image(
                 painter = painterResource(id = imageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentDescription = null, // Decorative image, no description needed
+                contentScale = ContentScale.Crop, // Crop image to fill the bounds
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Gradient Overlay for text readability
+            // Layer 2 [Middle]: Gradient Overlay
+            // This adds a dark shade at the bottom so white text remains readable.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
+                                Color.Transparent, // Start clear at top
+                                Color.Black.copy(alpha = 0.7f) // Fade to dark at bottom
                             ),
-                            startY = 300f
+                            startY = 300f // Adjust where the gradient starts
                         )
                     )
             )
 
-            // Content
+            // Layer 3 [Top]: Text and Icon Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.SpaceBetween // Push Heart to top, Text to bottom
             ) {
                 // Top: Heart Icon
                 Box(
