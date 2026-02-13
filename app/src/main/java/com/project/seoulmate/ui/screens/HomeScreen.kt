@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.theme.SeoulMateTheme
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,48 +22,54 @@ fun HomeScreen() {
                 selectedItem = selectedBottomItem,
                 onItemSelected = { selectedBottomItem = it }
             )
-        }
+        },
+        containerColor = Color.White // Set background to white
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // 메인 콘텐츠
+            // Main Content Area (Scrollable if needed, but here fixed for simplicity)
             Column(
                 modifier = Modifier
-                    .weight(0.55f)
-                    // .verticalScroll(rememberScrollState())
+                    .weight(1f) // Fill remaining space
+                    .verticalScroll(rememberScrollState())
             ) {
-                // 상단바
+                // Top Bar
                 TopBar(
-                    onTranslateClick = { /* TODO: 번역 기능 */ }
+                    onTranslateClick = { /* TODO: Translate */ }
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 검색창
+                // Search Bar
                 SearchBar(
-                    onSearchClick = { /* TODO: 검색 화면으로 이동 */ }
+                    onSearchClick = { /* TODO: Search */ }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(24.dp)) // Increased spacing
 
-                // 카테고리 그리드
+                // Category Grid
                 CategoryGrid(
                     onCategoryClick = { category ->
-                        // TODO: 카테고리별 화면으로 이동
-                        println("선택된 카테고리: ${category.name}")
+                        // TODO: Navigate
+                        println("Selected: ${category.name}")
                     }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // 추천 섹션 (하단 고정)
-            RecommendationSection(
-                modifier = Modifier.weight(0.45f),
-                onSeeAllClick = { /* TODO: 전체보기 화면으로 이동 */ }
-            )
+                // Recommendation Section (Bottom fixed or scrollable?)
+                // Based on design, it looks like it's part of the scrollable content or fills the bottom.
+                // Given the "Bottom Navigation", it should scroll.
+                RecommendationSection(
+                    modifier = Modifier.fillMaxWidth(),
+                    onSeeAllClick = { /* TODO: See All */ }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp)) // Bottom padding
+            }
         }
     }
 }

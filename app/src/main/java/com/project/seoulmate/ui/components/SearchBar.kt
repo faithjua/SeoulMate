@@ -26,14 +26,14 @@ fun SearchBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .height(46.dp),
+            .height(52.dp), // Slightly taller
         placeholder = {
             Text(
                 text = "10,000개 이상의 서울 만남 검색",
                 style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF4035A9),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF5E5E5E), // Darker gray for readability
                 )
             )
         },
@@ -41,19 +41,26 @@ fun SearchBar(
             Icon(
                 painter = painterResource(id = R.drawable.ic_search),
                 contentDescription = "검색",
-                tint = Color(0xFF4035A9)
+                tint = Color(0xFF6C60FD), // Brand color
+                modifier = Modifier.size(20.dp)
             )
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp), // Less rounded
         colors = OutlinedTextFieldDefaults.colors(
-            disabledPlaceholderColor = Color(0xFF4035A9),
-            disabledLeadingIconColor = Color(0xFF4035A9),
+            disabledPlaceholderColor = Color(0xFF5E5E5E),
+            disabledLeadingIconColor = Color(0xFF6C60FD),
             disabledBorderColor = Color.Transparent,
-            disabledContainerColor = Color(0xFFF3F3F3)
+            disabledContainerColor = Color(0xFFF5F5F7), // Very light gray background
+            
+            // Enabled colors if we enable it later
+            focusedContainerColor = Color(0xFFF5F5F7),
+            unfocusedContainerColor = Color(0xFFF5F5F7),
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent
         ),
         singleLine = true,
         readOnly = true,
-        enabled = false
+        enabled = false // Keep disabled for now as per original
     )
 }
 

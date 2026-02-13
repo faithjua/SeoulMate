@@ -4,9 +4,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -47,28 +44,30 @@ fun CategoryGrid(
         Category("안전/생활", R.drawable.ic_safety)
     )
 
-    Card(
+    // Calculate rows needed (12 items / 4 columns = 3 rows)
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-            .height(220.dp),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF3F3F3)
-        )
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            contentPadding = PaddingValues(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            items(categories) { category ->
-                CategoryItem(
-                    category = category,
-                    onClick = { onCategoryClick(category) }
-                )
+        val chunkedCategories = categories.chunked(4)
+        chunkedCategories.forEach { rowCategories ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                rowCategories.forEach { category ->
+                    CategoryItem(
+                        category = category,
+                        onClick = { onCategoryClick(category) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Fill empty spots if last row is incomplete (though here it is 12 items exactly)
+                repeat(4 - rowCategories.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -77,38 +76,35 @@ fun CategoryGrid(
 @Composable
 fun CategoryItem(
     category: Category,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(2.dp),
+        modifier = modifier
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Icon with styling
         Image(
             painter = painterResource(id = category.icon),
             contentDescription = category.name,
             modifier = Modifier
-                .shadow(
-                    elevation = 6.8.dp,
-                    spotColor = Color(0xFFFEC2F2),
-                    ambientColor = Color(0xFFFEC2F2)
-                )
-                .size(32.dp)
+                .size(48.dp) // Increased size based on visual
+                // Shadow removed for cleaner look or adjusted if needed
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = category.name,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            maxLines = 2,
-            color = Color(0xFF6C60FD)
+            maxLines = 1,
+            color = Color(0xFF6C60FD) // Keep the branding color
         )
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun CategoryGridPreview() {
     CategoryGrid()
