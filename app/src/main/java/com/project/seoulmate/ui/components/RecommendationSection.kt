@@ -1,4 +1,5 @@
 package com.project.seoulmate.ui.components
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,202 +23,194 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.annotation.DrawableRes
-import com.project.seoulmate.R
-import com.project.seoulmate.ui.theme.SeoulMatePrimary
+import com.project.seoulmate.data.model.Meeting
 
-// @DrawableRes ensures we only pass valid drawable resource IDs (Integers) for the image.
+/**
+ * 최근 본 만남 가로 스크롤 섹션.
+ *
+ * @param meetings ViewModel에서 내려보낸 만남 목록
+ * @param onSeeAllClick "더보기" 클릭 콜백
+ */
 @Composable
 fun RecommendationSection(
     modifier: Modifier = Modifier,
+    meetings: List<Meeting> = emptyList(),
     onSeeAllClick: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // Clip the top corners to be rounded
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(SeoulMatePrimary) // Purple brand background
-            .padding(16.dp)
+            .padding(vertical = 16.dp)
     ) {
-        // Header Row: "How about this meeting?" + Arrow Icon
+        // 헤더 Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onSeeAllClick), // Make the header clickable
+                .padding(horizontal = 24.dp)
+                .clickable(onClick = onSeeAllClick),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "이런 만남은 어떤가요?",
-                color = Color.White,
-                fontSize = 18.sp,
+                text = "최근 본 만남",
+                color = Color.Black,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-            )
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            Icon(
-                imageVector = Icons.Filled.KeyboardArrowRight,
-                contentDescription = "더보기",
-                tint = Color.White
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Horizontal scrolling list for cards.
-        // LazyRow is efficient because it only renders items that are currently visible on screen.
+        // 가로 스크롤 카드 목록
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp), // Space between cards
-            contentPadding = PaddingValues(horizontal = 4.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp)
         ) {
-            // 'items' block is where we define what goes into the list
-            items(1) {
-                // Card 1
-                RecommendationCard(
-                    title = "창덕궁 탐방 및 맛집",
-                    location = "창덕궁",
-                    time = "금 오후 4-5시",
-                    price = "₩20,000",
-                    rating = "5.0",
-                    imageRes = R.drawable.img_recommend_1, // Using placeholder image
-                    tags = listOf("혼잡", "#관광", "#한식")
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                // Card 2
-                RecommendationCard(
-                    title = "한강 요트 투어",
-                    location = "반포한강공원",
-                    time = "토 오후 7-9시",
-                    price = "₩35,000",
-                    rating = "4.8",
-                    imageRes = R.drawable.img_recommend_2,
-                    tags = listOf("여유", "#관광", "#힐링")
-                )
+            items(meetings) { meeting ->
+                RecommendationCard(meeting = meeting)
             }
         }
     }
 }
 
+/**
+ * 만남 카드 하나. Meeting 데이터 클래스를 받아 UI를 그립니다.
+ */
 @Composable
-fun RecommendationCard(
-    title: String,
-    location: String,
-    time: String,
-    price: String,
-    rating: String,
-    @DrawableRes imageRes: Int,
-    tags: List<String>
-) {
+fun RecommendationCard(meeting: Meeting) {
     Card(
         modifier = Modifier
-            .width(200.dp)
-            .height(280.dp),
-        shape = RoundedCornerShape(20.dp), // Rounded corners for the whole card
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Drop shadow
+            .width(260.dp)
+            .height(340.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        // Box allows us to stack elements on top of each other (layers).
-        // Order: Bottom -> Top
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Layer 1 [Bottom]: Background Image
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = null, // Decorative image, no description needed
-                contentScale = ContentScale.Crop, // Crop image to fill the bounds
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Layer 2 [Middle]: Gradient Overlay
-            // This adds a dark shade at the bottom so white text remains readable.
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 상단: 이미지
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent, // Start clear at top
-                                Color.Black.copy(alpha = 0.7f) // Fade to dark at bottom
-                            ),
-                            startY = 300f // Adjust where the gradient starts
-                        )
-                    )
-            )
-
-            // Layer 3 [Top]: Text and Icon Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween // Push Heart to top, Text to bottom
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                // Top: Heart Icon
+                Image(
+                    painter = painterResource(id = meeting.imageRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 하단 태그 가독성을 위한 그라데이션 오버레이
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopEnd
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
+                            )
+                        )
+                )
+
+                // 태그 (하단 좌측)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "찜하기",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    meeting.tags.forEach { tag ->
+                        Surface(
+                            color = when (tag) {
+                                "혼잡" -> Color(0xFFFF6B6B)
+                                "여유" -> Color(0xFF6CF0A0)
+                                else -> Color(0xFF8B80FF)
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = tag,
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
 
-                // Bottom: Info
-                Column {
-                    // Tags
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        tags.forEach { tag ->
-                            Surface(
-                                color = if (tag == "혼잡") Color(0xFFFF6B6B) else Color(0xFF6C60FD),
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.height(22.dp)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                // 좋아요 아이콘 (우측 상단)
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "찜하기",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .size(28.dp)
+                        .align(Alignment.TopEnd)
+                )
+            }
+
+            // 하단: 상세 정보 (보라색 배경)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.9f)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color(0xFF7A6BFF), Color(0xFF6C60FD))
+                        )
+                    )
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = meeting.title,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${meeting.time} 예상 ${meeting.price}",
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 12.sp,
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "평점",
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = meeting.rating,
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
 
-                    // Title
-                    Text(
-                        text = title,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-
-                    // Details
-                    Text(
-                        text = "$time | 예상 $price",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-
-                    // Rating
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "평점",
-                            tint = Color.White,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
+                    Button(
+                        onClick = { /* TODO */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
                         Text(
-                            text = rating,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            text = "메이트 신청하기",
+                            color = Color.Black,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }

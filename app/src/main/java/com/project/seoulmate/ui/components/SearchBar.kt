@@ -29,26 +29,24 @@ fun SearchBar(
     Surface(
         modifier = modifier
             .fillMaxWidth() // Stretch to fill width
-            .height(50.dp)  // Set fixed height
+            .height(52.dp)  // Set fixed height
             .padding(horizontal = 24.dp) // Maintain consistent side padding
             .clickable(onClick = onSearchClick), // Make the whole bar clickable
-        shape = RoundedCornerShape(12.dp), // Rounded corners
-        color = Color(0xFFF4F4F4), // Light grey background
-        // Border: 1dp thick, slightly transparent black
-        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f))
+        shape = RoundedCornerShape(26.dp), // More rounded corners
+        color = Color(0xFFF8F8F8), // Very light grey background
     ) {
         // Row arranges items horizontally: [Icon] [Text]
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp), // Padding inside the bar
+                .padding(horizontal = 20.dp), // Padding inside the bar
             verticalAlignment = Alignment.CenterVertically // Center items vertically
         ) {
             // 1. Search Icon
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Search",
-                tint = Color(0xFF6C60FD), // Brand color tint
+                tint = Color(0xFFD3D3D3), // Light grey color for icon
                 modifier = Modifier.size(24.dp)
             )
             
@@ -56,10 +54,10 @@ fun SearchBar(
 
             // 2. Placeholder Text
             Text(
-                text = "어디로 가고 싶으신가요?", // "Where do you want to go?"
+                text = "10,000개 이상의 서울 만남 검색",
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 16.sp,
-                    color = Color(0xFF5E5E5E) // Dark grey text color
+                    fontSize = 15.sp,
+                    color = Color(0xFFD3D3D3) // Light grey text color
                 ),
                 maxLines = 1
             )

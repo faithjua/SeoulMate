@@ -1,0 +1,142 @@
+package com.project.seoulmate.ui.screens.home
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import com.project.seoulmate.ui.components.*
+import com.project.seoulmate.ui.navigation.Screen
+import com.project.seoulmate.ui.theme.SeoulMateTheme
+
+/**
+ * 홈 화면 Composable
+ *
+ * @param navController 화면 이동을 위한 NavController
+ * @param viewModel Hilt가 자동으로 주입하는 HomeViewModel
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    navController: NavHostController,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    // StateFlow를 Compose State로 수집
+    // collectAsStateWithLifecycle: 화면이 보이지 않을 때(백그라운드) 수집 중단 → 배터리 절약
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val recentMeetings by viewModel.recentMeetings.collectAsStateWithLifecycle()
+    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+
+    // 하단 네비게이션 선택 상태 (네비게이션 바 전용 UI 상태, 간단하므로 여기서 관리)
+    var selectedBottomItem by remember { mutableStateOf(0) }
+
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(
+                selectedItem = selectedBottomItem,
+                onItemSelected = { index ->
+                    when (index) {
+                        1 -> navController.navigate(Screen.Wishlist.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        2 -> navController.navigate(Screen.AddMeeting.route)
+                        else -> selectedBottomItem = index
+                    }
+                }
+            )
+        },
+        containerColor = Color.White
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 1. 상단 바 (로고 + 번역 버튼 + 알림 버튼)
+                TopBar(
+                    onTranslateClick = { /* TODO: 번역 기능 */ },
+                    onNotificationClick = {
+                        navController.navigate(Screen.Notifications.route)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 2. 검색 바
+                SearchBar(
+                    onSearchClick = { navController.navigate(Screen.Search.route) }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 3. 카테고리 섹션
+                // ViewModel에서 내려온 categories, selectedCategory 전달
+                CategorySection(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategoryClick = { category ->
+                        viewModel.onCategorySelected(category)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 4. 최근 본 만남 섹션
+                // ViewModel에서 내려온 recentMeetings 전달
+                RecommendationSection(
+                    modifier = Modifier.fillMaxWidth(),
+                    meetings = recentMeetings,
+                    onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 5. 인기 만남 섹션 타이틀
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .clickable(onClick = { /* TODO: 인기 페이지 이동 */ }),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "지금 인기있는 만남",
+                        color = Color.Black,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowRight,
+                        contentDescription = "더보기",
+                        tint = Color.Black,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
