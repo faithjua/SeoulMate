@@ -6,39 +6,31 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.project.seoulmate.ui.screens.HomeScreen
+import androidx.navigation.compose.rememberNavController
+import com.project.seoulmate.ui.navigation.AppNavGraph
 import com.project.seoulmate.ui.theme.SeoulMateTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * 앱의 진입점.
+ */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             SeoulMateTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    HomeScreen()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // NavController: 화면 이동 기록(백스택)을 관리하는 컨트롤러
+                    val navController = rememberNavController()
+                    // AppNavGraph: 모든 화면과 이동 경로가 정의된 네비게이션 그래프
+                    AppNavGraph(navController = navController)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-            text = "안녕하세요 $name!",
-            modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SeoulMateTheme {
-        Greeting("Seoul Mate")
     }
 }
