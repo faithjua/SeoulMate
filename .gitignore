@@ -1,11 +1,38 @@
-*.iml
-.gradle
-/local.properties
-/.idea
-.DS_Store
+gitignore
+# --- Gradle & Build ---
+.gradle/
+build/
 /build
 /captures
 .externalNativeBuild
-.cxx
+.cxx/
+*.aab
+*.apk
+output-metadata.json
+
+# --- Local Configuration (중요: 보안 관련) ---
 local.properties
+/local.properties
 google-services.json
+
+# --- OS / IDE Files ---
+*.log
+.DS_Store
+*.iml
+
+# IntelliJ / Android Studio
+.idea/
+/.idea
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# VS Code (추가해두면 좋습니다)
+.vscode/
+
+# --- Keystore (보안) ---
+*.jks
+*.keystore
+
+# --- Android Profiling ---
+*.hprof

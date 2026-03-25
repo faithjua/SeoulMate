@@ -1,9 +1,14 @@
 package com.project.seoulmate.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -18,43 +23,46 @@ import com.project.seoulmate.R
 @Composable
 fun SearchBar(
     modifier: Modifier = Modifier,
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {} // Lambda function callback for when search is clicked
 ) {
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
+    // Surface is a basic building block that handles background color, shape, and elevation.
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(46.dp),
-        placeholder = {
+            .fillMaxWidth() // Stretch to fill width
+            .height(52.dp)  // Set fixed height
+            .padding(horizontal = 24.dp) // Maintain consistent side padding
+            .clickable(onClick = onSearchClick), // Make the whole bar clickable
+        shape = RoundedCornerShape(26.dp), // More rounded corners
+        color = Color(0xFFF8F8F8), // Very light grey background
+    ) {
+        // Row arranges items horizontally: [Icon] [Text]
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp), // Padding inside the bar
+            verticalAlignment = Alignment.CenterVertically // Center items vertically
+        ) {
+            // 1. Search Icon
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = Color(0xFFD3D3D3), // Light grey color for icon
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp)) // Space between icon and text
+
+            // 2. Placeholder Text
             Text(
                 text = "10,000개 이상의 서울 만남 검색",
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF4035A9),
-                )
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 15.sp,
+                    color = Color(0xFFD3D3D3) // Light grey text color
+                ),
+                maxLines = 1
             )
-        },
-        leadingIcon = {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_search),
-                contentDescription = "검색",
-                tint = Color(0xFF4035A9)
-            )
-        },
-        shape = RoundedCornerShape(20.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledPlaceholderColor = Color(0xFF4035A9),
-            disabledLeadingIconColor = Color(0xFF4035A9),
-            disabledBorderColor = Color.Transparent,
-            disabledContainerColor = Color(0xFFF3F3F3)
-        ),
-        singleLine = true,
-        readOnly = true,
-        enabled = false
-    )
+        }
+    }
 }
 
 @Preview(showBackground = true)

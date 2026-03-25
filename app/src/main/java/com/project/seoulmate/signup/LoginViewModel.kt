@@ -4,6 +4,7 @@ package com.project.seoulmate.signup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.seoulmate.BuildConfig
 import com.project.seoulmate.signup.LoginRequest
 import com.project.seoulmate.signup.MemberResponse
 import com.project.seoulmate.signup.RetrofitClient
@@ -43,7 +44,7 @@ class LoginViewModel : ViewModel() {
                     role = "TRAVELER", // 기본값
                     nationality = "KR" // 기본값
                 )
-
+                Log.d("LoginViewModel", "요청 URL: ${BuildConfig.BASE_URL}") // 실제 어디로 쏘는지 로그 확인
                 // Retrofit 통신 발사!
                 val response = RetrofitClient.authApi.login("Bearer $idToken", request)
 
@@ -58,7 +59,7 @@ class LoginViewModel : ViewModel() {
                     _loginState.value = LoginState.Error("서버 에러: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "네트워크 에러 발생: ${e.message}", e)
+                Log.e("LoginViewModel", "네트워크 에러 발생: ${e.stackTraceToString()}", e)
                 _loginState.value = LoginState.Error("네트워크 에러: ${e.message}")
             }
         }

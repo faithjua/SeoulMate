@@ -26,6 +26,8 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
 
 @Composable
@@ -101,14 +103,35 @@ fun LoginScreen(
 
                             // 구글에서 무사히 정보를 받아왔다면?
                             if (credential is GoogleIdTokenCredential) {
-                                val idToken = credential.idToken // 🔑 가장 중요한 핵심 키!
+                                val googleIdToken = credential.idToken // 🔑 가장 중요한 핵심 키!
                                 val email = credential.id ?: ""
                                 val nickname = credential.displayName ?: "무명 여행자"
 
                                 Log.d("GoogleLogin", "토큰 발급 성공! 뷰모델로 넘깁니다.")
+                                // 💡 [수정된 핵심 로직] 구글 토큰을 Firebase Auth에 넘겨서 진짜 토큰을 받아옵니다.
+                                val firebaseCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
 
-                                //  UI의 임무는 끝. 알아서 서버로 다녀오라고 뷰모델에게 토스합니다!
-                                viewModel.loginToServer(idToken, email, nickname)
+                                FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            // Firebase 로그인 성공! 이제 진짜 Firebase 토큰을 뽑아냅니다.
+                                            val user = FirebaseAuth.getInstance().currentUser
+                                            user?.getIdToken(true)?.addOnCompleteListener { tokenTask ->
+                                                if (tokenTask.isSuccessful) {
+                                                    val firebaseToken = tokenTask.result?.token
+                                                    if (firebaseToken != null) {
+                                                        Log.d("GoogleLogin", "찐 Firebase 토큰 획득 성공! 뷰모델로 넘깁니다.")
+                                                        // 🚀 드디어 우리가 원하던 진짜 토큰을 서버로 쏩니다!
+                                                        viewModel.loginToServer(firebaseToken, email, nickname)
+                                                    }
+                                                } else {
+                                                    Log.e("GoogleLogin", "Firebase 토큰 추출 실패", tokenTask.exception)
+                                                }
+                                            }
+                                        } else {
+                                            Log.e("GoogleLogin", "Firebase 인증 실패", task.exception)
+                                        }
+                                    }
                             }
                         } catch (e: GetCredentialException) {
                             Log.e("GoogleLogin", "로그인 창 닫힘 또는 에러: ${e.message}")
