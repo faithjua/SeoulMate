@@ -18,13 +18,14 @@ class MeetingRepositoryImpl @Inject constructor() : MeetingRepository {
      // 카테고리 목록 반환
     override fun getCategories(): List<Category> = listOf(
         Category(id = "all", name = "전체메뉴", isAllMenu = true),
+         //Category(id = "lightning", name = "번개", iconRes = R.drawable.ic_lightning),
         Category(id = "tourism", name = "관광", iconRes = R.drawable.ic_tourism),
         Category(id = "kpop", name = "K-팝", iconRes = R.drawable.ic_kpop),
         Category(id = "kbeauty", name = "K-뷰티", iconRes = R.drawable.ic_kbeauty),
         Category(id = "shopping", name = "쇼핑", iconRes = R.drawable.ic_shopping),
-        Category(id = "food", name = "한식", iconRes = R.drawable.ic_food),
+        Category(id = "food", name = "한식", iconRes = R.drawable.ic_kfood),
         Category(id = "cafe", name = "카페", iconRes = R.drawable.ic_cafe),
-        Category(id = "transport", name = "교통 가이드", iconRes = R.drawable.ic_transport),
+        Category(id = "transport", name = "교통 가이드", iconRes = R.drawable.ic_subway),
         Category(id = "accommodation", name = "숙소/지역", iconRes = R.drawable.ic_accommodation),
         Category(id = "class", name = "클래스", iconRes = R.drawable.ic_class),
         Category(id = "community", name = "커뮤니티", iconRes = R.drawable.ic_community),

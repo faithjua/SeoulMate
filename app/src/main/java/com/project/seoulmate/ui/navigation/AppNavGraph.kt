@@ -7,6 +7,10 @@ import androidx.navigation.compose.composable
 import com.project.seoulmate.ui.screens.addmeeting.AddMeetingScreen
 import com.project.seoulmate.ui.screens.home.HomeScreen
 import com.project.seoulmate.ui.screens.notification.NotificationScreen
+import com.project.seoulmate.ui.screens.profile.ProfileScreen
+import com.project.seoulmate.ui.screens.meeting.MeetingDetailScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 /**
  * 앱의 화면 이동 경로(Navigation Graph)를 정의
@@ -28,6 +32,14 @@ sealed class Screen(val route: String) {
     object Search : Screen("search")
     /** 찜 화면 */
     object Wishlist : Screen("wishlist")
+    /** 코스 추가 화면 */
+    object AddCourse : Screen("add_course")
+    /** 프로필 화면 */
+    object Profile : Screen("profile")
+    /** 만남 상세 화면 */
+    object MeetingDetail : Screen("meeting_detail/{meetingId}") {
+        fun createRoute(meetingId: String) = "meeting_detail/$meetingId"
+    }
 }
 
 /**
@@ -59,6 +71,21 @@ fun AppNavGraph(navController: NavHostController) {
         // 찜 화면
         composable(route = Screen.Wishlist.route) {
             com.project.seoulmate.ui.screens.wishlist.WishlistScreen(navController = navController)
+        }
+        // 코스 추가 화면
+        composable(route = Screen.AddCourse.route) {
+            com.project.seoulmate.ui.screens.addcourse.AddCourseScreen(navController = navController)
+        }
+        // 프로필 화면
+        composable(route = Screen.Profile.route) {
+            ProfileScreen(navController = navController)
+        }
+        // 만남 상세 화면
+        composable(
+            route = Screen.MeetingDetail.route,
+            arguments = listOf(navArgument("meetingId") { type = NavType.StringType })
+        ) {
+            MeetingDetailScreen(navController = navController)
         }
     }
 }
