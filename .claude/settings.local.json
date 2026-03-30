@@ -1,8 +1,9 @@
 {
-  "outputStyle": "Explanatory",
   "permissions": {
     "allow": [
-      "Bash(./gradlew assembleDebug:*)"
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(./gradlew build:*)"
     ]
-  }
+  },
+  "outputStyle": "Explanatory"
 }

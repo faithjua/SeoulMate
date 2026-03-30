@@ -54,6 +54,11 @@ fun HomeScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.route)
+                        4 -> navController.navigate(Screen.Profile.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                         else -> selectedBottomItem = index
                     }
                 }
@@ -101,39 +106,48 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // 4. 최근 본 만남 섹션
-                // ViewModel에서 내려온 recentMeetings 전달
                 RecommendationSection(
+                    title = "최근 본 만남",
                     modifier = Modifier.fillMaxWidth(),
                     meetings = recentMeetings,
-                    onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ }
+                    onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ },
+                    onMeetingClick = { meetingId ->
+                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // 5. 당일 만남 섹션
+                RecommendationSection(
+                    title = "당일 만남",
+                    modifier = Modifier.fillMaxWidth(),
+                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                    onSeeAllClick = { /* TODO */ },
+                    onMeetingClick = { meetingId ->
+                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    }
+                )
 
-                // 5. 인기 만남 섹션 타이틀
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .clickable(onClick = { /* TODO: 인기 페이지 이동 */ }),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "지금 인기있는 만남",
-                        color = Color.Black,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                // 6. 맛집탐방 관련 만남 섹션
+                RecommendationSection(
+                    title = "맛집탐방 관련 만남",
+                    modifier = Modifier.fillMaxWidth(),
+                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                    onSeeAllClick = { /* TODO */ },
+                    onMeetingClick = { meetingId ->
+                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    }
+                )
 
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowRight,
-                        contentDescription = "더보기",
-                        tint = Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                // 7. 지금 인기있는 만남 섹션
+                RecommendationSection(
+                    title = "지금 인기있는 만남",
+                    modifier = Modifier.fillMaxWidth(),
+                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                    onSeeAllClick = { /* TODO */ },
+                    onMeetingClick = { meetingId ->
+                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
             }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -33,9 +34,11 @@ import com.project.seoulmate.data.model.Meeting
  */
 @Composable
 fun RecommendationSection(
+    title: String = "최근 본 만남",
     modifier: Modifier = Modifier,
     meetings: List<Meeting> = emptyList(),
-    onSeeAllClick: () -> Unit = {}
+    onSeeAllClick: () -> Unit = {},
+    onMeetingClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -51,10 +54,17 @@ fun RecommendationSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "최근 본 만남",
+                text = title,
                 color = Color.Black,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowRight,
+                contentDescription = "더보기",
+                tint = Color.Black,
+                modifier = Modifier.size(24.dp)
             )
         }
 
@@ -66,7 +76,10 @@ fun RecommendationSection(
             contentPadding = PaddingValues(horizontal = 24.dp)
         ) {
             items(meetings) { meeting ->
-                RecommendationCard(meeting = meeting)
+                RecommendationCard(
+                    meeting = meeting,
+                    onClick = onMeetingClick
+                )
             }
         }
     }
@@ -76,11 +89,12 @@ fun RecommendationSection(
  * 만남 카드 하나. Meeting 데이터 클래스를 받아 UI를 그립니다.
  */
 @Composable
-fun RecommendationCard(meeting: Meeting) {
+fun RecommendationCard(meeting: Meeting, onClick: (String) -> Unit = {}) {
     Card(
         modifier = Modifier
             .width(260.dp)
-            .height(340.dp),
+            .height(340.dp)
+            .clickable { onClick(meeting.id) },
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
