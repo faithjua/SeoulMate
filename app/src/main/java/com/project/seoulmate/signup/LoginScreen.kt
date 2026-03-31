@@ -1,92 +1,131 @@
 package com.project.seoulmate.signup
 
-
+import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.util.Log
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.project.seoulmate.R
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel(), //  뷰모델 연결!
-    onGoogleLoginClick: () -> Unit = {} //  밖에서 구글 로그인 기능을 연결할 수 있게 비워둡니다
+    viewModel: LoginViewModel = viewModel(),
+    onLoginTextClick: () -> Unit = {} //  하단 '로그인' 텍스트를 눌렀을 때의 동작을 위함
 ) {
-
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    //  Firebase 콘솔에서 복사해 둔 Web 클라이언트 ID를 여기에 넣으세요!
     val WEB_CLIENT_ID = "103184785151-cmr2evs6iu8kau7fi7oqgu5ajig7a1mo.apps.googleusercontent.com"
 
-    // 배경 그라데이션 (회원가입 화면과 동일한 테마)
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF7B61FF),
-            Color(0xFF8C64FF),
-            Color(0xFFFFD1E8)
-        )
-    )
+    // 시안에 맞는 배경 단색 컬러 (프로젝트 테마에 맞춰 미세조정 가능)
+    val backgroundColor = Color(0xFF6C60FD)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = backgroundBrush),
-        contentAlignment = Alignment.Center
+            .background(color = backgroundColor)
     ) {
+        //  상단 컨텐츠 영역 (아이콘, 타이틀, 서브타이틀)
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(bottom = 120.dp), // 하단 버튼 공간 확보를 위해 위로 살짝 올림
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. 앱 로고 및 타이틀 영역
+            // 1. [SVG 아이콘 자리]
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    // ① 둥근 사각형 모양의 은은한 그림자 (선택사항)
+                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(32.dp))
+                    // ② 사각형 배경색과 둥근 모서리 설정
+                    .background(
+                        color = Color(0xFF6C60FD), // 시안의 사각형 배경색(Hex 코드)
+                        shape = RoundedCornerShape(32.dp) // 모서리 둥글기
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo),
+                    contentDescription = "로고",
+                    contentScale = ContentScale.None
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 2. SEOUL MATE 타이틀 (MATE만 굵게 처리)
             Text(
-                text = "SeoulMate", // 서비스명으로 변경하세요!
-                fontSize = 40.sp,
-                fontWeight = FontWeight.ExtraBold,
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) {
+                        append("SEOUL ")
+                    }
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                        append("MATE")
+                    }
+                },
+                fontSize = 32.sp,
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // 3. 서브타이틀
             Text(
-                text = "현지인과 함께하는 진짜 여행",
+                text = "K-뷰티·덕질·탐방·클래스\n모두 동네의 서울 메이트와 함께",
                 fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f)
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                lineHeight = 24.sp
             )
+        }
 
-            Spacer(modifier = Modifier.height(80.dp))
-
-            // 2. 구글 로그인 버튼
+        //  하단 탭 영역 (버튼, 로그인 텍스트)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 24.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 4. 시작하기 버튼 (여기에 기존 구글 로그인 로직을 연결해두었습니다)
             Button(
                 onClick = {
                     coroutineScope.launch {
                         try {
                             val credentialManager = CredentialManager.create(context)
-
-                            // 구글 로그인 팝업창 세팅
                             val googleIdOption = GetGoogleIdOption.Builder()
                                 .setServerClientId(WEB_CLIENT_ID)
                                 .setFilterByAuthorizedAccounts(false)
@@ -97,35 +136,25 @@ fun LoginScreen(
                                 .addCredentialOption(googleIdOption)
                                 .build()
 
-                            //  여기서 스마트폰 바닥에서 계정 선택창이 스윽 올라옵니다!
                             val result = credentialManager.getCredential(context, request)
                             val credential = result.credential
 
-                            // 구글에서 무사히 정보를 받아왔다면?
                             if (credential is GoogleIdTokenCredential) {
-                                val googleIdToken = credential.idToken // 🔑 가장 중요한 핵심 키!
+                                val googleIdToken = credential.idToken
                                 val email = credential.id ?: ""
                                 val nickname = credential.displayName ?: "무명 여행자"
 
-                                Log.d("GoogleLogin", "토큰 발급 성공! 뷰모델로 넘깁니다.")
-                                // 💡 [수정된 핵심 로직] 구글 토큰을 Firebase Auth에 넘겨서 진짜 토큰을 받아옵니다.
                                 val firebaseCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
-
                                 FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
                                     .addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
-                                            // Firebase 로그인 성공! 이제 진짜 Firebase 토큰을 뽑아냅니다.
                                             val user = FirebaseAuth.getInstance().currentUser
                                             user?.getIdToken(true)?.addOnCompleteListener { tokenTask ->
                                                 if (tokenTask.isSuccessful) {
                                                     val firebaseToken = tokenTask.result?.token
                                                     if (firebaseToken != null) {
-                                                        Log.d("GoogleLogin", "찐 Firebase 토큰 획득 성공! 뷰모델로 넘깁니다.")
-                                                        // 🚀 드디어 우리가 원하던 진짜 토큰을 서버로 쏩니다!
                                                         viewModel.loginToServer(firebaseToken, email, nickname)
                                                     }
-                                                } else {
-                                                    Log.e("GoogleLogin", "Firebase 토큰 추출 실패", tokenTask.exception)
                                                 }
                                             }
                                         } else {
@@ -142,21 +171,36 @@ fun LoginScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(8.dp, RoundedCornerShape(28.dp)), // 둥글고 그림자 있는 버튼
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White // 구글 기본 스타일인 흰색 배경
+                    containerColor = Color.White
                 ),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(12.dp) // 시안에 맞춘 둥근 사각형
             ) {
-                // 구글 'G' 로고가 있다면 Row 안에 Image를 넣으면 더 완벽합니다.
                 Text(
-                    text = "Google로 계속하기",
-                    color = Color.Black,
+                    text = "시작하기",
+                    color = Color(0xFF333333), // 시안처럼 짙은 회색 텍스트
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 18.sp
                 )
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 5. 하단 로그인 안내 텍스트
+            Text(
+                text = buildAnnotatedString {
+                    append("이미 계정이 있나요? ")
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("로그인")
+                    }
+                },
+                color = Color.White,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clickable { onLoginTextClick() } // 클릭 시 로그인 화면으로 넘어가게 세팅
+                    .padding(8.dp) // 클릭 영역을 조금 넓혀주는 센스
+            )
         }
     }
 }

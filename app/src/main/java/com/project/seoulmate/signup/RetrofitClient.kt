@@ -10,8 +10,19 @@ import retrofit2.Retrofit
 //import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.OkHttpClient
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.POST
+import java.util.UUID
+import okhttp3.Interceptor
 
-
+// 1. AI API 통신 규격서
+interface AiApi {
+    @POST("/api/courses/ai-generate") // 스프링 부트 주소
+    suspend fun generateAiCourse(
+        @Body request: AiCourseRequest // 우리가 만든 요청 상자
+    ): Response<AiCourseResponse>      // 우리가 받을 응답 상자
+}
 object RetrofitClient {
     //애뮬레이터에서 내 서버에 접속하기 위한 URL
     private const val BASE_URL = BuildConfig.BASE_URL
@@ -21,22 +32,46 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    // 2. 로그 모니터링을 위해 추가하는 Trace ID 인터셉터 (헤더 주입용) ️
+    private val traceInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+
+        // 기존 요청을 복사하면서 헤더를 하나 끼워 넣습니다.
+        val newRequest = originalRequest.newBuilder()
+            .header("X-Trace-Id", UUID.randomUUID().toString()) // 매번 새로운 UUID 생성
+            .build()
+
+        // 변형된 새 요청을 서버로 보냅니다.
+        chain.proceed(newRequest)
+    }
     // 2. OkHttpClient 설정 (인터셉터 연결)
     private val client = OkHttpClient.Builder()
-        .addInterceptor(logging)
+        .addInterceptor(logging) //바디로그 찍는 용도
+        .addInterceptor( traceInterceptor ) //헤더에 ID 달아줌
         .build()
 
-    val authApi: AuthApi by lazy {
-        val json = Json {
-            ignoreUnknownKeys = true // 서버에서 오는 모르는 키는 무시
-            coerceInputValues = true
-        }
-        Retrofit.Builder()
-            .client(client)
-            .baseUrl(BASE_URL)
-            // Gson 대신 kotlinx-serialization 공식 컨버터 장착
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(AuthApi::class.java)
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
     }
+
+    //  1. 공통 붕어빵 기계(Retrofit)를 하나 딱 만들어 둡니다.
+    private val retrofit = Retrofit.Builder()
+        .client(client)
+        .baseUrl(BASE_URL)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    //  2. 기존 Auth API 뽑아내기
+    val authApi: AuthApi by lazy {
+        retrofit.create(AuthApi::class.java)
+    }
+
+    //  3. 우리가 쓸 AI API 쏙 뽑아내기! (이게 있어야 뷰모델에서 씁니다)
+    val aiApi: AiApi by lazy {
+        retrofit.create(AiApi::class.java)
+    }
+
+
+
 }

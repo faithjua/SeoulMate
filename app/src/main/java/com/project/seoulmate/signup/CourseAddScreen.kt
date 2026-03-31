@@ -1,5 +1,7 @@
 package com.project.seoulmate.signup
 
+import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,8 +27,34 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import com.project.seoulmate.R
 
+
+// 요청 상자 (Android -> Spring Boot)
+@Serializable
+data class AiCourseRequest(
+    val date: String,
+    val categories: List<String>,
+    val prompt: String
+)
+
+// 응답 상자 (Spring Boot -> Android)
+@Serializable
+data class AiCourseResponse(
+    val description: String,
+    val places: List<CourseLocation> // 기존에 만드신 클래스 재활용!
+)
 // 1. 코스 장소 데이터 클래스 (나중에 서버 JSON과 매핑될 녀석입니다)
+@Serializable
 data class CourseLocation(
     val name: String,
     val lat: Double = 0.0,
@@ -46,20 +74,35 @@ class CourseAddViewModel : ViewModel() {
         viewModelScope.launch {
             _isAiLoading.value = true
 
-            // 💡 실제로는 여기서 Spring Boot API를 호출합니다! (현재는 2초 대기하는 척)
-            delay(2000)
+            try {
+                // 1. 요청 상자에 더미 데이터와 유저의 프롬프트를 담습니다.
+                val requestDto = AiCourseRequest(
+                    date = "금요일 오후 7시",                 // 더미 날짜
+                    categories = listOf("#힙한카페", "#야경"), // 더미 카테고리
+                    prompt = prompt                      // 유저가 입력한 찐 프롬프트
+                )
 
-            // AI가 뱉어낸 JSON 결과라고 가정하고, 기존 리스트를 싹 '덮어쓰기' 합니다.
-            val dummyResult = listOf(
-                CourseLocation("경복궁"),
-                CourseLocation("북촌 한옥마을"),
-                CourseLocation("안국역 한옥 카페"),
-                CourseLocation("광장시장 자매집")
-            )
-            _courseLocations.value = dummyResult
+                // 2. Retrofit으로 스프링 부트에 슛! (RetrofitClient는 본인 플젝 설정에 맞게 변경)
+                val response = RetrofitClient.aiApi.generateAiCourse(requestDto)
 
-            _isAiLoading.value = false
-            onComplete() // 바텀 시트를 닫으라고 UI에 신호를 줍니다.
+                if (response.isSuccessful) {
+                    val aiResult = response.body()
+                    if (aiResult != null) {
+                        // 3. 스프링 부트가 준 진짜 장소 리스트로 화면을 덮어씁니다!
+                        _courseLocations.value = aiResult.places
+                        Log.d("AiCourse", "성공! AI 설명: ${aiResult.description}")
+                    }
+                } else {
+                    Log.e("AiCourse", "🚨 서버 에러: ${response.code()} / ${response.errorBody()?.string()}")
+                    // TODO: 나중에 여기에 "서버가 혼잡합니다" Toast 띄우기 로직 추가
+                }
+
+            } catch (e: Exception) {
+                Log.e("AiCourse", "🚨 통신 실패 (네트워크 문제 등): ${e.message}")
+            } finally {
+                _isAiLoading.value = false
+                onComplete() // 바텀 시트 닫기
+            }
         }
     }
 
@@ -83,26 +126,76 @@ class CourseAddViewModel : ViewModel() {
 // 3. 메인 UI 화면
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseAddScreen(viewModel: CourseAddViewModel = viewModel()) {
+fun CourseAddScreen(
+    viewModel: CourseAddViewModel = viewModel(),
+    onCloseClick: () -> Unit = {} // 닫기 버튼 콜백 추가
+) {
     val courseList by viewModel.courseLocations.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
 
     // 바텀 시트 상태 관리
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by remember { mutableStateOf(false) }
-    var promptText by remember { mutableStateOf("") }
+
+    // 시안에 맞춘 색상 정의
+    val backgroundColor = Color(0xFFF4F5F6) // 배경 연한 회색
+    val primaryColor = Color(0xFF6C60FD)    // 메인 보라색
+    val textColor = Color(0xFF333333)       // 짙은 회색 텍스트
+    val labelColor = Color(0xFF666666)      // 연한 회색 라벨
 
     Scaffold(
-        floatingActionButton = {
-            // 🌟 AI 코스 생성 버튼 (우측 하단 플로팅 버튼)
-            ExtendedFloatingActionButton(
-                onClick = { showBottomSheet = true },
-                containerColor = Color(0xFF7B61FF), // 앱 테마색 (보라색)
-                contentColor = Color.White
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "코스 추가",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onCloseClick) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "닫기",
+                            tint = primaryColor // 시안처럼 보라색 아이콘
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        },
+        containerColor = backgroundColor,
+        bottomBar = {
+            // 🌟 하단 고정 버튼 영역 (시안 맞춤)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 16.dp // 상단 그림자 효과
             ) {
-                Icon(Icons.Default.AutoAwesome, contentDescription = "AI")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("AI 코스 자동 완성")
+                Button(
+                    onClick = { /* 완료 로직 */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        disabledContainerColor = Color(0xFFE0E0E0) // 비활성화 시 회색
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = courseList.isNotEmpty() // 장소가 있을 때만 활성화
+                ) {
+                    Text(
+                        text = "완료",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -110,81 +203,198 @@ fun CourseAddScreen(viewModel: CourseAddViewModel = viewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 상단 타이틀
-            Text("코스 추가", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 가짜 지도 영역 (나중에 네이버 지도 뷰가 들어갈 자리)
-            Box(
+            // 🌟 메인 입력 폼 (흰색 카드)
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                    .weight(1f),
+                color = Color.White,
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text("지도 영역 (마커들이 찍힐 곳)", color = Color.DarkGray)
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-// --- [여기에 수동 검색창 추가!] ---
-            var manualSearchText by remember { mutableStateOf("") }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = manualSearchText,
-                    onValueChange = { manualSearchText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("지도에서 검색하거나 직접 입력하세요") },
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        viewModel.addLocationManual(manualSearchText)
-                        manualSearchText = "" // 텍스트 비우기
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
                 ) {
-                    Text("추가")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            // ---------------------------------
+                    // 1. 지역 섹션
+                    Text(
+                        text = "지역",
+                        color = primaryColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            // 이 밑으로는 원래 있던 장소 리스트 영역(if (courseList.isEmpty()) ...)이 이어집니다.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFE0E0E0)), // 지도 배경
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // TODO: 여기에 실제 지도 뷰(NaverMap 등)를 배치하세요!
+                        Text("지도 영역", color = textColor.copy(alpha = 0.6f))
 
-            // 장소 리스트 영역 (AI가 채워줄 곳)
-            if (courseList.isEmpty()) {
-                Text("아직 추가된 장소가 없습니다.\n우측 하단 버튼을 눌러 AI에게 코스를 부탁해보세요!", color = Color.Gray)
-            } else {
-                LazyColumn {
-                    itemsIndexed(courseList) { index, location ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        // 🔍 지도 위에 겹쳐진 검색창 (시안 맞춤)
+                        var manualSearchText by remember { mutableStateOf("") }
+                        Box(
                             modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Text("${index + 1}", fontWeight = FontWeight.Bold, color = Color.Gray)
-                            Spacer(modifier = Modifier.width(16.dp))
-                            // 장소 이름 칩
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                border = ButtonDefaults.outlinedButtonBorder,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = location.name,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(Color.White)
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(28.dp)
                                 )
-                            }
-                            // 삭제 버튼 (수동 편집 기능)
-                            IconButton(onClick = { viewModel.removeLocation(index) }) {
-                                Icon(Icons.Default.Close, contentDescription = "삭제", tint = Color.Gray)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            BasicTextField(
+                                value = manualSearchText,
+                                onValueChange = { manualSearchText = it },
+                                textStyle = TextStyle(
+                                    color = textColor,
+                                    fontSize = 15.sp
+                                ),
+                                cursorBrush = SolidColor(textColor),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "검색",
+                                            tint = Color(0xFFE0E0E0), // 연한 회색 아이콘
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        if (manualSearchText.isEmpty()) {
+                                            Text(
+                                                text = "지역을 입력해 주세요",
+                                                color = labelColor.copy(alpha = 0.6f),
+                                                fontSize = 15.sp
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 2. 세부 장소 섹션
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            text = "세부 장소",
+                            color = primaryColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "(선택 작성)",
+                            color = labelColor,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    var detailedPlaceText by remember { mutableStateOf("") }
+                    SignupInfoField(
+                        label = "", // 라벨은 위에서 따로 배치함
+                        value = detailedPlaceText,
+                        onValueChange = { detailedPlaceText = it },
+                        placeholderText = "예: 태릉입구역 6번 출구"
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 🌟 AI 코스 자동완성 버튼 (메인 카드 내부 플로팅 버튼)
+                    Button(
+                        onClick = { showBottomSheet = true },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .height(40.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "AI 코스 자동완성",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 3. 장소 리스트 영역
+                    if (courseList.isEmpty()) {
+                        Text(
+                            text = "아직 추가된 장소가 없습니다.",
+                            color = labelColor,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        LazyColumn {
+                            itemsIndexed(courseList) { index, location ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor,
+                                        modifier = Modifier.width(20.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    // 장소 이름 칩 (시안 맞춤)
+                                    Surface(
+                                        shape = RoundedCornerShape(20.dp),
+                                        border = ButtonDefaults.outlinedButtonBorder,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = location.name,
+                                            color = textColor,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                                        )
+                                    }
+                                    // 삭제 버튼 (수동 편집 기능)
+                                    IconButton(onClick = { viewModel.removeLocation(index) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "삭제",
+                                            tint = labelColor // 연한 회색 아이콘
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -193,52 +403,158 @@ fun CourseAddScreen(viewModel: CourseAddViewModel = viewModel()) {
         }
     }
 
-    // 4. 대망의 AI 프롬프트 바텀 시트
+    // 4. 대망의 AI 프롬프트 바텀 시트 (시안 맞춤)
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
+            var promptText by remember { mutableStateOf("") }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("🤖 AI에게 어떤 투어를 원하시나요?", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
+                // 1. [SVG 로고 자리] (시안 맞춤 겹치기)
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(
+                            color = Color(0xFFF4F5F6), // 사각형 배경색
+                            shape = RoundedCornerShape(24.dp) // 모서리 둥글기
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_logo),
+                        contentDescription = "로고",
+                        contentScale = ContentScale.None
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
 
-                OutlinedTextField(
+                // 2. 타이틀
+                Text(
+                    text = "무슨 코스를 완성해드릴까요?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 3. 입력창 (시안 맞춤)
+                SignupInfoField(
+                    label = "",
                     value = promptText,
                     onValueChange = { promptText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("예: 외국인 친구랑 갈 종로 3시간 맛집 투어") },
-                    enabled = !isAiLoading
+                    placeholderText = "예:"
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
+                // 4. 코스 완성하기 버튼 (로직 유지)
                 Button(
                     onClick = {
                         viewModel.generateCourseFromAi(promptText) {
-                            // 통신이 끝나면 바텀 시트를 닫고 텍스트를 비웁니다.
                             showBottomSheet = false
-                            promptText = ""
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B61FF)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        disabledContainerColor = Color(0xFFE0E0E0) // 비활성화 시 회색
+                    ),
+                    shape = RoundedCornerShape(12.dp),
                     enabled = promptText.isNotBlank() && !isAiLoading
                 ) {
                     if (isAiLoading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("AI가 코스를 짜는 중...")
                     } else {
-                        Text("코스 생성하기")
+                        Text(
+                            text = "코스 완성하기",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+// 💡 회원가입 화면에서 사용한 SignupInfoField 재활용/커스텀
+@Composable
+fun SignupInfoField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholderText: String = "",
+    readOnly: Boolean = false
+) {
+    val primaryColor = Color(0xFF6C60FD)
+    val textColor = Color(0xFF333333)
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (label.isNotEmpty()) {
+            Text(
+                text = label,
+                color = primaryColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White) // 흰색 배경
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE0E0E0),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = readOnly,
+                textStyle = TextStyle(
+                    color = textColor,
+                    fontSize = 15.sp
+                ),
+                cursorBrush = SolidColor(textColor),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                decorationBox = { innerTextField ->
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholderText,
+                            color = Color(0xFFE0E0E0), // 연한 회색 플레이스홀더
+                            fontSize = 15.sp
+                        )
+                    }
+                    innerTextField()
+                }
+            )
         }
     }
 }
