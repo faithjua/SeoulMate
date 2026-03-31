@@ -44,7 +44,7 @@ fun WishlistScreen(
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
 
-    // 알림 개수를 저장하는 상태 변수 (원하는 대로 숫자를 바꿀 수 있습니다)
+    // 알림 개수를 저장하는 상태 변수
     var unreadAlarmCount by remember { mutableStateOf(2) }
 
     Scaffold(

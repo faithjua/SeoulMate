@@ -1,4 +1,4 @@
-package com.project.seoulmate.signup
+/*package com.project.seoulmate.signup
 
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -39,89 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import com.project.seoulmate.R
 
 
-// 요청 상자 (Android -> Spring Boot)
-@Serializable
-data class AiCourseRequest(
-    val date: String,
-    val categories: List<String>,
-    val prompt: String
-)
 
-// 응답 상자 (Spring Boot -> Android)
-@Serializable
-data class AiCourseResponse(
-    val description: String,
-    val places: List<CourseLocation> // 기존에 만드신 클래스 재활용!
-)
-// 1. 코스 장소 데이터 클래스 (나중에 서버 JSON과 매핑될 녀석입니다)
-@Serializable
-data class CourseLocation(
-    val name: String,
-    val lat: Double = 0.0,
-    val lng: Double = 0.0
-)
 
-// 2. 뷰모델: 화면의 상태(장소 리스트, 로딩 상태)를 관리합니다.
-class CourseAddViewModel : ViewModel() {
-    private val _courseLocations = MutableStateFlow<List<CourseLocation>>(emptyList())
-    val courseLocations: StateFlow<List<CourseLocation>> = _courseLocations.asStateFlow()
 
-    private val _isAiLoading = MutableStateFlow(false)
-    val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
-
-    // AI에게 프롬프트를 보내고 결과를 받아오는 가짜(Dummy) 함수
-    fun generateCourseFromAi(prompt: String, onComplete: () -> Unit) {
-        viewModelScope.launch {
-            _isAiLoading.value = true
-
-            try {
-                // 1. 요청 상자에 더미 데이터와 유저의 프롬프트를 담습니다.
-                val requestDto = AiCourseRequest(
-                    date = "금요일 오후 7시",                 // 더미 날짜
-                    categories = listOf("#힙한카페", "#야경"), // 더미 카테고리
-                    prompt = prompt                      // 유저가 입력한 찐 프롬프트
-                )
-
-                // 2. Retrofit으로 스프링 부트에 슛! (RetrofitClient는 본인 플젝 설정에 맞게 변경)
-                val response = RetrofitClient.aiApi.generateAiCourse(requestDto)
-
-                if (response.isSuccessful) {
-                    val aiResult = response.body()
-                    if (aiResult != null) {
-                        // 3. 스프링 부트가 준 진짜 장소 리스트로 화면을 덮어씁니다!
-                        _courseLocations.value = aiResult.places
-                        Log.d("AiCourse", "성공! AI 설명: ${aiResult.description}")
-                    }
-                } else {
-                    Log.e("AiCourse", "🚨 서버 에러: ${response.code()} / ${response.errorBody()?.string()}")
-                    // TODO: 나중에 여기에 "서버가 혼잡합니다" Toast 띄우기 로직 추가
-                }
-
-            } catch (e: Exception) {
-                Log.e("AiCourse", "🚨 통신 실패 (네트워크 문제 등): ${e.message}")
-            } finally {
-                _isAiLoading.value = false
-                onComplete() // 바텀 시트 닫기
-            }
-        }
-    }
-
-    // 수동으로 장소를 1개씩 맨 뒤에 추가하는 기능
-    fun addLocationManual(name: String) {
-        if (name.isNotBlank()) {
-            val currentList = _courseLocations.value.toMutableList()
-            currentList.add(CourseLocation(name)) // 유저가 친 장소를 쏙 넣음
-            _courseLocations.value = currentList
-        }
-    }
-
-    // 수동으로 장소 삭제하는 기능 (하이브리드 UX의 핵심!)
-    fun removeLocation(index: Int) {
-        val currentList = _courseLocations.value.toMutableList()
-        currentList.removeAt(index)
-        _courseLocations.value = currentList
-    }
-}
 
 // 3. 메인 UI 화면
 @OptIn(ExperimentalMaterial3Api::class)
@@ -558,3 +478,5 @@ fun SignupInfoField(
         }
     }
 }
+
+ */

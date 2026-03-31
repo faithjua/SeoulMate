@@ -13,10 +13,17 @@ import com.project.seoulmate.signup.LoginViewModel
 import com.project.seoulmate.ui.screens.addmeeting.AddMeetingScreen
 import com.project.seoulmate.ui.screens.home.HomeScreen
 import com.project.seoulmate.ui.screens.notification.NotificationScreen
+
 import com.project.seoulmate.signup.LoginScreen
 import com.project.seoulmate.signup.SignupScreen
-import com.project.seoulmate.signup.CourseAddScreen
-import com.project.seoulmate.signup.CourseAddViewModel
+//import com.project.seoulmate.signup.CourseAddScreen
+//import com.project.seoulmate.signup.CourseAddViewModel
+import com.project.seoulmate.ui.screens.profile.ProfileScreen
+import com.project.seoulmate.ui.screens.meeting.MeetingDetailScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import androidx.hilt.navigation.compose.hiltViewModel
+
 
 /**
  * 앱의 화면 이동 경로(Navigation Graph)를 정의
@@ -44,8 +51,17 @@ sealed class Screen(val route: String) {
     object Wishlist : Screen("wishlist")
 
     //test for add
-    object CourseAdd : Screen("course_add")
+    //object CourseAdd : Screen("course_add")
 
+
+    /** 코스 추가 화면 */
+    object AddCourse : Screen("add_course")
+    /** 프로필 화면 */
+    object Profile : Screen("profile")
+    /** 만남 상세 화면 */
+    object MeetingDetail : Screen("meeting_detail/{meetingId}") {
+        fun createRoute(meetingId: String) = "meeting_detail/$meetingId"
+    }
 }
 
 /**
@@ -55,7 +71,7 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    loginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = hiltViewModel()
 ) {
 
     
@@ -90,6 +106,7 @@ fun AppNavGraph(
     ) {
         // --- 인증 관련 화면 ---
         composable(route = Screen.Login.route) {
+            //별도로 넘겨주지 않아도 LoginScreen 내부에서 hiltViewModel()을 호출하면 동일한 인스턴스를 참조하게 할 수 있습니다.
             LoginScreen(viewModel = loginViewModel)
         }
 
@@ -127,9 +144,26 @@ fun AppNavGraph(
         composable(route = Screen.Wishlist.route) {
             com.project.seoulmate.ui.screens.wishlist.WishlistScreen(navController = navController)
         }
+
         // 테스트 코스추가화면
-        composable(route = Screen.CourseAdd.route) {
-            CourseAddScreen()
+        //composable(route = Screen.CourseAdd.route) {
+        //    CourseAddScreen()
+
+        // 코스 추가 화면
+        composable(route = Screen.AddCourse.route) {
+            com.project.seoulmate.ui.screens.addcourse.AddCourseScreen(navController = navController)
+        }
+        // 프로필 화면
+        composable(route = Screen.Profile.route) {
+            ProfileScreen(navController = navController)
+        }
+        // 만남 상세 화면
+        composable(
+            route = Screen.MeetingDetail.route,
+            arguments = listOf(navArgument("meetingId") { type = NavType.StringType })
+        ) {
+            MeetingDetailScreen(navController = navController)
+
         }
     }
 }

@@ -7,12 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.project.seoulmate.BuildConfig
 import com.project.seoulmate.signup.LoginRequest
 import com.project.seoulmate.signup.MemberResponse
-import com.project.seoulmate.signup.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.util.Log
+import com.project.seoulmate.data.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 // 화면의 상태를 정의합니다 (대기, 로딩, 성공, 실패)
 sealed class LoginState {
@@ -21,8 +23,11 @@ sealed class LoginState {
     data class Success(val member: MemberResponse) : LoginState()
     data class Error(val message: String) : LoginState()
 }
-
-class LoginViewModel : ViewModel() {
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    // 나중에 여기에 Repository나 Api를 주입받게 됨
+    private val authRepository: AuthRepository // Hilt가 NetworkModule에서 만든 걸 알아서 넣어줌
+) : ViewModel() {
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
@@ -45,8 +50,8 @@ class LoginViewModel : ViewModel() {
                     nationality = "KR" // 기본값
                 )
                 Log.d("LoginViewModel", "요청 URL: ${BuildConfig.BASE_URL}") // 실제 어디로 쏘는지 로그 확인
-                // Retrofit 통신 발사!
-                val response = RetrofitClient.authApi.login("Bearer $idToken", request)
+                // NetworkModule통한 api 통신
+                val response = authRepository.login("Bearer $idToken", request)
 
                 if (response.isSuccessful && response.body() != null) {
                     // 성공! (백엔드 DB에 저장됨)

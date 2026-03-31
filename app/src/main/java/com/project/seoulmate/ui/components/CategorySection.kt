@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,18 +40,30 @@ fun CategorySection(
     onCategoryClick: (Category) -> Unit = {}
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        val scrollState = rememberScrollState()
+        val scrollProgress = if (scrollState.maxValue > 0) {
+            scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+        } else {
+            0f
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scrollState)
         ) {
-            items(categories) { category ->
+            Spacer(modifier = Modifier.width(24.dp))
+            categories.forEachIndexed { index, category ->
                 CategoryIconItem(
                     category = category,
                     isSelected = category == selectedCategory,
                     onClick = { onCategoryClick(category) }
                 )
+                if (index < categories.size - 1) {
+                    Spacer(modifier = Modifier.width(16.dp))
+                }
             }
+            Spacer(modifier = Modifier.width(24.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -62,15 +74,21 @@ fun CategorySection(
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth()
                 .height(2.dp)
-                .background(Color(0xFFE0E0E0), RoundedCornerShape(1.dp)),
-            contentAlignment = Alignment.CenterStart
+                .background(Color(0xFFE0E0E0), RoundedCornerShape(1.dp))
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.3f)
-                    .height(2.dp)
-                    .background(Color(0xFF6C60FD), RoundedCornerShape(1.dp))
-            )
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val indicatorWidth = maxWidth * 0.3f
+                val maxOffset = maxWidth - indicatorWidth
+                val currentOffset = maxOffset * scrollProgress
+
+                Box(
+                    modifier = Modifier
+                        .offset(x = currentOffset)
+                        .width(indicatorWidth)
+                        .fillMaxHeight()
+                        .background(Color(0xFF6C60FD), RoundedCornerShape(1.dp))
+                )
+            }
         }
     }
 }
@@ -81,37 +99,36 @@ fun CategoryIconItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val borderColor = if (isSelected) Color(0xFF6C60FD) else Color(0xFFEAEAEA)
-    val backgroundColor = if (isSelected) Color(0xFF6C60FD) else Color.White
+    val backgroundColor = if (isSelected) Color(0xFF6C60FD) else Color(0xFFF6F6F6)
+    val iconTint = if (isSelected) Color.White else Color(0xFF6C60FD)
     val textColor = if (isSelected) Color.Black else Color(0xFF888888)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(backgroundColor)
-                .border(1.dp, borderColor, CircleShape),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(64.dp),
+            shape = CircleShape,
+            color = backgroundColor,
+            shadowElevation = 2.dp // 피그마와 비슷한 입체감 추가
         ) {
-            if (category.isAllMenu) {
-                Icon(
-                    imageVector = Icons.Rounded.GridView,
-                    contentDescription = category.name,
-                    tint = if (isSelected) Color.White else Color(0xFF6C60FD),
-                    modifier = Modifier.size(28.dp)
-                )
-            } else if (category.iconRes != null) {
-                Image(
-                    painter = painterResource(id = category.iconRes),
-                    contentDescription = category.name,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                if (category.isAllMenu) {
+                    Icon(
+                        imageVector = Icons.Rounded.GridView,
+                        contentDescription = category.name,
+                        tint = iconTint,
+                        modifier = Modifier.size(28.dp)
+                    )
+                } else if (category.iconRes != null) {
+                    Icon(
+                        painter = painterResource(id = category.iconRes),
+                        contentDescription = category.name,
+                        tint = iconTint,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
 

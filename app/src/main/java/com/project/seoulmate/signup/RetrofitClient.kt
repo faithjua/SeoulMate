@@ -1,4 +1,4 @@
-package com.project.seoulmate.signup
+/*package com.project.seoulmate.signup
 
 //package com.project.seoulmate.network
 import com.project.seoulmate.BuildConfig
@@ -16,13 +16,7 @@ import retrofit2.http.POST
 import java.util.UUID
 import okhttp3.Interceptor
 
-// 1. AI API 통신 규격서
-interface AiApi {
-    @POST("/api/courses/ai-generate") // 스프링 부트 주소
-    suspend fun generateAiCourse(
-        @Body request: AiCourseRequest // 우리가 만든 요청 상자
-    ): Response<AiCourseResponse>      // 우리가 받을 응답 상자
-}
+
 object RetrofitClient {
     //애뮬레이터에서 내 서버에 접속하기 위한 URL
     private const val BASE_URL = BuildConfig.BASE_URL
@@ -75,3 +69,4 @@ object RetrofitClient {
 
 
 }
+ */

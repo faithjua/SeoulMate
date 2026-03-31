@@ -253,13 +253,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SignupScreen(
     idToken: String,
     email: String,
-    onSignupSuccess: () -> Unit
+    onSignupSuccess: () -> Unit,
+    viewModel: SignupViewModel = hiltViewModel()
 ) {
     var nickname by remember { mutableStateOf("소울이") }
     var role by remember { mutableStateOf("TRAVELER") }
@@ -346,6 +348,22 @@ fun SignupScreen(
                 // '이대로 완료' 버튼 (로직 유지)
                 Button(
                     onClick = {
+                        // 2. 직접 통신하지 않고 뷰모델에 위임
+                        viewModel.performSignup(
+                            idToken = idToken,
+                            email = email,
+                            nickname = nickname,
+                            role = role,
+                            nationality = nationality,
+                            onSuccess = {
+                                android.util.Log.d("Signup", "🔥 가입완료!")
+                                onSignupSuccess()
+                            },
+                            onError = { message ->
+                                android.util.Log.e("Signup", "🚨 실패: $message")
+                            }
+                        )
+                        /*
                         coroutineScope.launch {
                             try {
                                 val request = LoginRequest(
@@ -356,7 +374,7 @@ fun SignupScreen(
                                 )
                                 android.util.Log.d("Signup", "서버로 쏘는 토큰: Bearer $idToken")
 
-                                val response = RetrofitClient.authApi.login("Bearer $idToken", request)
+                                val response = authRepository.login("Bearer $idToken", request)
 
                                 if (response.isSuccessful) {
                                     val memberInfo = response.body()
@@ -370,6 +388,8 @@ fun SignupScreen(
                                 android.util.Log.e("Signup", "🚨 통신 실패: ${e.message}")
                             }
                         }
+
+                         */
                     },
                     modifier = Modifier
                         .weight(1f)
