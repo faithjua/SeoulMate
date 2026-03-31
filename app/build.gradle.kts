@@ -124,5 +124,8 @@ dependencies {
     implementation("com.naver.maps:map-sdk:3.23.1")
     // Compose용 네이버 지도 라이브러리
     implementation("io.github.fornewid:naver-map-compose:1.5.7")
+
+    //로그를 위한 timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
 }
 

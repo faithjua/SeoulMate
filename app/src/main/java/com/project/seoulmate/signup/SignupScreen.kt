@@ -363,33 +363,6 @@ fun SignupScreen(
                                 android.util.Log.e("Signup", "🚨 실패: $message")
                             }
                         )
-                        /*
-                        coroutineScope.launch {
-                            try {
-                                val request = LoginRequest(
-                                    email = email,
-                                    nickname = nickname,
-                                    role = role.uppercase(),
-                                    nationality = nationality
-                                )
-                                android.util.Log.d("Signup", "서버로 쏘는 토큰: Bearer $idToken")
-
-                                val response = authRepository.login("Bearer $idToken", request)
-
-                                if (response.isSuccessful) {
-                                    val memberInfo = response.body()
-                                    android.util.Log.d("Signup", "🔥 가입완료! 회원번호: ${memberInfo?.id}")
-                                    onSignupSuccess()
-                                } else {
-                                    val errorMsg = response.errorBody()?.string()
-                                    android.util.Log.e("Signup", "🚨 서버 에러: ${response.code()}, 내용: $errorMsg")
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("Signup", "🚨 통신 실패: ${e.message}")
-                            }
-                        }
-
-                         */
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -411,7 +384,7 @@ fun SignupScreen(
     }
 }
 
-// 💡 텍스트 필드를 시안처럼 하얀 배경 + 보라색 글씨로 커스텀
+//  텍스트 필드를 시안처럼 하얀 배경 + 보라색 글씨로 커스텀
 @Composable
 fun SignupInfoField(
     label: String,

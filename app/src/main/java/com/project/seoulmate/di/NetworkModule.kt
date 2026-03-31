@@ -17,6 +17,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import timber.log.Timber
 
 @Module
 @InstallIn(SingletonComponent::class) // 앱 전체에서 하나만 유지됨 (싱글톤)
@@ -32,9 +33,21 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+        val logging = HttpLoggingInterceptor{ message ->
+            Timber.tag("OkHttp_SeoulMate").d(message)
+        }.apply {
+            //level = HttpLoggingInterceptor.Level.BODY
+            // BuildConfig.DEBUG를 사용하여 디버그 모드일 때만 BODY 로그를 찍고,
+            // 출시용(Release) 앱에서는 로그를 아예 찍지 않거나 최소화합니다.
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+            // 특정 헤더(Authorization)만 로그에서 가림
+            redactHeader("Authorization")
         }
+
 
         val traceInterceptor = Interceptor { chain ->
             val originalRequest = chain.request()
@@ -51,7 +64,6 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS) // 서버 연결 시도 제한 시간
             .readTimeout(30, TimeUnit.SECONDS)    // 서버로부터 응답 데이터를 읽는 제한 시간
             .writeTimeout(30, TimeUnit.SECONDS)   // 서버로 데이터를 보내는 제한 시간
-
             .build()
     }
 

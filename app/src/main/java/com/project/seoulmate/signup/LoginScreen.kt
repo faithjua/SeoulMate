@@ -122,7 +122,7 @@ fun LoginScreen(
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 4. 시작하기 버튼 (여기에 기존 구글 로그인 로직을 연결해두었습니다)
+            // 4. 시작하기 버튼-구글 로그인 로직
             Button(
                 onClick = {
                     coroutineScope.launch {

@@ -50,9 +50,6 @@ sealed class Screen(val route: String) {
     /** 찜 화면 */
     object Wishlist : Screen("wishlist")
 
-    //test for add
-    //object CourseAdd : Screen("course_add")
-
 
     /** 코스 추가 화면 */
     object AddCourse : Screen("add_course")
@@ -145,9 +142,6 @@ fun AppNavGraph(
             com.project.seoulmate.ui.screens.wishlist.WishlistScreen(navController = navController)
         }
 
-        // 테스트 코스추가화면
-        //composable(route = Screen.CourseAdd.route) {
-        //    CourseAddScreen()
 
         // 코스 추가 화면
         composable(route = Screen.AddCourse.route) {
