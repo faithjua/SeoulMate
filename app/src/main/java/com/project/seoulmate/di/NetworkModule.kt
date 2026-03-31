@@ -15,6 +15,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -46,6 +47,11 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(traceInterceptor)
+            // ------------------------------- 첫 로그인시 시간이 오래 걸림
+            .connectTimeout(30, TimeUnit.SECONDS) // 서버 연결 시도 제한 시간
+            .readTimeout(30, TimeUnit.SECONDS)    // 서버로부터 응답 데이터를 읽는 제한 시간
+            .writeTimeout(30, TimeUnit.SECONDS)   // 서버로 데이터를 보내는 제한 시간
+
             .build()
     }
 
@@ -54,7 +60,7 @@ object NetworkModule {
     fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
         return Retrofit.Builder()
             .client(okHttpClient)
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl(BuildConfig.BASE_URL) // local.properties에 정의한 BASE_URL
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }

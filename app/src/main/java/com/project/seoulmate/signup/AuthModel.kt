@@ -41,9 +41,9 @@ data class AiCourseRequest(
 @Serializable
 data class AiCourseResponse(
     val description: String,
-    val places: List<CourseLocation> // 기존에 만드신 클래스 재활용!
+    val places: List<CourseLocation>
 )
-// 1. 코스 장소 데이터 클래스 (나중에 서버 JSON과 매핑될 녀석입니다)
+// 1. 코스 장소 데이터 클래스 (나중에 서버 JSON과 매핑)
 @Serializable
 data class CourseLocation(
     val name: String,

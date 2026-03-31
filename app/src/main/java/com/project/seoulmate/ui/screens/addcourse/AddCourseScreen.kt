@@ -31,32 +31,32 @@ import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.compose.*
 import com.project.seoulmate.R
-import com.project.seoulmate.signup.CourseAddViewModel
+import com.project.seoulmate.ui.screens.addcourse.AddCourseViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalNaverMapApi::class)
 @Composable
 fun AddCourseScreen(
     navController: NavHostController,
-    viewModel: CourseAddViewModel = hiltViewModel()
+    viewModel: AddCourseViewModel = hiltViewModel()
 ) {
-    // 💡 1. 이전 화면에서 넘어온 데이터 바구니 꺼내기
+    // 이전 화면에서 넘어온 데이터 바구니 꺼내기
     val passedDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_date") ?: "날짜 미정"
     val passedCategoriesText = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_categories") ?: ""
-    // 💡 [추가된 부분] 인원과 예산 꺼내기
+    //  인원과 예산 꺼내기
     val passedMembers = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_members") ?: "인원 미정"
     val passedCost = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_cost") ?: "예산 미정"
-    // 2. 뷰모델 상태 관찰
+    //  뷰모델 상태 관찰
     val courseList by viewModel.courseLocations.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
     // 코스설명 가져오기
     val aiDescription by viewModel.aiDescription.collectAsState()
 
-    // 💡 3. 바텀 시트 상태 부활!
+    //  바텀 시트 상태
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by remember { mutableStateOf(false) }
     var promptText by remember { mutableStateOf("") }
 
-    // 4. 로컬 UI 상태
+    //  로컬 UI 상태
     var searchQuery by remember { mutableStateOf("") }
     var detailLocation by remember { mutableStateOf("") }
 
@@ -85,7 +85,7 @@ fun AddCourseScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                // 💡버튼 누르면 바로 통신하는게 아니라 바텀 시트를 엽니다!
+                // 버튼 누르면 바로 통신하는게 아니라 바텀 시트를 열어서 프롬프트 입력
                 ExtendedFloatingActionButton(
                     onClick = { showBottomSheet = true },
                     containerColor = Color(0xFF6C60FD),
@@ -95,7 +95,7 @@ fun AddCourseScreen(
                     text = { Text("AI 코스 자동완성", fontWeight = FontWeight.Bold) }
                 )
 
-                // 💡 [수정] 완료 버튼 누르면 리스트를 바구니에 담아 돌아갑니다.
+                // 완료 버튼 누르면 리스트를 바구니에 담아 돌아감
                 Button(
                     onClick = {
                         val finalCourseNames = courseList.map { it.name }
@@ -119,7 +119,7 @@ fun AddCourseScreen(
             }
         }
     ) { paddingValues ->
-        // LazyColumn 구조 유지 (동료분 코드)
+        // LazyColumn 구조 유지
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -209,7 +209,7 @@ fun AddCourseScreen(
                 }
             }
 
-            // 🌟 코스 리스트 출력 (동료분 디자인 유지)
+            // 코스 리스트 출력
             itemsIndexed(courseList) { index, location ->
                 Row(
                     modifier = Modifier
@@ -255,7 +255,7 @@ fun AddCourseScreen(
         }
     }
 
-    // 🌟 AI 코스 생성 클릭시 뜰 바텀 시트
+    // AI 코스 생성 클릭시 뜰 바텀 시트
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
