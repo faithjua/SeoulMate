@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.project.seoulmate.ui.components.*
+import com.project.seoulmate.ui.navigation.Screen
 
 /**
  * 만남 등록 화면 Composable.
@@ -34,6 +35,34 @@ fun AddMeetingScreen(
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     // 저장/등록 완료 이벤트 수집
     val uiEvent by viewModel.uiEvent.collectAsStateWithLifecycle()
+
+    /**
+     * 카테고리, 장소/시간 정보 공유를 위한 추가 코드
+     */
+    // 💡 [추가] 1. 코스 화면에서 AI가 짠 코스를 들고 돌아왔을 때 받아주는 로직
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val returnedCourses by savedStateHandle?.getStateFlow<List<String>>("generated_courses", emptyList())
+        ?.collectAsStateWithLifecycle(initialValue = emptyList()) ?: remember{mutableStateOf(emptyList())}
+
+    // 💡 1. 돌아온 AI 설명 받는 로직 추가
+    val returnedDescription by savedStateHandle?.getStateFlow<String>("ai_description", "")
+        ?.collectAsStateWithLifecycle(initialValue = "") ?: remember{mutableStateOf("")} //savedStateHandle이 null로 오면 화면 다시그릴때마다 객체 무한생성해서 remember로 감쌈
+
+    // 💡 2. LaunchedEffect에서 코스와 설명을 모두 처리하도록 수정
+    LaunchedEffect(returnedCourses, returnedDescription) {
+        if (returnedCourses.isNotEmpty()) {
+            returnedCourses.forEach { viewModel.addCourse(it) }
+            savedStateHandle?.remove<List<String>>("generated_courses")
+        }
+
+        if (returnedDescription.isNotBlank()) {
+            // AI가 써준 설명을 [만남 소개] 폼 상태에 덮어쓰기!
+            viewModel.updateDescription(returnedDescription)
+            savedStateHandle?.remove<String>("ai_description")
+        }
+    }
+    //여기까지 추가
+
 
     // uiEvent 처리: NavigateBack 이벤트 발생 시 이전 화면(홈)으로 이동
     LaunchedEffect(uiEvent) {
@@ -134,11 +163,29 @@ fun AddMeetingScreen(
                 )
             }
 
-            // 코스 섹션
+            // 💡 [수정] 2. 코스 섹션: 버튼 누를 때 날짜와 카테고리를 바구니에 담아 출발!
             FormSection(title = "코스", required = true) {
                 CourseSection(
                     courses = formState.courses,
-                    onAddClick = { navController.navigate("add_course") }, // TODO: 실제 라우트로 변경
+                    onAddClick = {
+                        // timeSlots에서 첫 번째 값을 날짜로, 선택된 카테고리들을 쉼표로 연결
+                        val dateToPass = formState.timeSlots.firstOrNull() ?: "날짜 미정"
+                        val categoriesToPass = formState.selectedCategories.joinToString(", ")
+                        // 💡 [추가된 부분] 인원과 예산 데이터 다듬기 (비어있을 경우 예외 처리)
+                        val minMem = formState.minMembers.ifBlank { "제한 없음" }
+                        val maxMem = formState.maxMembers.ifBlank { "제한 없음" }
+                        val cost = formState.expectedCost.ifBlank { "제한 없음" }
+
+                        // 💡 [추가된 부분] 바구니에 통째로 담기
+                        navController.currentBackStackEntry?.savedStateHandle?.apply {
+                            set("ai_date", dateToPass)
+                            set("ai_categories", categoriesToPass)
+                            set("ai_members", "${minMem}명 ~ ${maxMem}명")
+                            set("ai_cost", cost)
+                        }
+
+                        navController.navigate("add_course")
+                    },
                     onRemoveCourse = { viewModel.removeCourse(it) }
                 )
             }

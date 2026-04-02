@@ -1,34 +1,38 @@
-# Gradle files
+gitignore
+# --- Gradle & Build ---
 .gradle/
 build/
-
-# Local configuration file (sdk path, etc)
-local.properties
-
-# Log/OS Files
-*.log
-
-# Android Studio generated files and folders
-captures/
-.externalNativeBuild/
+/build
+/captures
+.externalNativeBuild
 .cxx/
 *.aab
 *.apk
 output-metadata.json
 
-# IntelliJ
+# --- Local Configuration (중요: 보안 관련) ---
+local.properties
+/local.properties
+google-services.json
+
+# --- OS / IDE Files ---
+*.log
+.DS_Store
 *.iml
+
+# IntelliJ / Android Studio
 .idea/
+/.idea
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Keystore files
+# VS Code (추가해두면 좋습니다)
+.vscode/
+
+# --- Keystore (보안) ---
 *.jks
 *.keystore
 
-# Google Services (e.g. APIs or Firebase)
-google-services.json
-
-# Android Profiling
+# --- Android Profiling ---
 *.hprof
