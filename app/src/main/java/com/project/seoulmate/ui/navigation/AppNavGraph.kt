@@ -108,10 +108,9 @@ fun AppNavGraph(
         }
 
         composable(route = Screen.Signup.route) {
-            val state = loginState as? LoginState.Success
             SignupScreen(
                 idToken = loginViewModel.currentIdToken,
-                email = state?.member?.email ?: "",
+                email = loginViewModel.currentUserEmail,
                 onSignupSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Signup.route) { inclusive = true }

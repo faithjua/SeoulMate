@@ -1,6 +1,10 @@
 package com.project.seoulmate.signup
 
 import android.util.Log
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,8 +52,36 @@ fun LoginScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    // 자동 로그인 중인지 파악하는 상태값 (이때는 버튼 대신 로딩바를 보여주기 위함)
+    var isAutoLoginChecking by remember { mutableStateOf(true) }
+
     val WEB_CLIENT_ID = "103184785151-cmr2evs6iu8kau7fi7oqgu5ajig7a1mo.apps.googleusercontent.com"
 
+    //  화면이 처음 켜질 때 딱 한 번 실행되는 자동 로그인 로직
+    LaunchedEffect(Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+
+        if (currentUser != null) {
+            // 1. 이미 스마트폰에 구글 로그인 기록이 남아있는 경우! (자동 로그인 진행)
+            currentUser.getIdToken(true).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val firebaseToken = task.result?.token
+                    val email = currentUser.email ?: "" // Firebase에서 이메일 꺼냄
+
+                    if (firebaseToken != null) {
+                        // 유저가 버튼을 누르지 않았지만, 뷰모델을 통해 조용히 서버로 로그인 요청을 쏩니다!
+                        viewModel.loginToServer(firebaseToken, email)
+                    }
+                } else {
+                    // 토큰이 만료되었거나 에러가 나면 유저가 직접 버튼을 누르게 유도
+                    isAutoLoginChecking = false
+                }
+            }
+        } else {
+            // 2. 앱을 처음 깔았거나 로그아웃 한 경우 -> 버튼을 보여줌
+            isAutoLoginChecking = false
+        }
+    }
     // 시안에 맞는 배경 단색 컬러 (프로젝트 테마에 맞춰 미세조정 가능)
     val backgroundColor = Color(0xFF6C60FD)
 
@@ -114,101 +147,100 @@ fun LoginScreen(
             )
         }
 
-        //  하단 탭 영역 (버튼, 로그인 텍스트)
+        // 하단 탭 영역 (버튼)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp, vertical = 40.dp),
+                .padding(horizontal = 24.dp, vertical = 50.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 4. 시작하기 버튼-구글 로그인 로직
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        try {
-                            val credentialManager = CredentialManager.create(context)
-                            val googleIdOption = GetGoogleIdOption.Builder()
-                                .setServerClientId(WEB_CLIENT_ID)
-                                .setFilterByAuthorizedAccounts(false)
-                                .setAutoSelectEnabled(true)
-                                .build()
-
-                            val request = GetCredentialRequest.Builder()
-                                .addCredentialOption(googleIdOption)
-                                .build()
-
-                            val result = credentialManager.getCredential(context, request)
-                            val credential = result.credential
-
-                            if (credential is GoogleIdTokenCredential) {
-                                val googleIdToken = credential.idToken
-                                val email = credential.id ?: ""
-                                val nickname = credential.displayName ?: "무명 여행자"
-
-                                val firebaseCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
-                                FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            val user = FirebaseAuth.getInstance().currentUser
-                                            user?.getIdToken(true)?.addOnCompleteListener { tokenTask ->
-                                                if (tokenTask.isSuccessful) {
-                                                    val firebaseToken = tokenTask.result?.token
-                                                    if (firebaseToken != null) {
-                                                        viewModel.loginToServer(firebaseToken, email, nickname)
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            Log.e("GoogleLogin", "Firebase 인증 실패", task.exception)
-                                        }
-                                    }
-                            }
-                        } catch (e: GetCredentialException) {
-                            Log.e("GoogleLogin", "로그인 창 닫힘 또는 에러: ${e.message}")
-                        } catch (e: Exception) {
-                            Log.e("GoogleLogin", "기타 에러: ${e.message}")
-                        }
-                    }
-                },
+            // 버튼과 로딩바가 번갈아 나타날 고정 크기의 Box
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White
-                ),
-                shape = RoundedCornerShape(12.dp) // 시안에 맞춘 둥근 사각형
+                    .height(56.dp), //  버튼 높이로 고정하여 UI 덜컹거림 방지
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "시작하기",
-                    color = Color(0xFF333333), // 시안처럼 짙은 회색 텍스트
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
+                if (isAutoLoginChecking) {
+                    // 배경이 보라색이므로 하얀색 로딩바가 잘 보입니다.
+                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
+                } else {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                try {
+                                    val credentialManager = CredentialManager.create(context)
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setServerClientId(WEB_CLIENT_ID)
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .setAutoSelectEnabled(true)
+                                        .build()
+
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
+
+                                    val result = credentialManager.getCredential(context, request)
+                                    val credential = result.credential
+
+                                    if (credential is GoogleIdTokenCredential) {
+                                        val googleIdToken = credential.idToken
+
+                                        val firebaseCredential =
+                                            GoogleAuthProvider.getCredential(googleIdToken, null)
+                                        FirebaseAuth.getInstance()
+                                            .signInWithCredential(firebaseCredential)
+                                            .addOnCompleteListener { task ->
+                                                if (task.isSuccessful) {
+                                                    val user =
+                                                        FirebaseAuth.getInstance().currentUser
+                                                    user?.getIdToken(true)
+                                                        ?.addOnCompleteListener { tokenTask ->
+                                                            if (tokenTask.isSuccessful) {
+                                                                val firebaseToken =
+                                                                    tokenTask.result?.token
+                                                                val email =
+                                                                    credential.id ?: "" // 구글 계정 이메일
+                                                                if (firebaseToken != null) {
+                                                                    viewModel.loginToServer(
+                                                                        firebaseToken,
+                                                                        email
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                } else {
+                                                    Log.e(
+                                                        "GoogleLogin",
+                                                        "Firebase 인증 실패",
+                                                        task.exception
+                                                    )
+                                                }
+                                            }
+                                    }
+                                } catch (e: GetCredentialException) {
+                                    Log.e("GoogleLogin", "로그인 창 닫힘 또는 에러: ${e.message}")
+                                } catch (e: Exception) {
+                                    Log.e("GoogleLogin", "기타 에러: ${e.message}")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(), // 부모 Box(56.dp)를 가득 채움
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White), // 시안에 맞게 하얀 버튼
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "시작하기",
+                            color = Color(0xFF333333), // 시안처럼 짙은 회색 텍스트
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 5. 하단 로그인 안내 텍스트
-            Text(
-                text = buildAnnotatedString {
-                    append("이미 계정이 있나요? ")
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("로그인")
-                    }
-                },
-                color = Color.White,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .clickable { onLoginTextClick() } // 클릭 시 로그인 화면으로 넘어가게 세팅
-                    .padding(8.dp) // 클릭 영역을 조금 넓혀주는 센스
-            )
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen()
-}
