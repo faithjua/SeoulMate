@@ -26,13 +26,13 @@ class SignupViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                val request = LoginRequest(
+                val request = SignupRequest(
                     email = email,
                     nickname = nickname,
                     role = role.uppercase(),
                     nationality = nationality
                 )
-                val response = authRepository.login("Bearer $idToken", request)
+                val response = authRepository.signup("Bearer $idToken", request)
 
                 if (response.isSuccessful) {
                     onSuccess()

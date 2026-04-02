@@ -11,8 +11,13 @@ interface AuthApi {
     @POST("api/auth/login")
     suspend fun login(
         // 스프링 부트 수문장(필터)을 통과하기 위해 헤더에 Firebase 토큰을 넣음
+        @Header("Authorization") token: String
+    ): Response<MemberResponse>
+
+    // 회원가입: 추가 정보를 바디에 담아서 보냄
+    @POST("/api/auth/signup")
+    suspend fun signup(
         @Header("Authorization") token: String,
-        // 바디(Body)에는 유저가 쓴 이메일, 닉네임, role,국적을 담음
-        @Body request: LoginRequest
+        @Body request: SignupRequest
     ): Response<MemberResponse>
 }
