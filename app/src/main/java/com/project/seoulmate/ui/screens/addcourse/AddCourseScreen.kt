@@ -210,6 +210,7 @@ fun AddCourseScreen(
             }
 
             // 코스 리스트 출력
+            // 삭제, 화살표로 위아래 순서바꾸기 정도만 구현함. 터치로 자유롭게 바꾸는 것은 상당히 많은 코드 변화 우려
             itemsIndexed(courseList) { index, location ->
                 Row(
                     modifier = Modifier
@@ -217,15 +218,47 @@ fun AddCourseScreen(
                         .background(Color(0xFFF8F8F8), RoundedCornerShape(8.dp))
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween // 양끝 정렬
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 왼쪽: 순번과 장소 이름 (글자가 길어질 것을 대비해 weight(1f) 부여)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(location.name, fontSize = 14.sp)
                     }
-                    IconButton(onClick = { viewModel.removeLocation(index) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray)
+
+                    // 오른쪽: 위/아래 이동 및 삭제 버튼 묶음
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 맨 위가 아니면 '위로 이동' 버튼 표시
+                        if (index > 0) {
+                            IconButton(
+                                onClick = { viewModel.moveLocation(index, index - 1) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "위로", tint = Color.Gray)
+                            }
+                        }
+
+                        // 맨 아래가 아니면 '아래로 이동' 버튼 표시
+                        if (index < courseList.lastIndex) {
+                            IconButton(
+                                onClick = { viewModel.moveLocation(index, index + 1) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "아래로", tint = Color.Gray)
+                            }
+                        }
+
+                        // 삭제 버튼
+                        IconButton(
+                            onClick = { viewModel.removeLocation(index) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "삭제", tint = Color(0xFFE53935)) // 삭제는 빨간색 계열로 포인트
+                        }
                     }
                 }
             }

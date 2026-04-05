@@ -5,21 +5,23 @@ package com.project.seoulmate.signup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.project.seoulmate.BuildConfig
-import com.project.seoulmate.signup.MemberResponse
+import com.project.seoulmate.signup.AuthResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.util.Log
+import com.project.seoulmate.data.remote.ApiResponse
 import com.project.seoulmate.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import javax.inject.Inject
 
 // 화면의 상태를 정의합니다 (대기, 로딩, 성공, 실패)
 sealed class LoginState {
     object Idle : LoginState()
     object Loading : LoginState()
-    data class Success(val member: MemberResponse) : LoginState()
+    data class Success(val member: AuthResponse) : LoginState()
     data class Error(val message: String) : LoginState()
 }
 @HiltViewModel
@@ -38,28 +40,33 @@ class LoginViewModel @Inject constructor(
     fun loginToServer(idToken: String, email: String) {
         this.currentIdToken = idToken // 서버 호출 시점에 저장!
         this.currentUserEmail = email
+
         viewModelScope.launch {
             _loginState.value = LoginState.Loading // 로딩 뺑뺑이 시작
-            Log.d("LoginViewModel", "서버 통신 시작")
+            Timber.tag("LoginViewModel").d("서버 통신 시작")
 
             try {
                 // NetworkModule통한 api 통신
                 val response = authRepository.login("Bearer $idToken")
 
                 if (response.isSuccessful && response.body() != null) {
-                    val memberResponse = response.body()!!
-                    Log.d("LoginViewModel", "서버 통신 성공: $memberResponse")
-
-                    // memberResponse.isNewMember 값에 따라 UI에서 메인으로 갈지, 가입 화면으로 갈지 결정됩니다.
-                    _loginState.value = LoginState.Success(memberResponse)
+                    val apiResponse = response.body()!!
+                    if (apiResponse.success && apiResponse.data != null) {
+                        val memberResponse = apiResponse.data // 진짜 AuthResponse 알맹이
+                        Timber.tag("LoginViewModel").e("서버 통신 성공: $memberResponse")
+                        _loginState.value = LoginState.Success(memberResponse)
+                    } else {
+                        // HTTP 200이지만 서버 로직상 에러인 경우 (예: "존재하지 않는 회원입니다")
+                        _loginState.value = LoginState.Error(apiResponse.message ?: "요청 실패")
+                    }
                 } else {
                     // 서버가 응답은 했으나 에러인 경우 (예: 404, 500)
                     val errorBody = response.errorBody()?.string()
-                    Log.e("LoginViewModel", "서버 응답 에러: ${response.code()}, 내역: $errorBody")
+                    Timber.tag("LoginViewModel").e( "서버 응답 에러: ${response.code()}, 내역: $errorBody")
                     _loginState.value = LoginState.Error("서버 에러: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "네트워크 에러 발생: ${e.stackTraceToString()}", e)
+                Timber.tag("LoginViewModel").e(e,"네트워크 에러 발생: ${e.stackTraceToString()}")
                 _loginState.value = LoginState.Error("네트워크 에러: ${e.message}")
             }
         }
