@@ -2,6 +2,8 @@ package com.project.seoulmate.di
 
 import com.project.seoulmate.data.repository.AuthRepository
 import com.project.seoulmate.data.repository.AuthRepositoryImpl
+import com.project.seoulmate.data.repository.CourseRepository
+import com.project.seoulmate.data.repository.CourseRepositoryImpl
 import com.project.seoulmate.data.repository.MeetingRepository
 import com.project.seoulmate.data.repository.MeetingRepositoryImpl
 import dagger.Binds
@@ -41,4 +43,12 @@ abstract class AppModule {
     abstract fun bindAuthRepository(
         impl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCourseRepository(
+        impl: CourseRepositoryImpl
+    ): CourseRepository
+
+
 }

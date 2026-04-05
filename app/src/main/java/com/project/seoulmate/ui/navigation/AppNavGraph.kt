@@ -75,6 +75,7 @@ fun AppNavGraph(
     // 1. 로그인 상태 관찰
     val loginState by loginViewModel.loginState.collectAsState()
 
+    /*
     // 2. 상태 변화에 따른 자동 네비게이션 처리 (LaunchedEffect)
     LaunchedEffect(loginState) {
         when (val state = loginState) {
@@ -96,6 +97,8 @@ fun AppNavGraph(
         }
     }
 
+     */
+
     // 3. 네비게이션 그래프 정의
     NavHost(
         navController = navController,
@@ -104,7 +107,20 @@ fun AppNavGraph(
         // --- 인증 관련 화면 ---
         composable(route = Screen.Login.route) {
             //별도로 넘겨주지 않아도 LoginScreen 내부에서 hiltViewModel()을 호출하면 동일한 인스턴스를 참조하게 할 수 있습니다.
-            LoginScreen(viewModel = loginViewModel)
+            LoginScreen(
+                viewModel = loginViewModel,
+                // 네비게이션 동작을 통째로 LoginScreen에 콜백으로 넘겨줍니다!
+                onNavigateToSignup = {
+                    navController.navigate(Screen.Signup.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(route = Screen.Signup.route) {

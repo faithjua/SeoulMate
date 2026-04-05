@@ -29,7 +29,7 @@ render.experimental.xml
 
 # VS Code (추가해두면 좋습니다)
 .vscode/
-
+.claude/
 # --- Keystore (보안) ---
 *.jks
 *.keystore

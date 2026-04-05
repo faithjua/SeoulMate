@@ -15,7 +15,7 @@ data class SignupRequest(
 )
 
 @Serializable
-data class MemberResponse(
+data class AuthResponse(
     // 신규 회원(빈 껍데기)일 때는 이 값들이 서버에서 null로 오기 때문에 모두 ?(Nullable) 처리하고 기본값 = null을 줍니다.
     val id: Long? = null,
     val email: String? = null,
@@ -28,26 +28,3 @@ data class MemberResponse(
     val isNewMember: Boolean = false
 )
 
-// 요청 상자 (Android -> Spring Boot)
-@Serializable
-data class AiCourseRequest(
-    val date: String,
-    val categories: List<String>,
-    val members: String, // 인원수
-    val budget: String,
-    val prompt: String
-)
-
-// 응답 상자 (Spring Boot -> Android)
-@Serializable
-data class AiCourseResponse(
-    val description: String,
-    val places: List<CourseLocation>
-)
-// 1. 코스 장소 데이터 클래스 (나중에 서버 JSON과 매핑)
-@Serializable
-data class CourseLocation(
-    val name: String,
-    val lat: Double = 0.0,
-    val lng: Double = 0.0
-)

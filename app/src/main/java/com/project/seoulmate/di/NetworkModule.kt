@@ -1,7 +1,7 @@
 package com.project.seoulmate.di
 
 import com.project.seoulmate.BuildConfig
-import com.project.seoulmate.signup.AiApi
+import com.project.seoulmate.signup.CourseApi
 import com.project.seoulmate.signup.AuthApi // 기존 AuthApi 위치
 import dagger.Module
 import dagger.Provides
@@ -87,7 +87,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAiApi(retrofit: Retrofit): AiApi {
-        return retrofit.create(AiApi::class.java)
+    fun provideCourseApi(retrofit: Retrofit): CourseApi {
+        return retrofit.create(CourseApi::class.java)
     }
 }
