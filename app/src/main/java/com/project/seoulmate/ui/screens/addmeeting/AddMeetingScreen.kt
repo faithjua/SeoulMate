@@ -7,9 +7,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -17,6 +19,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 
@@ -72,29 +78,24 @@ fun AddMeetingScreen(
         }
     }
 
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
+    val datePickerState = rememberDatePickerState()
+    val timePickerState = rememberTimePickerState()
+
+    val customTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        focusedBorderColor = Color(0xFFDBDBDB),
+        unfocusedBorderColor = Color(0xFFDBDBDB),
+        focusedTextColor = Color(0xFFDBDBDB),
+        unfocusedTextColor = Color(0xFFDBDBDB),
+        focusedPlaceholderColor = Color(0xFFDBDBDB),
+        unfocusedPlaceholderColor = Color(0xFFDBDBDB)
+    )
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "만남정보",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "닫기"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
-            )
-        },
         containerColor = Color.White,
         bottomBar = {
             Row(
@@ -134,24 +135,46 @@ fun AddMeetingScreen(
                 .background(Color.White)
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 사진 업로드 섹션
-            PhotoUploadSection(photoCount = formState.photoCount)
+            // 탑 구역 (선 없는 단색 배경색으로 구분 효과)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .background(Color(0xFFF7F7F7))
+                    .padding(bottom = 24.dp)
+            ) {
+                TopAppBar(
+                    title = { Text(text = "만남정보", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                    actions = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "닫기")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    PhotoUploadSection(photoCount = formState.photoCount)
+                }
+            }
 
-            // 만남명
+            // 하단 폼 구역
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 만남명
             FormSection(title = "만남명", required = true) {
                 OutlinedTextField(
                     value = formState.name,
                     onValueChange = { viewModel.updateMeetingName(it) },
                     placeholder = { Text("(최대 10자)") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.width(368.dp).height(59.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
-                    )
+                    colors = customTextFieldColors,
+                    shape = RoundedCornerShape(8.dp)
                 )
             }
 
@@ -194,7 +217,7 @@ fun AddMeetingScreen(
             FormSection(title = "요일/시간", required = true) {
                 TimeSlotSection(
                     timeSlots = formState.timeSlots,
-                    onAddClick = { navController.navigate("add_time_slot") } // TODO: 실제 라우트로 변경
+                    onAddClick = { showDatePicker = true } 
                 )
             }
 
@@ -204,31 +227,27 @@ fun AddMeetingScreen(
                     value = formState.description,
                     onValueChange = { viewModel.updateDescription(it) },
                     placeholder = { Text("무엇을 할 것인가요?") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    maxLines = 5,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
-                    )
+                    modifier = Modifier.width(368.dp).height(59.dp),
+                    colors = customTextFieldColors,
+                    shape = RoundedCornerShape(8.dp)
                 )
             }
 
             // 예상 지출
             FormSection(title = "예상 지출", required = false) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     OutlinedTextField(
                         value = formState.expectedCost,
                         onValueChange = { viewModel.updateExpectedCost(it) },
                         placeholder = { Text("예상 금액") },
-                        modifier = Modifier.weight(1f),
-                        trailingIcon = { Text("₩") },
+                        modifier = Modifier.weight(1f).height(59.dp),
+                        trailingIcon = { Text("₩", color = Color(0xFFDBDBDB)) },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        )
+                        colors = customTextFieldColors,
+                        shape = RoundedCornerShape(8.dp)
                     )
                     Button(
                         onClick = { viewModel.clearExpectedCost() },
@@ -236,9 +255,7 @@ fun AddMeetingScreen(
                             containerColor = Color(0xFF6C60FD)
                         ),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .height(56.dp)
+                        modifier = Modifier.height(59.dp)
                     ) {
                         Text("없음", color = Color.White)
                     }
@@ -253,23 +270,19 @@ fun AddMeetingScreen(
                             value = formState.minMembers,
                             onValueChange = { viewModel.updateMinMembers(it) },
                             placeholder = { Text("최소 인원") },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(59.dp),
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
-                            )
+                            colors = customTextFieldColors,
+                            shape = RoundedCornerShape(8.dp)
                         )
                         OutlinedTextField(
                             value = formState.maxMembers,
                             onValueChange = { viewModel.updateMaxMembers(it) },
                             placeholder = { Text("최대 인원") },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(59.dp),
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
-                            )
+                            colors = customTextFieldColors,
+                            shape = RoundedCornerShape(8.dp)
                         )
                     }
                     Text(
@@ -279,7 +292,75 @@ fun AddMeetingScreen(
                     )
                 }
             }
+            }
         }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedDateMillis = datePickerState.selectedDateMillis
+                    showDatePicker = false
+                    if (selectedDateMillis != null) {
+                        showTimePicker = true
+                    }
+                }) {
+                    Text("날짜 선정 완료")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("취소")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Combine date and time
+                    if (selectedDateMillis != null) {
+                        val date = Date(selectedDateMillis!!)
+                        // Create formatter for the date part: "8월 18일 (월)"
+                        val dateFormatter = SimpleDateFormat("M월 d일 (E)", Locale.KOREA)
+                        dateFormatter.timeZone = TimeZone.getTimeZone("UTC") // Material DatePicker returns UTC millis
+                        val dateString = dateFormatter.format(date)
+                        
+                        // Parse time piece (e.g. 오후 7시)
+                        val amPm = if (timePickerState.hour < 12) "오전" else "오후"
+                        val hour12 = if (timePickerState.hour % 12 == 0) 12 else timePickerState.hour % 12
+                        val minute = timePickerState.minute
+                        val timeString = if (minute == 0) {
+                            "$amPm ${hour12}시"
+                        } else {
+                            // "오후 7시 30분" 형식
+                            "$amPm ${hour12}시 ${minute}분"
+                        }
+                        
+                        val finalFormattedString = "$dateString $timeString"
+                        viewModel.addTimeSlot(finalFormattedString)
+                    }
+                    showTimePicker = false
+                }) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("취소")
+                }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
     }
 }
 
