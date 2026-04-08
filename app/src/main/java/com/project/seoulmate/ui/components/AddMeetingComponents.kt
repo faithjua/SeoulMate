@@ -15,12 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.project.seoulmate.R
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
 
 @Composable
@@ -36,14 +39,13 @@ fun PhotoUploadSection(
         // Camera Button
         PhotoUploadButton(
             icon = {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("📷", fontSize = 20.sp)
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_camera),
+                    contentDescription = "사진",
+                    tint = Color.Unspecified,
+                    // contentScale = ContentScale.None
+                    modifier = Modifier.size(30.dp)
+                )
             },
             label = "사진",
             onClick = onCameraClick
@@ -52,14 +54,12 @@ fun PhotoUploadSection(
         // Gallery Button with counter
         PhotoUploadButton(
             icon = {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🖼️", fontSize = 20.sp)
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_image),
+                    contentDescription = "갤러리",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(30.dp)
+                )
             },
             label = "$photoCount/9",
             onClick = onGalleryClick
@@ -76,12 +76,11 @@ fun PhotoUploadButton(
     Column(
         modifier = Modifier
             .size(80.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .border(
-                width = 1.dp,
-                color = Color(0xFFE0E0E0),
+            .shadow(
+                elevation = 2.dp, 
                 shape = RoundedCornerShape(12.dp)
             )
+            .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
             .clickable(onClick = onClick)
             .padding(12.dp),
@@ -118,12 +117,18 @@ fun CategoryTagSection(
         categories.forEach { category ->
             val isSelected = selectedCategories.contains(category)
             Surface(
-                modifier = Modifier.clip(RoundedCornerShape(24.dp))
+                modifier = Modifier
+                    .shadow(
+                        elevation = if (isSelected) 8.dp else 5.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        spotColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f),
+                        ambientColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f)
+                    )
                     .clickable { onCategoryToggle(category) },
                 shape = RoundedCornerShape(24.dp),
                 color = if (isSelected) SeoulMatePrimary else Color.White,
-                border = if (isSelected) null else BorderStroke(1.dp, Color(0xFFE0E0E0)),
-                shadowElevation = if (isSelected) 4.dp else 2.dp
+                border = null,
+                shadowElevation = 5.dp
             ) {
                 Text(
                     text = category,
@@ -160,7 +165,8 @@ fun CourseSection(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp),
                     color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                    border = null,
+                    shadowElevation = 4.dp
                 ) {
                     Text(
                         text = course,
@@ -218,7 +224,8 @@ fun TimeSlotSection(
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White,
-                border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                border = null,
+                shadowElevation = 4.dp
             ) {
                 Text(
                     text = slot,
