@@ -10,6 +10,9 @@ import com.project.seoulmate.data.repository.CourseRepository
 import com.project.seoulmate.data.model.CourseLocation
 import com.project.seoulmate.data.model.CoursePlaceItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +27,15 @@ class AddCourseViewModel @Inject constructor(
     private val courseRepository: CourseRepository
 ) : ViewModel() {
 
-    //  1. AI 설명을 담아둘 변수 추가
+
+    // AI로 장소 정보 받고, 그 순서 변경시
+    private var userHasModified = false
+
+    // AI 코스 생성시 하루 5회 제한 SharedFlow (Toast나 SnackBar용)
+    private val _errorEvent = MutableSharedFlow<String>()
+    val errorEvent: SharedFlow<String> = _errorEvent.asSharedFlow()
+
+    //  AI 설명을 담아둘 변수 추가
     private val _aiDescription = MutableStateFlow("")
     val aiDescription: StateFlow<String> = _aiDescription.asStateFlow()
     private val _courseLocations = MutableStateFlow<List<CourseLocation>>(emptyList())
@@ -47,7 +58,7 @@ class AddCourseViewModel @Inject constructor(
         viewModelScope.launch {
             _isAiLoading.value = true
             try {
-                //  1. Firebase에서 내 아이디 증명서(토큰) 꺼내기
+                //  Firebase에서 내 아이디 증명서(토큰) 꺼내기
                 val user = FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await() // kotlinx-coroutines-play-services 필요, 안되면 리스너 사용
                 val idToken = tokenResult?.token
@@ -85,12 +96,18 @@ class AddCourseViewModel @Inject constructor(
                         Timber.tag("AiCourse").e("AI 생성 실패: ${apiResponse.message}")
                         // 필요시 _errorMessage.value = apiResponse.message ?: "생성 실패" 등으로 UI에 알려주세요.
                     }
+                } else if (response.code() == 429) {
+                    // 🚨 429 에러 처리 (횟수 초과)
+                    val errorMsg = "하루 AI 생성 횟수(5회)를 초과했습니다. 내일 다시 시도해주세요."
+                    _errorEvent.emit(errorMsg)
+                    Timber.tag("AiCourse").w(errorMsg)
                 } else {
-                    // 서버 통신 자체가 실패한 경우 (403, 404, 500 에러 등)
-                    Timber.tag("AiCourse").e("서버 통신 에러: ${response.code()}")
+                    // 기타 서버 에러
+                    val errorBody = response.errorBody()?.string() // 필요시 에러 바디 파싱
+                    _errorEvent.emit("서버 오류가 발생했습니다. (${response.code()})")
                 }
             } catch (e: Exception) {
-                Timber.tag("AiCourse").e("네트워크 에러: ${e.message}")
+                _errorEvent.emit("네트워크 연결을 확인해주세요.")
             } finally {
                 _isAiLoading.value = false
                 onComplete()
@@ -106,7 +123,6 @@ class AddCourseViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                //------------------"여기 또 이렇게 추가해줘야해?
                 //  1. Firebase에서 내 아이디 증명서(토큰) 꺼내기
                 val user = FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await() // kotlinx-coroutines-play-services 필요, 안되면 리스너 사용
@@ -116,7 +132,7 @@ class AddCourseViewModel @Inject constructor(
                     Timber.tag("AiCourse").e("로그인이 풀렸습니다.")
                     return@launch
                 }
-                // 1. 현재 뷰모델이 들고 있는 장소 리스트를 백엔드 규격에 맞게 변환
+                // 2. 현재 뷰모델이 들고 있는 장소 리스트를 백엔드 규격에 맞게 변환
                 val placeItems = _courseLocations.value.mapIndexed { index, location ->
                     CoursePlaceItem(
                         placeId = location.placeId, // 이제 CourseLocation에 placeId가 있어야 합니다.
@@ -128,17 +144,17 @@ class AddCourseViewModel @Inject constructor(
                     )
                 }
 
-                // 2. 최종 요청 상자 포장
+                // 3. 최종 요청 상자 포장
                 val request = CourseCreateRequest(
                     region = region,
                     detailPlace = detailLocation.ifBlank { null },
                     places = placeItems,
                     prompt = originalPrompt,
                     isAiGenerated = originalPrompt.isNotBlank(), // 프롬프트가 있으면 AI가 만든 것
-                    isModified = true // 사용자가 중간에 삭제/추가 했는지 판단하는 변수를 별도로 두면 더 좋습니다.
+                    isModified = userHasModified //TODO 사용자가 중간에 삭제/추가 했는지 판단하는 변수 private var userHasModified = false 추가하기
                 )
 
-                // 3. 서버로 전송!
+                // 4. 서버로 전송!
                 val response = courseRepository.createCourse("Bearer $idToken",request)
 
                 if (response.isSuccessful && response.body()?.success == true) {
@@ -155,7 +171,7 @@ class AddCourseViewModel @Inject constructor(
             }
         }
     }
-
+/*
     fun addLocationManual(name: String) {
         if (name.isNotBlank()) {
             val newList = _courseLocations.value.toMutableList()
@@ -182,4 +198,39 @@ class AddCourseViewModel @Inject constructor(
             _courseLocations.value = newList
         }
     }
+
+ */
+
+    // 1. 개선된 moveLocation (Reorder 방식)
+    fun moveLocation(fromIndex: Int, toIndex: Int) {
+        val newList = _courseLocations.value.toMutableList()
+        if (fromIndex in newList.indices && toIndex in newList.indices) {
+            // 끼워넣기 로직
+            val item = newList.removeAt(fromIndex)
+            newList.add(toIndex, item)
+
+            _courseLocations.value = newList
+            userHasModified = true // 사용자가 순서를 바꿨으므로 수정됨으로 표시
+        }
+    }
+
+    // 2. 수정된 추가/삭제 로직 (플래그 반영)
+    fun addLocationManual(name: String) {
+        if (name.isNotBlank()) {
+            val newList = _courseLocations.value.toMutableList()
+            newList.add(CourseLocation(name = name))
+            _courseLocations.value = newList
+            userHasModified = true // 수동 추가 발생
+        }
+    }
+
+    fun removeLocation(index: Int) {
+        val newList = _courseLocations.value.toMutableList()
+        if (index in newList.indices) {
+            newList.removeAt(index)
+            _courseLocations.value = newList
+            userHasModified = true // 수동 삭제 발생
+        }
+    }
+
 }

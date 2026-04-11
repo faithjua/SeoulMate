@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.addcourse
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +64,16 @@ fun AddCourseScreen(
 
     val cameraPositionState: CameraPositionState = rememberCameraPositionState {
         position = CameraPosition(LatLng(37.5666102, 126.9783881), 14.0)
+    }
+
+    val context = LocalContext.current
+
+    // ViewModel의 에러 이벤트를 감시
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { message ->
+            //  AlertDialog로 수정해도 됨
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
     }
 
     Scaffold(
@@ -275,7 +287,9 @@ fun AddCourseScreen(
                         value = detailLocation,
                         onValueChange = { detailLocation = it },
                         placeholder = { Text("예: 태릉입구역 6번 출구", color = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 80.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 80.dp),
                         shape = CircleShape,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF6C60FD),
@@ -367,7 +381,9 @@ fun AddCourseScreen(
                             promptText = ""
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryColor,
                         disabledContainerColor = Color(0xFFE0E0E0)
