@@ -90,4 +90,16 @@ object NetworkModule {
     fun provideCourseApi(retrofit: Retrofit): CourseApi {
         return retrofit.create(CourseApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideMeetingApi(retrofit: Retrofit): com.project.seoulmate.data.remote.MeetingApi {
+        return retrofit.create(com.project.seoulmate.data.remote.MeetingApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFavoriteApi(retrofit: Retrofit): com.project.seoulmate.data.remote.FavoriteApi {
+        return retrofit.create(com.project.seoulmate.data.remote.FavoriteApi::class.java)
+    }
 }
