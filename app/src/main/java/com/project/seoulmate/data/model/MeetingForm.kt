@@ -22,6 +22,12 @@ data class MeetingForm(
     val maxMembers: String = "",
     /** 반복 등록 여부 (null = 미선택, true = 예, false = 아니오) */
     val isRepeating: Boolean? = null,
-    /** 업로드된 사진 수 */
+    /** 코스 생성 후 서버에서 받은 ID */
+    val courseId: Long? = null,
+    /** 모임 날짜 (예: "2026-05-01T18:00:00") */
+    val meetDate: String = "",
+    /** 업로드된 사진 URL 목록 */
+    val imageUrls: List<String> = emptyList(),
+    /** 업로드된 사진 수 (UI 처리용) */
     val photoCount: Int = 0
 )

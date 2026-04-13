@@ -8,15 +8,21 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class MeetingListResponse(
-    val id: String,
+    val id: Long,
     val title: String,
-    val meetingTime: String,
-    val expectedCost: String? = null,
-    val imageUrl: String? = null,
-    val categories: List<String> = emptyList(),
-    val hostName: String? = null,
-    val hostRating: Double? = null,
-    val congestionLevel: String? = null
+    val region: String? = null,
+    val schedule: String? = null,
+    val meetDate: String? = null,
+    val maxMembers: Int? = null,
+    val currentMembers: Int? = null,
+    val estimatedCost: Long? = null,
+    val status: String? = null,
+    val thumbnailUrl: String? = null,
+    val tags: List<String> = emptyList(),
+    val hostNickname: String? = null,
+    val coursePlaceCount: Int? = null,
+    val congestionLevel: String? = null,
+    val congestionLabel: String? = null
 )
 
 /**
@@ -25,16 +31,22 @@ data class MeetingListResponse(
  */
 @Serializable
 data class MeetingDetailResponse(
-    val id: String,
+    val id: Long,
     val title: String,
     val description: String,
-    val meetingTime: String,
-    val expectedCost: String? = null,
-    val minMembers: Int? = null,
+    val region: String? = null,
+    val schedule: String? = null,
+    val meetDate: String? = null,
     val maxMembers: Int? = null,
-    val categories: List<String> = emptyList(),
-    val imageUrl: String? = null,
-    val location: String? = null,
+    val currentMembers: Int? = null,
+    val estimatedCost: Long? = null,
+    val status: String? = null,
+    val thumbnailUrl: String? = null,
+    val tags: List<String> = emptyList(),
+    val hostNickname: String? = null,
+    val coursePlaceCount: Int? = null,
+    val congestionLevel: String? = null,
+    val congestionLabel: String? = null,
     val courses: List<CourseResponse> = emptyList(),
     val host: HostInfo? = null,
     val createdAt: String? = null,
@@ -51,7 +63,7 @@ data class CourseResponse(
 
 @Serializable
 data class HostInfo(
-    val id: String,
+    val id: Long,
     val nickname: String,
     val profileImageUrl: String? = null,
     val rating: Double? = null,

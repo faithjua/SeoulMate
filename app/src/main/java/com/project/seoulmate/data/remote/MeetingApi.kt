@@ -29,7 +29,8 @@ interface MeetingApi {
     suspend fun getMeetings(
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10,
-        @Query("category") category: String? = null
+        @Query("status") status: String? = null,
+        @Query("keyword") keyword: String? = null
     ): Response<ApiResponse<PageResponse<MeetingListResponse>>>
 
     /**
@@ -38,6 +39,34 @@ interface MeetingApi {
      */
     @GET("/api/meetups/{meetupId}")
     suspend fun getMeetingDetail(
-        @Path("meetupId") meetupId: String
+        @Path("meetupId") meetupId: Long
     ): Response<ApiResponse<MeetingDetailResponse>>
+
+    /**
+     * 만남 참가
+     */
+    @POST("/api/meetups/{meetupId}/join")
+    suspend fun joinMeeting(
+        @Header("Authorization") token: String,
+        @Path("meetupId") meetupId: Long
+    ): Response<ApiResponse<Unit>>
+
+    /**
+     * 만남 참가 취소
+     */
+    @DELETE("/api/meetups/{meetupId}/leave")
+    suspend fun leaveMeeting(
+        @Header("Authorization") token: String,
+        @Path("meetupId") meetupId: Long
+    ): Response<ApiResponse<Unit>>
+
+    /**
+     * 만남 상태 변경 (PATCH)
+     */
+    @PATCH("/api/meetups/{meetupId}/status")
+    suspend fun updateMeetingStatus(
+        @Header("Authorization") token: String,
+        @Path("meetupId") meetupId: Long,
+        @Query("status") status: String
+    ): Response<ApiResponse<Unit>>
 }
