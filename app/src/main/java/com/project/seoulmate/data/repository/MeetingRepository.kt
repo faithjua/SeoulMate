@@ -15,7 +15,10 @@ interface MeetingRepository {
     /** 카테고리 목록 반환 */
     fun getCategories(): List<Category>
 
-    /** 최근 본 만남 목록 반환 */
+    /** 홈 화면 데이터(최근 만남) 조회 */
+    suspend fun getHomeData(category: String? = null): Result<List<Meeting>>
+
+    /** 최근 본 만남 목록 반환 (로컬 기록/더미) - 기존 함수 유지 */
     fun getRecentMeetings(): List<Meeting>
 
     /** 만남 폼을 임시저장 */

@@ -153,11 +153,10 @@ class AddCourseViewModel @Inject constructor(
                 // 1. 현재 뷰모델이 들고 있는 장소 리스트를 백엔드 규격에 맞게 변환
                 val placeItems = _courseLocations.value.mapIndexed { index, location ->
                     CoursePlaceItem(
-                        placeId = location.placeId,
-                        placeName = location.name,
+                        name = location.name,
+                        lat = location.lat,
+                        lng = location.lng,
                         address = location.address,
-                        latitude = location.lat,
-                        longitude = location.lng,
                         orderIndex = index + 1,
                         memo = null
                     )
@@ -171,14 +170,12 @@ class AddCourseViewModel @Inject constructor(
                     "$region 코스"
                 }
 
-                // 2. 최종 요청 상자 포장 (Swagger 규격에 맞춰 title 제거)
+                // 2. 최종 요청 상자 포장
                 val request = CourseCreateRequest(
                     region = region,
-                    detailPlace = detailLocation.ifBlank { null },
                     places = placeItems,
-                    prompt = originalPrompt.ifBlank { null },
-                    aiGenerated = originalPrompt.isNotBlank(), // 프롬프트가 있으면 AI가 만든 것
-                    modified = true // 사용자가 중간에 삭제/추가 했는지 판단하는 변수를 별도로 두면 더 좋습니다.
+                    detailPlace = detailLocation.ifBlank { null },
+                    prompt = originalPrompt.ifBlank { null }
                 )
 
                 // 3. 서버로 전송!

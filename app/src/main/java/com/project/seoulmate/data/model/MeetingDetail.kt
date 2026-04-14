@@ -25,6 +25,7 @@ data class CoursePoint(
 )
 
 data class MateInfo(
+    val id: Long = 0L,
     val name: String,
     @DrawableRes val profileRes: Int,
     val rating: String,

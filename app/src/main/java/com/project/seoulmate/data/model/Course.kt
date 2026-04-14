@@ -63,20 +63,33 @@ data class CourseLocation(
 @Serializable
 data class CourseCreateRequest(
     val region: String,
-    val detailPlace: String? = null,
     val places: List<CoursePlaceItem>,
+    val detailPlace: String? = null,
     val prompt: String? = null,
-    val aiGenerated: Boolean,
-    val modified: Boolean
+    val aiGenerated: Boolean? = null,
+    val modified: Boolean? = null
 )
 
+// 요청용 (POST /api/courses)
 @Serializable
 data class CoursePlaceItem(
+    val name: String,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val address: String? = null,
+    val orderIndex: Int,
+    val memo: String? = null
+)
+
+// 응답용 (서버 응답 파싱)
+@Serializable
+data class CoursePlaceInfo(
     val placeId: Long? = null,
     val placeName: String,
     val address: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val imageUrl: String? = null,
     val orderIndex: Int,
     val memo: String? = null
 )
@@ -91,7 +104,7 @@ data class CourseDetailResponse(
     val region: String? = null,
     val detailPlace: String? = null,
     val creator: CourseCreatorInfo? = null,
-    val places: List<CoursePlaceItem> = emptyList(),
+    val places: List<CoursePlaceInfo> = emptyList(),  // 응답용 DTO 사용
     val createdAt: String? = null
 )
 

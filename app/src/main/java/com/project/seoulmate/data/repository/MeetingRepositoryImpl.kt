@@ -4,8 +4,11 @@ import com.project.seoulmate.R
 import com.project.seoulmate.data.model.*
 import com.project.seoulmate.data.remote.MeetingApi
 import com.project.seoulmate.data.remote.PageResponse
+import com.google.firebase.auth.FirebaseAuth
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * MeetingRepository의 실제 구현체.
@@ -16,9 +19,9 @@ class MeetingRepositoryImpl @Inject constructor(
     private val meetingApi: MeetingApi
 ) : MeetingRepository {
 
-    // 카테고리 목록 반환
     override fun getCategories(): List<Category> = listOf(
         Category(id = "all", name = "전체메뉴", isAllMenu = true),
+        Category(id = "daily", name = "당일만남", iconRes = R.drawable.ic_tourism), // 아이콘 적절히 수정 필요
         Category(id = "tourism", name = "관광", iconRes = R.drawable.ic_tourism),
         Category(id = "kpop", name = "K-팝", iconRes = R.drawable.ic_kpop),
         Category(id = "kbeauty", name = "K-뷰티", iconRes = R.drawable.ic_kbeauty),
@@ -32,6 +35,40 @@ class MeetingRepositoryImpl @Inject constructor(
         Category(id = "exhibition", name = "전시/공연", iconRes = R.drawable.ic_exhibition),
         Category(id = "safety", name = "안전/생활", iconRes = R.drawable.ic_safety)
     )
+
+    override suspend fun getHomeData(category: String?): Result<List<Meeting>> {
+        return try {
+            val user = FirebaseAuth.getInstance().currentUser
+            val token = user?.let {
+                suspendCoroutine<String?> { continuation ->
+                    it.getIdToken(false).addOnCompleteListener { task ->
+                        if (task.isSuccessful) continuation.resume(task.result?.token)
+                        else continuation.resume(null)
+                    }
+                }
+            }
+
+            // "전체메뉴"인 경우 카테고리 필터 제외
+            val filterCategory = if (category == "전체메뉴") null else category
+
+            val response = meetingApi.getHomeData(
+                token = token?.let { "Bearer $it" },
+                category = filterCategory
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val meetups = response.body()?.data?.meetups?.map { it.toMeeting() } ?: emptyList()
+                Result.success(meetups)
+            } else {
+                val errorMsg = response.body()?.message ?: "홈 데이터 조회 실패"
+                Timber.e("Get home data failed: $errorMsg")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Get home data error")
+            Result.failure(e)
+        }
+    }
 
     /**
      * 최근 본 만남 목록 반환 (더미 데이터)
@@ -238,32 +275,44 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         )
     }
 
-    val mateInfo = this.host?.let {
-        MateInfo(
-            name = it.nickname,
-            profileRes = R.drawable.img_recommend_1, // profileImage 활용
-            rating = it.rating?.toString() ?: "0.0",
-            reviewCount = it.reviewCount,
-            bio = it.bio ?: "",
-            isVerified = it.isVerified
-        )
-    } ?: MateInfo(
-        name = "Unknown",
-        profileRes = R.drawable.img_recommend_1,
-        rating = "0.0",
-        reviewCount = 0,
-        bio = "",
-        isVerified = false
+    val mateInfo = MateInfo(
+        id = this.host?.id ?: 0L,
+        name = this.host?.nickname ?: "Unknown",
+        profileRes = R.drawable.ic_profile, // 기본 프로필 아이콘
+        rating = this.host?.rating?.toString() ?: "0.0",
+        reviewCount = this.host?.reviewCount ?: 0,
+        bio = this.host?.bio ?: "",
+        isVerified = this.host?.isVerified ?: false
     )
 
     return MeetingDetail(
         meeting = meeting,
         location = this.region ?: "",
-        timeElapsed = "", // 클라이언트 계산 필요 시 추가
-        dateAndTime = this.schedule ?: "",
+        timeElapsed = "", // TODO: 시간 경과 계산 로직 추가
+        dateAndTime = this.meetDate ?: this.schedule ?: "",
         description = this.description,
         courses = coursePoints,
         mateInfo = mateInfo,
-        mateOtherMeetings = emptyList()
+        mateOtherMeetings = emptyList() // TODO: 호스트의 다른 만남 조회 추가
+    )
+}
+
+/**
+ * HomeMeetingResponse를 UI Meeting 모델로 변환
+ */
+private fun HomeMeetingResponse.toMeeting(): Meeting {
+    return Meeting(
+        id = this.id.toString(),
+        title = this.title,
+        time = this.meetDate ?: "",
+        price = "미정", // 홈 API에 가격 정보가 없는 경우 고정 텍스트 처리
+        rating = "0.0",
+        imageRes = R.drawable.img_recommend_1, // 기본 이미지
+        imageUrl = this.imageUrl,
+        tags = buildList {
+            this@toMeeting.congestionLabel?.let { add(it) }
+            addAll(this@toMeeting.tags.map { "#$it" })
+        },
+        isFavorited = this.isFavorited
     )
 }

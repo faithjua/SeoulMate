@@ -1,8 +1,11 @@
 package com.project.seoulmate.data.remote
 
+import com.project.seoulmate.data.model.HomeResponseData
 import com.project.seoulmate.data.model.MeetingCreateRequest
 import com.project.seoulmate.data.model.MeetingListResponse
 import com.project.seoulmate.data.model.MeetingDetailResponse
+import com.project.seoulmate.data.remote.ApiResponse
+import com.project.seoulmate.data.remote.PageResponse
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -10,6 +13,16 @@ import retrofit2.http.*
  * Meeting(만남) 관련 API 인터페이스
  */
 interface MeetingApi {
+
+    /**
+     * 홈 화면 데이터 조회 (최근 만남 + 카테고리 필터)
+     * GET /api/home
+     */
+    @GET("/api/home")
+    suspend fun getHomeData(
+        @Header("Authorization") token: String? = null,
+        @Query("category") category: String? = null
+    ): Response<ApiResponse<HomeResponseData>>
 
     /**
      * 만남 생성

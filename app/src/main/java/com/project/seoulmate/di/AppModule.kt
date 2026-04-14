@@ -8,6 +8,8 @@ import com.project.seoulmate.data.repository.MeetingRepository
 import com.project.seoulmate.data.repository.MeetingRepositoryImpl
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.FavoriteRepositoryImpl
+import com.project.seoulmate.data.repository.UserActionRepository
+import com.project.seoulmate.data.repository.UserActionRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -57,5 +59,11 @@ abstract class AppModule {
     abstract fun bindFavoriteRepository(
         impl: FavoriteRepositoryImpl
     ): FavoriteRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserActionRepository(
+        impl: UserActionRepositoryImpl
+    ): UserActionRepository
 
 }
