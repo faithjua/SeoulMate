@@ -1,6 +1,7 @@
 package com.project.seoulmate.ui.screens.home
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.project.seoulmate.data.model.Category
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.repository.MeetingRepository
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -43,8 +45,20 @@ class HomeViewModel @Inject constructor(
         val categoryList = repository.getCategories()
         _categories.value = categoryList
         // 기본 선택값: "관광" (두 번째 항목, 인덱스 1)
-        _selectedCategory.value = categoryList.getOrNull(1)
-        _recentMeetings.value = repository.getRecentMeetings()
+        val defaultCategory = categoryList.getOrNull(1)
+        _selectedCategory.value = defaultCategory
+        
+        loadHomeData(defaultCategory)
+    }
+
+    private fun loadHomeData(category: Category?) {
+        viewModelScope.launch {
+            repository.getHomeData(category?.name).onSuccess { meetings ->
+                _recentMeetings.value = meetings
+            }.onFailure {
+                // TODO: 에러 처리 로직 추가 (Toast 등)
+            }
+        }
     }
 
     /**
@@ -53,5 +67,6 @@ class HomeViewModel @Inject constructor(
      */
     fun onCategorySelected(category: Category) {
         _selectedCategory.update { category }
+        loadHomeData(category)
     }
 }

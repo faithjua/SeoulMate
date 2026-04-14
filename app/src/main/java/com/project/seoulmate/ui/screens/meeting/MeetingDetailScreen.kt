@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.meeting
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -43,11 +45,9 @@ import com.naver.maps.map.compose.MarkerState
 import com.naver.maps.map.compose.NaverMap
 import com.naver.maps.map.compose.PathOverlay
 import com.naver.maps.map.compose.rememberCameraPositionState
-import com.project.seoulmate.data.model.CoursePoint
-import com.project.seoulmate.data.model.MateInfo
-import com.project.seoulmate.data.model.Meeting
-import com.project.seoulmate.data.model.MeetingDetail
+import com.project.seoulmate.data.model.*
 import com.project.seoulmate.ui.components.RecommendationCard
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun MeetingDetailScreen(
@@ -56,6 +56,21 @@ fun MeetingDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // 신고/차단 결과에 따른 Toast 노출
+    LaunchedEffect(viewModel.userActionEvent) {
+        viewModel.userActionEvent.collectLatest { event ->
+            when (event) {
+                is MeetingDetailViewModel.UserActionResult.Success -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is MeetingDetailViewModel.UserActionResult.Error -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     if (uiState == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -91,7 +106,13 @@ fun MeetingDetailScreen(
                 Divider(color = Color(0xFFF0F0F0), thickness = 8.dp)
 
                 // 설명 섹션
-                DescriptionSection(detail = detail)
+                DescriptionSection(
+                    detail = detail,
+                    onReportMeeting = {
+                        // 게시글 신고 (임시로 '게시글 문제' 사유 사용)
+                        viewModel.reportUser(reason = "POST_CONTENT", description = "게시글 부적절")
+                    }
+                )
 
                 Divider(color = Color(0xFFF0F0F0), thickness = 8.dp)
 
@@ -104,6 +125,11 @@ fun MeetingDetailScreen(
                 MateInfoSection(
                     mateInfo = detail.mateInfo,
                     otherMeetings = detail.mateOtherMeetings,
+                    onReportUser = {
+                        // 사용자 신고 (임시로 '기타' 사후 사용)
+                        viewModel.reportUser(reason = "USER_BEHAVIOR", description = "사용자 부적절")
+                    },
+                    onBlockUser = { viewModel.blockUser() },
                     onMeetingClick = { meetingId ->
                         // 다른 만남 공고 클릭 시 처리
                         navController.navigate("meeting_detail/$meetingId")
@@ -266,7 +292,7 @@ fun InfoSection(detail: MeetingDetail) {
 }
 
 @Composable
-fun DescriptionSection(detail: MeetingDetail) {
+fun DescriptionSection(detail: MeetingDetail, onReportMeeting: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,7 +321,7 @@ fun DescriptionSection(detail: MeetingDetail) {
             fontSize = 12.sp,
             color = Color.Gray,
             textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { /* TODO */ }
+            modifier = Modifier.clickable { onReportMeeting() }
         )
     }
 }
@@ -415,7 +441,13 @@ fun CourseSection(courses: List<CoursePoint>) {
 }
 
 @Composable
-fun MateInfoSection(mateInfo: MateInfo, otherMeetings: List<Meeting>, onMeetingClick: (String) -> Unit) {
+fun MateInfoSection(
+    mateInfo: MateInfo, 
+    otherMeetings: List<Meeting>, 
+    onReportUser: () -> Unit,
+    onBlockUser: () -> Unit,
+    onMeetingClick: (String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -434,13 +466,23 @@ fun MateInfoSection(mateInfo: MateInfo, otherMeetings: List<Meeting>, onMeetingC
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-            Text(
-                text = "신고하기",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable { /* TODO */ }
-            )
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = "차단하기",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable { onBlockUser() }
+                )
+                Text(
+                    text = "신고하기",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable { onReportUser() }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

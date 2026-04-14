@@ -110,6 +110,12 @@ object NetworkModule {
         return retrofit.create(com.project.seoulmate.data.remote.FavoriteApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideUserActionApi(retrofit: Retrofit): com.project.seoulmate.data.remote.UserActionApi {
+        return retrofit.create(com.project.seoulmate.data.remote.UserActionApi::class.java)
+    }
+
     // --- 네이버 API용 Retrofit (별도 Base URL) ---
 
     @Provides

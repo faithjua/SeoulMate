@@ -5,15 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.R
-import com.project.seoulmate.data.model.CoursePoint
-import com.project.seoulmate.data.model.MateInfo
-import com.project.seoulmate.data.model.Meeting
-import com.project.seoulmate.data.model.MeetingDetail
+import com.project.seoulmate.data.model.*
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
+import com.project.seoulmate.data.repository.UserActionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -24,7 +25,8 @@ import javax.inject.Inject
 class MeetingDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val meetingRepository: MeetingRepository,
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    private val userActionRepository: UserActionRepository
 ) : ViewModel() {
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
@@ -37,6 +39,15 @@ class MeetingDetailViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // 신고/차단 결과 이벤트를 UI에 전달하기 위한 Flow
+    private val _userActionEvent = MutableSharedFlow<UserActionResult>()
+    val userActionEvent: SharedFlow<UserActionResult> = _userActionEvent.asSharedFlow()
+
+    sealed class UserActionResult {
+        data class Success(val message: String) : UserActionResult()
+        data class Error(val message: String) : UserActionResult()
+    }
 
     init {
         loadMeetingDetail()
@@ -78,10 +89,10 @@ class MeetingDetailViewModel @Inject constructor(
                 val tokenResult = user?.getIdToken(false)?.await()
                 val idToken = tokenResult?.token ?: return@launch
 
-                // 찜 목록 조회 (첫 페이지만, 최대 500개)
+                // 찜 목록 조회 
                 // TODO: 백엔드 API 개선 필요 - MeetingDetailResponse에 isFavorite 필드 추가하거나
                 //       GET /api/favorites/exists?targetId=X 엔드포인트 추가 권장
-                val result = favoriteRepository.getFavorites(idToken, targetType = "MEETUP", page = 0, size = 500)
+                val result = favoriteRepository.getFavorites(idToken, targetType = "MEETUP", page = 0, size = 100)
                 result.onSuccess { pageResponse ->
                     // 현재 만남 ID가 찜 목록에 있는지 확인
                     val isFavorited = pageResponse.content.any {
@@ -109,6 +120,7 @@ class MeetingDetailViewModel @Inject constructor(
 
                 if (idToken == null) {
                     Timber.e("Firebase token is null")
+                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
                     return@launch
                 }
 
@@ -203,5 +215,68 @@ class MeetingDetailViewModel @Inject constructor(
         )
 
         _uiState.value = detail
+    }
+
+    /**
+     * 사용자 신고하기
+     */
+    fun reportUser(reason: String, description: String) {
+        val hostId = uiState.value?.mateInfo?.id ?: return
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+                if (idToken == null) {
+                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
+                    return@launch
+                }
+
+                val request = ReportRequest(
+                    targetType = "USER",
+                    targetId = hostId,
+                    reason = reason,
+                    description = description
+                )
+                val result = userActionRepository.report(idToken, request)
+                result.onSuccess {
+                    _userActionEvent.emit(UserActionResult.Success("신고가 접수되었습니다."))
+                }.onFailure { error ->
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "신고 실패"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during report")
+                _userActionEvent.emit(UserActionResult.Error("네트워크 오류가 발생했습니다."))
+            }
+        }
+    }
+
+    /**
+     * 사용자 차단하기
+     */
+    fun blockUser() {
+        val hostId = uiState.value?.mateInfo?.id ?: return
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+                if (idToken == null) {
+                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
+                    return@launch
+                }
+
+                val request = BlockRequest(blockedUserId = hostId)
+                val result = userActionRepository.block(idToken, request)
+                result.onSuccess {
+                    _userActionEvent.emit(UserActionResult.Success("차단되었습니다."))
+                }.onFailure { error ->
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "차단 실패"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during block")
+                _userActionEvent.emit(UserActionResult.Error("네트워크 오류가 발생했습니다."))
+            }
+        }
     }
 }

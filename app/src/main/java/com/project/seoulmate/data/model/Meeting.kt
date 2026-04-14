@@ -19,6 +19,8 @@ data class Meeting(
     val time: String,
     val price: String,
     val rating: String,
-    @DrawableRes val imageRes: Int,
-    val tags: List<String>
+    @DrawableRes val imageRes: Int = 0,
+    val imageUrl: String? = null,
+    val tags: List<String>,
+    val isFavorited: Boolean = false
 )
