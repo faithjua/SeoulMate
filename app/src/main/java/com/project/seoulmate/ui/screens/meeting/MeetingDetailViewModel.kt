@@ -50,9 +50,10 @@ class MeetingDetailViewModel @Inject constructor(
                 val result = meetingRepository.getMeetingDetail(meetingId)
                 result.onSuccess { detail ->
                     _uiState.value = detail
-                    // 찜 상태는 서버 응답에서 가져올 수 있음 (MeetingDetailResponse.isFavorite)
-                    // 임시로 false로 설정
-                    _isFavorite.value = false
+                    // 서버 응답에서 찜 상태 가져오기 (MeetingDetailResponse.isFavorite 활용 필요)
+                    // TODO: MeetingDetail에 isFavorite 필드 추가 필요
+                    // 임시로 찜 목록에서 확인하는 방식 사용
+                    checkIsFavorited()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to load meeting detail")
                     // 에러 시 더미 데이터 사용 (임시)
@@ -63,6 +64,35 @@ class MeetingDetailViewModel @Inject constructor(
                 loadDummyData()
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 현재 만남이 찜 목록에 있는지 확인
+     */
+    private fun checkIsFavorited() {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token ?: return@launch
+
+                // 찜 목록 조회 (첫 페이지만, 최대 500개)
+                // TODO: 백엔드 API 개선 필요 - MeetingDetailResponse에 isFavorite 필드 추가하거나
+                //       GET /api/favorites/exists?targetId=X 엔드포인트 추가 권장
+                val result = favoriteRepository.getFavorites(idToken, targetType = "MEETUP", page = 0, size = 500)
+                result.onSuccess { pageResponse ->
+                    // 현재 만남 ID가 찜 목록에 있는지 확인
+                    val isFavorited = pageResponse.content.any {
+                        it.targetId.toString() == meetingId
+                    }
+                    _isFavorite.value = isFavorited
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to check favorite status")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception checking favorite status")
             }
         }
     }
@@ -84,7 +114,11 @@ class MeetingDetailViewModel @Inject constructor(
 
                 if (_isFavorite.value) {
                     // 찜 취소
-                    val result = favoriteRepository.removeFavorite(idToken, meetingId)
+                    val result = favoriteRepository.removeFavorite(
+                        token = idToken,
+                        targetType = "MEETUP",
+                        targetId = meetingId.toLongOrNull() ?: 0L
+                    )
                     result.onSuccess {
                         _isFavorite.value = false
                         Timber.d("Favorite removed successfully")
@@ -93,7 +127,11 @@ class MeetingDetailViewModel @Inject constructor(
                     }
                 } else {
                     // 찜 추가
-                    val result = favoriteRepository.addFavorite(idToken, meetingId)
+                    val result = favoriteRepository.addFavorite(
+                        token = idToken,
+                        targetType = "MEETUP",
+                        targetId = meetingId.toLongOrNull() ?: 0L
+                    )
                     result.onSuccess {
                         _isFavorite.value = true
                         Timber.d("Favorite added successfully")
