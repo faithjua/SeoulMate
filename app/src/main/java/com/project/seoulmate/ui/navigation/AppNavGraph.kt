@@ -102,7 +102,7 @@ fun AppNavGraph(
     // 3. 네비게이션 그래프 정의
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route // 앱 시작 시 첫 화면을 로그인으로 설정
+        startDestination = Screen.Login.route
     ) {
         // --- 인증 관련 화면 ---
         composable(route = Screen.Login.route) {

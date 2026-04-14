@@ -4,24 +4,32 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.project.seoulmate.BuildConfig
 import com.project.seoulmate.data.model.AiCourseRequest
 import com.project.seoulmate.data.model.CourseCreateRequest
+import com.project.seoulmate.data.model.NaverSearchItem
+import com.project.seoulmate.data.remote.NaverSearchApi
 import com.project.seoulmate.data.repository.CourseRepository
 import com.project.seoulmate.data.model.CourseLocation
 import com.project.seoulmate.data.model.CoursePlaceItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import javax.inject.Inject
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class AddCourseViewModel @Inject constructor(
     // Hilt의 NetworkModule이 알아서 이 규격에 맞는 API 객체를 넣어줌
-    private val courseRepository: CourseRepository
+    private val courseRepository: CourseRepository,
+    private val naverSearchApi: NaverSearchApi
 ) : ViewModel() {
 
     //  1. AI 설명을 담아둘 변수 추가
@@ -32,6 +40,32 @@ class AddCourseViewModel @Inject constructor(
 
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
+
+    // 네이버 검색 관련 상태
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<NaverSearchItem>>(emptyList())
+    val searchResults = _searchResults.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching = _isSearching.asStateFlow()
+
+    init {
+        // 검색어 디바운싱: 사용자가 입력 후 500ms 동안 멈추면 검색 실행
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(500L)
+                .distinctUntilChanged()
+                .collect { query ->
+                    if (query.isNotBlank()) {
+                        searchNaverPlaces(query)
+                    } else {
+                        _searchResults.value = emptyList()
+                    }
+                }
+        }
+    }
 
     // 더미값을 빼고 date와 categories를 파라미터로 직접 받음
     fun generateCourseFromAi(
@@ -101,7 +135,7 @@ class AddCourseViewModel @Inject constructor(
         region: String,
         detailLocation: String, // UI의 '세부 장소'
         originalPrompt: String,
-        onSuccess: () -> Unit,
+        onSuccess: (Long) -> Unit,
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
@@ -119,31 +153,41 @@ class AddCourseViewModel @Inject constructor(
                 // 1. 현재 뷰모델이 들고 있는 장소 리스트를 백엔드 규격에 맞게 변환
                 val placeItems = _courseLocations.value.mapIndexed { index, location ->
                     CoursePlaceItem(
-                        placeId = location.placeId, // 이제 CourseLocation에 placeId가 있어야 합니다.
-                        name = location.name,
-                        lat = location.lat,         // (선택) CourseLocation에 위도/경도가 있다면 넘겨줍니다.
-                        lng = location.lng,         // (선택)
+                        placeId = location.placeId,
+                        placeName = location.name,
+                        address = location.address,
+                        latitude = location.lat,
+                        longitude = location.lng,
                         orderIndex = index + 1,
-                        memo = null                 // 아직 앱 기획에 '장소별 메모' 입력란이 없다면 null로 비워둡니다.
+                        memo = null
                     )
                 }
 
-                // 2. 최종 요청 상자 포장
+                // 1-1. 코스 제목 자동 생성: "지역명: 장소1 → 장소2 → 장소3"
+                val title = if (_courseLocations.value.isNotEmpty()) {
+                    val placeNames = _courseLocations.value.joinToString(" → ") { it.name }
+                    "$region: $placeNames"
+                } else {
+                    "$region 코스"
+                }
+
+                // 2. 최종 요청 상자 포장 (Swagger 규격에 맞춰 title 제거)
                 val request = CourseCreateRequest(
                     region = region,
                     detailPlace = detailLocation.ifBlank { null },
                     places = placeItems,
-                    prompt = originalPrompt,
-                    isAiGenerated = originalPrompt.isNotBlank(), // 프롬프트가 있으면 AI가 만든 것
-                    isModified = true // 사용자가 중간에 삭제/추가 했는지 판단하는 변수를 별도로 두면 더 좋습니다.
+                    prompt = originalPrompt.ifBlank { null },
+                    aiGenerated = originalPrompt.isNotBlank(), // 프롬프트가 있으면 AI가 만든 것
+                    modified = true // 사용자가 중간에 삭제/추가 했는지 판단하는 변수를 별도로 두면 더 좋습니다.
                 )
 
                 // 3. 서버로 전송!
                 val response = courseRepository.createCourse("Bearer $idToken",request)
 
                 if (response.isSuccessful && response.body()?.success == true) {
-                    Timber.tag("CourseSubmit").d("코스 저장 완료!")
-                    onSuccess()
+                    val savedId = response.body()?.data?.id ?: 1L
+                    Timber.tag("CourseSubmit").d("코스 저장 완료! ID: $savedId")
+                    onSuccess(savedId)
                 } else {
                     val errorMsg = response.body()?.message ?: "코스 저장 실패"
                     Timber.tag("CourseSubmit").e(errorMsg)
@@ -181,5 +225,63 @@ class AddCourseViewModel @Inject constructor(
 
             _courseLocations.value = newList
         }
+    }
+
+    // 네이버 지도 검색 관련 함수들
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearchQuery() {
+        _searchQuery.value = ""
+        _searchResults.value = emptyList()
+    }
+
+    private suspend fun searchNaverPlaces(query: String) {
+        _isSearching.value = true
+        try {
+            Timber.tag("NaverSearch").d("검색 시작: $query")
+            Timber.tag("NaverSearch").d("Client ID 설정 여부: ${BuildConfig.NAVER_CLIENT_ID.isNotEmpty()}")
+            Timber.tag("NaverSearch").d("Client Secret 설정 여부: ${BuildConfig.NAVER_CLIENT_SECRET.isNotEmpty()}")
+
+            val response = naverSearchApi.searchLocal(
+                clientId = BuildConfig.NAVER_CLIENT_ID,
+                clientSecret = BuildConfig.NAVER_CLIENT_SECRET,
+                query = query,
+                display = 10
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                _searchResults.value = response.body()!!.items
+                Timber.tag("NaverSearch").d("검색 성공: ${response.body()!!.items.size}개 결과")
+            } else {
+                Timber.tag("NaverSearch").e("검색 실패: HTTP ${response.code()}")
+                Timber.tag("NaverSearch").e("에러 바디: ${response.errorBody()?.string()}")
+                _searchResults.value = emptyList()
+            }
+        } catch (e: Exception) {
+            Timber.tag("NaverSearch").e(e, "네이버 검색 에러: ${e.message}")
+            _searchResults.value = emptyList()
+        } finally {
+            _isSearching.value = false
+        }
+    }
+
+    fun addPlaceFromSearch(item: NaverSearchItem) {
+        val newList = _courseLocations.value.toMutableList()
+        newList.add(
+            CourseLocation(
+                name = item.getCleanTitle(),
+                lat = item.getLatitude(),
+                lng = item.getLongitude(),
+                address = item.getBestAddress()
+            )
+        )
+        _courseLocations.value = newList
+
+        // 검색어와 결과 초기화
+        clearSearchQuery()
+
+        Timber.tag("AddCourse").d("장소 추가: ${item.getCleanTitle()} (${item.getLatitude()}, ${item.getLongitude()})")
     }
 }

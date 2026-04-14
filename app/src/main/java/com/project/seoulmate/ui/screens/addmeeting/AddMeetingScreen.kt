@@ -52,11 +52,16 @@ fun AddMeetingScreen(
 
     //  1. 돌아온 AI 설명 받는 로직 추가
     val returnedDescription by savedStateHandle?.getStateFlow<String>("ai_description", "")
-        ?.collectAsStateWithLifecycle(initialValue = "") ?: remember{mutableStateOf("")} //savedStateHandle이 null로 오면 화면 다시그릴때마다 객체 무한생성해서 remember로 감쌈
+        ?.collectAsStateWithLifecycle(initialValue = "") ?: remember{mutableStateOf("")}
 
-    //  2. LaunchedEffect에서 코스와 설명을 모두 처리하도록 수정
-    LaunchedEffect(returnedCourses, returnedDescription) {
+    //  2. 서버에서 저장된 실제 코스 ID 받는 로직 추가
+    val returnedCourseId by savedStateHandle?.getStateFlow<Long?>("course_id", null)
+        ?.collectAsStateWithLifecycle(initialValue = null) ?: remember{mutableStateOf(null)}
+
+    //  3. LaunchedEffect에서 코스, 설명, ID를 모두 처리하도록 수정
+    LaunchedEffect(returnedCourses, returnedDescription, returnedCourseId) {
         if (returnedCourses.isNotEmpty()) {
+            // UI 표시용 코스 이름들
             returnedCourses.forEach { viewModel.addCourse(it) }
             savedStateHandle?.remove<List<String>>("generated_courses")
         }
@@ -65,6 +70,12 @@ fun AddMeetingScreen(
             // AI가 써준 설명을 [만남 소개] 폼 상태에 덮어쓰기!
             viewModel.updateDescription(returnedDescription)
             savedStateHandle?.remove<String>("ai_description")
+        }
+
+        if (returnedCourseId != null) {
+            // 서버에 실제 저장된 코스 ID를 만남 폼에 저장
+            viewModel.updateCourseId(returnedCourseId!!)
+            savedStateHandle?.remove<Long>("course_id")
         }
     }
     //여기까지 추가
