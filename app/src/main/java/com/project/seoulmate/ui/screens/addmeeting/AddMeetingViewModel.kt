@@ -2,6 +2,7 @@ package com.project.seoulmate.ui.screens.addmeeting
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.MeetingForm
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -104,8 +107,32 @@ class AddMeetingViewModel @Inject constructor(
 
     fun registerMeeting() {
         viewModelScope.launch {
-            repository.registerMeeting(_formState.value)
-            _uiEvent.value = AddMeetingUiEvent.NavigateBack
+            try {
+                // Firebase에서 토큰 가져오기
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    Timber.e("Firebase token is null. User not logged in.")
+                    _uiEvent.value = AddMeetingUiEvent.Error("로그인이 필요합니다")
+                    return@launch
+                }
+
+                // 백엔드 API로 만남 등록
+                val result = repository.registerMeeting(idToken, _formState.value)
+
+                result.onSuccess {
+                    Timber.d("Meeting registered successfully: ${it.meeting.id}")
+                    _uiEvent.value = AddMeetingUiEvent.NavigateBack
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to register meeting")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 등록 실패")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during meeting registration")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+            }
         }
     }
 
@@ -120,4 +147,5 @@ class AddMeetingViewModel @Inject constructor(
  */
 sealed class AddMeetingUiEvent {
     object NavigateBack : AddMeetingUiEvent()
+    data class Error(val message: String) : AddMeetingUiEvent()
 }

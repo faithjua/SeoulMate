@@ -55,6 +55,7 @@ fun MeetingDetailScreen(
     viewModel: MeetingDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
     if (uiState == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -63,7 +64,12 @@ fun MeetingDetailScreen(
     } else {
         val detail = uiState!!
         Scaffold(
-            bottomBar = { DetailBottomBar() },
+            bottomBar = { 
+                DetailBottomBar(
+                    isFavorite = isFavorite,
+                    onFavoriteClick = { viewModel.toggleFavorite() }
+                ) 
+            },
             containerColor = Color.White
         ) { paddingValues ->
             Column(
@@ -517,7 +523,10 @@ fun MateInfoSection(mateInfo: MateInfo, otherMeetings: List<Meeting>, onMeetingC
 }
 
 @Composable
-fun DetailBottomBar() {
+fun DetailBottomBar(
+    isFavorite: Boolean = false,
+    onFavoriteClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -528,16 +537,16 @@ fun DetailBottomBar() {
     ) {
         // 좋아요 아이콘 버튼
         OutlinedButton(
-            onClick = { /* TODO */ },
+            onClick = onFavoriteClick,
             modifier = Modifier.size(48.dp),
             shape = RoundedCornerShape(8.dp),
             contentPadding = PaddingValues(0.dp),
             border = BorderStroke(1.dp, Color(0xFFE0E0E0))
         ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "찜하기",
-                tint = Color.Gray
+                tint = if (isFavorite) Color(0xFFF44336) else Color.Gray
             )
         }
 

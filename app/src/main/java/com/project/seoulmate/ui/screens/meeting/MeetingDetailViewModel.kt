@@ -2,20 +2,29 @@ package com.project.seoulmate.ui.screens.meeting
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.R
 import com.project.seoulmate.data.model.CoursePoint
 import com.project.seoulmate.data.model.MateInfo
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.model.MeetingDetail
+import com.project.seoulmate.data.repository.FavoriteRepository
+import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
 class MeetingDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val meetingRepository: MeetingRepository,
+    private val favoriteRepository: FavoriteRepository
 ) : ViewModel() {
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
@@ -23,20 +32,92 @@ class MeetingDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<MeetingDetail?>(null)
     val uiState: StateFlow<MeetingDetail?> = _uiState.asStateFlow()
 
+    private val _isFavorite = MutableStateFlow(false)
+    val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         loadMeetingDetail()
     }
 
     private fun loadMeetingDetail() {
-        // UI 구현을 위한 더미 데이터 세팅. 
-        // 실제로는 Repository를 통해 데이터를 가져와야 함.
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // 실제 API 호출로 변경
+                val result = meetingRepository.getMeetingDetail(meetingId)
+                result.onSuccess { detail ->
+                    _uiState.value = detail
+                    // 찜 상태는 서버 응답에서 가져올 수 있음 (MeetingDetailResponse.isFavorite)
+                    // 임시로 false로 설정
+                    _isFavorite.value = false
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to load meeting detail")
+                    // 에러 시 더미 데이터 사용 (임시)
+                    loadDummyData()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception loading meeting detail")
+                loadDummyData()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 찜 토글 (추가/취소)
+     */
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    Timber.e("Firebase token is null")
+                    return@launch
+                }
+
+                if (_isFavorite.value) {
+                    // 찜 취소
+                    val result = favoriteRepository.removeFavorite(idToken, meetingId)
+                    result.onSuccess {
+                        _isFavorite.value = false
+                        Timber.d("Favorite removed successfully")
+                    }.onFailure { error ->
+                        Timber.e(error, "Failed to remove favorite")
+                    }
+                } else {
+                    // 찜 추가
+                    val result = favoriteRepository.addFavorite(idToken, meetingId)
+                    result.onSuccess {
+                        _isFavorite.value = true
+                        Timber.d("Favorite added successfully")
+                    }.onFailure { error ->
+                        Timber.e(error, "Failed to add favorite")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during favorite toggle")
+            }
+        }
+    }
+
+    /**
+     * 더미 데이터 로드 (임시)
+     */
+    private fun loadDummyData() {
         val dummyMeeting = Meeting(
             id = meetingId,
             title = "창덕궁 탐방 및 맛집 방문",
             time = "3월 23일 오후 6-7시",
             price = "약 20,000원",
             rating = "5.0",
-            imageRes = R.drawable.img_recommend_1, // Home과 동일한 더미 이미지 사용
+            imageRes = R.drawable.img_recommend_1,
             tags = listOf("#관광", "#맛집", "#커뮤니티")
         )
 
@@ -55,7 +136,7 @@ class MeetingDetailViewModel @Inject constructor(
             ),
             mateInfo = MateInfo(
                 name = "소율이",
-                profileRes = R.drawable.img_recommend_1, // 임시 이미지, 없으면 나중에 기본 아이콘으로 교체
+                profileRes = R.drawable.img_recommend_1,
                 rating = "4.22",
                 reviewCount = 83,
                 bio = "인스타 @insoul 유튜버\n관광학부 전공으로 재직... [더보기]",
