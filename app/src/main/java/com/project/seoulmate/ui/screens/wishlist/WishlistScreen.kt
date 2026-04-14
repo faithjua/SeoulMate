@@ -35,12 +35,17 @@ import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WishlistScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: WishlistViewModel = hiltViewModel()
 ) {
+    val meetings by viewModel.uiState.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
 
@@ -174,7 +179,7 @@ fun WishlistScreen(
 
             // 3. Count
             Text(
-                text = "총 6개",
+                text = "총 ${meetings.size}개",
                 modifier = Modifier.padding(horizontal = 24.dp),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -184,28 +189,25 @@ fun WishlistScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 4. Grid List
-            // Mock data representing the 6 items
-            val mockMeetings = List(6) {
-                Meeting(
-                    id = it.toString(),
-                    title = "창덕궁 탐방 및 맛집",
-                    time = if (it % 2 == 0) "23일 오후 7-9시" else "28일 오후 7-9시",
-                    price = "₩20,000",
-                    rating = "5.0",
-                    imageRes = R.drawable.img_recommend_1, // Reusing existing image, assuming it exists
-                    tags = if (it % 2 == 0) listOf("혼잡", "#관광", "#한식") else listOf("여유", "#관광", "#한식")
-                )
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(mockMeetings) { meeting ->
-                    WishlistCard(meeting = meeting)
+            if (isLoading && meetings.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color(0xFF6C60FD))
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(meetings) { meeting ->
+                        WishlistCard(
+                            meeting = meeting,
+                            onClick = { navController.navigate("meeting_detail/${meeting.id}") },
+                            onRemoveFavorite = { viewModel.removeFavorite(meeting.id) }
+                        )
+                    }
                 }
             }
         }
@@ -272,11 +274,15 @@ fun FilterChipItem(
 }
 
 @Composable
-fun WishlistCard(meeting: Meeting) {
+fun WishlistCard(
+    meeting: Meeting,
+    onClick: () -> Unit,
+    onRemoveFavorite: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Navigate to detail */ }
+            .clickable { onClick() }
     ) {
         // Top: Image with Heart & Tags
         Box(
@@ -293,15 +299,19 @@ fun WishlistCard(meeting: Meeting) {
             )
 
             // Heart Icon (Top Right)
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = "찜 취소",
-                tint = Color(0xFFFF6B6B), // Red-pinkish color
+            IconButton(
+                onClick = { onRemoveFavorite() },
                 modifier = Modifier
-                    .padding(8.dp)
-                    .size(28.dp)
                     .align(Alignment.TopEnd)
-            )
+                    .padding(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "찜 취소",
+                    tint = Color(0xFFFF6B6B), // Red-pinkish color
+                    modifier = Modifier.size(28.dp)
+                )
+            }
 
             // Tags (Bottom Left)
             Row(
