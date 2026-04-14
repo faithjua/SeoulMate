@@ -9,7 +9,38 @@ data class AiCourseRequest(
     val categories: List<String>,
     val members: String, // 인원수
     val budget: String,
-    val prompt: String
+    val prompt: String,
+    val recommendedStores: List<RecommendedStore> = emptyList(),
+    val congestionData: List<CongestionData> = emptyList()
+)
+
+/**
+ * AI 코스 생성 시 추천 맛집 정보
+ */
+@Serializable
+data class RecommendedStore(
+    val shId: String,
+    val shName: String,
+    val indutyCodeSe: String,
+    val indutyCodeSeName: String,
+    val shAddr: String,
+    val shInfo: String,
+    val shPhoto: String,
+    val lat: Double,
+    val lng: Double
+)
+
+/**
+ * AI 코스 생성 시 혼잡도 정보
+ */
+@Serializable
+data class CongestionData(
+    val areaNm: String,
+    val congestionLevel: String,
+    val congestionLabel: String,
+    val ppltnMin: Int,
+    val ppltnMax: Int,
+    val observedAt: String
 )
 
 // 응답 상자 (Spring Boot -> Android)
@@ -35,16 +66,51 @@ data class CourseCreateRequest(
     val detailPlace: String? = null,
     val places: List<CoursePlaceItem>,
     val prompt: String? = null,
-    val isAiGenerated: Boolean,
-    val isModified: Boolean
+    val aiGenerated: Boolean,
+    val modified: Boolean
 )
 
 @Serializable
 data class CoursePlaceItem(
-    val placeId: Long? = null,  // AI장소는 Null 허용
-    val name: String,           // AI 장소는 ID가 없으니 이름과 주소/위경도가 꼭 필요합니다.
-    val lat: Double? = null,
-    val lng: Double? = null,
+    val placeId: Long? = null,
+    val placeName: String,
+    val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val orderIndex: Int,
     val memo: String? = null
+)
+
+/**
+ * 코스 생성/조회 응답 DTO
+ */
+@Serializable
+data class CourseDetailResponse(
+    val id: Long,
+    val title: String? = null,
+    val region: String? = null,
+    val detailPlace: String? = null,
+    val creator: CourseCreatorInfo? = null,
+    val places: List<CoursePlaceItem> = emptyList(),
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CourseCreatorInfo(
+    val id: Long,
+    val nickname: String,
+    val profileImage: String? = null
+)
+
+/**
+ * 코스 목록 조회 응답 DTO (GET /api/courses)
+ */
+@Serializable
+data class CourseListResponse(
+    val id: Long,
+    val title: String,
+    val region: String,
+    val placeCount: Int,
+    val creatorNickname: String,
+    val createdAt: String
 )

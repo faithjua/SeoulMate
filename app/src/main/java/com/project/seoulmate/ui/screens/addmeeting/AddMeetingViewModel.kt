@@ -57,6 +57,10 @@ class AddMeetingViewModel @Inject constructor(
         _formState.update { it.copy(courses = it.courses + course) }
     }
 
+    fun updateCourseId(id: Long) {
+        _formState.update { it.copy(courseId = id) }
+    }
+
     fun removeCourse(index: Int) {
         _formState.update { current ->
             current.copy(

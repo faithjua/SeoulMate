@@ -29,6 +29,17 @@ android {
             properties.getProperty("BASE_URL") ?: "\"http://localhost:8080\""
 
         )
+        // 네이버 API 키
+        buildConfigField(
+            "String",
+            "NAVER_CLIENT_ID",
+            "\"${properties.getProperty("naver.client.id") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "NAVER_CLIENT_SECRET",
+            "\"${properties.getProperty("naver.client.secret") ?: ""}\""
+        )
         applicationId = "com.project.seoulmate"
         minSdk = 24
         targetSdk = 34

@@ -16,11 +16,11 @@ data class FavoriteRequest(
  */
 @Serializable
 data class FavoriteResponse(
-    val id: Long,
+    val id: Long? = null,
     val targetType: String,
     val targetId: Long,
     val isFavorited: Boolean? = null,
-    val createdAt: String
+    val createdAt: String? = null
 )
 
 /**
@@ -28,8 +28,8 @@ data class FavoriteResponse(
  */
 @Serializable
 data class FavoriteItemResponse(
-    val id: Long,
+    val id: Long? = null,
     val targetType: String,
     val targetId: Long,
-    val createdAt: String
+    val createdAt: String? = null
 )

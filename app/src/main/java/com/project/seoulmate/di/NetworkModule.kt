@@ -1,6 +1,7 @@
 package com.project.seoulmate.di
 
 import com.project.seoulmate.BuildConfig
+import com.project.seoulmate.data.remote.NaverSearchApi
 import com.project.seoulmate.signup.CourseApi
 import com.project.seoulmate.signup.AuthApi // 기존 AuthApi 위치
 import dagger.Module
@@ -16,8 +17,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import timber.log.Timber
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class NaverRetrofit
 
 @Module
 @InstallIn(SingletonComponent::class) // 앱 전체에서 하나만 유지됨 (싱글톤)
@@ -28,6 +34,7 @@ object NetworkModule {
     fun provideJson(): Json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
+        encodeDefaults = false // null이나 기본값 필드는 JSON에서 제외하여 서버 부담을 줄임
     }
 
     @Provides
@@ -101,5 +108,24 @@ object NetworkModule {
     @Singleton
     fun provideFavoriteApi(retrofit: Retrofit): com.project.seoulmate.data.remote.FavoriteApi {
         return retrofit.create(com.project.seoulmate.data.remote.FavoriteApi::class.java)
+    }
+
+    // --- 네이버 API용 Retrofit (별도 Base URL) ---
+
+    @Provides
+    @Singleton
+    @NaverRetrofit
+    fun provideNaverRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+        return Retrofit.Builder()
+            .client(okHttpClient)
+            .baseUrl("https://openapi.naver.com/")
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNaverSearchApi(@NaverRetrofit retrofit: Retrofit): NaverSearchApi {
+        return retrofit.create(NaverSearchApi::class.java)
     }
 }

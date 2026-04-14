@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,9 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +37,7 @@ import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.compose.*
 import com.project.seoulmate.R
 import com.project.seoulmate.ui.screens.addcourse.AddCourseViewModel
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalNaverMapApi::class)
 @Composable
@@ -50,6 +56,22 @@ fun AddCourseScreen(
     val isAiLoading by viewModel.isAiLoading.collectAsState()
     // 코스설명 가져오기
     val aiDescription by viewModel.aiDescription.collectAsState()
+    // 네이버 검색 상태
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
+
+    // 한글 자모 분리 방지를 위한 로컬 TextFieldValue 상태
+    var searchTextFieldValue by remember { mutableStateOf(TextFieldValue(searchQuery)) }
+
+    // ViewModel의 query가 외부에서 변경될 때(예: clearQuery) 로컬 상태 동기화
+    LaunchedEffect(searchQuery) {
+        if (searchTextFieldValue.text != searchQuery) {
+            searchTextFieldValue = searchTextFieldValue.copy(text = searchQuery)
+        }
+    }
+
+    val focusManager = LocalFocusManager.current
 
     //  바텀 시트 상태
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -57,7 +79,6 @@ fun AddCourseScreen(
     var promptText by remember { mutableStateOf("") }
 
     //  로컬 UI 상태
-    var searchQuery by remember { mutableStateOf("") }
     var detailLocation by remember { mutableStateOf("") }
 
     val cameraPositionState: CameraPositionState = rememberCameraPositionState {
@@ -95,14 +116,27 @@ fun AddCourseScreen(
                     text = { Text("AI 코스 자동완성", fontWeight = FontWeight.Bold) }
                 )
 
-                // 완료 버튼 누르면 리스트를 바구니에 담아 돌아감
+                // 완료 버튼 누르면 서버에 저장 후 ID를 들고 돌아감
                 Button(
                     onClick = {
-                        val finalCourseNames = courseList.map { it.name }
-                        navController.previousBackStackEntry?.savedStateHandle?.set("generated_courses", finalCourseNames)
-                        // AI가 써준 코스 설명도 같이 보냄
-                        navController.previousBackStackEntry?.savedStateHandle?.set("ai_description", aiDescription)
-                        navController.popBackStack()
+                        // "서울" 등 기본 지역명이 없으므로 첫 번째 장소의 지역 혹은 빈 값으로 처리
+                        // (Back-end 스펙에 맞춰 적절한 지역명 선정이 필요할 수 있으나 여기선 '서울'로 가정)
+                        viewModel.submitFinalCourse(
+                            region = "서울", 
+                            detailLocation = detailLocation,
+                            originalPrompt = aiDescription,
+                            onSuccess = { savedId ->
+                                val finalCourseNames = courseList.map { it.name }
+                                navController.previousBackStackEntry?.savedStateHandle?.set("course_id", savedId)
+                                navController.previousBackStackEntry?.savedStateHandle?.set("generated_courses", finalCourseNames)
+                                navController.previousBackStackEntry?.savedStateHandle?.set("ai_description", aiDescription)
+                                navController.popBackStack()
+                            },
+                            onError = { error ->
+                                // 토스트 혹은 로그 출력 (UI 피드백 강화 필요 시)
+                                Timber.tag("CourseSubmit").e("저장 실패: $error")
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -112,9 +146,13 @@ fun AddCourseScreen(
                         contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(8.dp),
-                    enabled = courseList.isNotEmpty()
+                    enabled = courseList.isNotEmpty() && !isAiLoading
                 ) {
-                    Text("완료", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (isAiLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("완료", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -139,75 +177,131 @@ fun AddCourseScreen(
 
             item {
                 // 네이버 지도 영역
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
-                ) {
-                    NaverMap(
-                        modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = cameraPositionState
-                    )
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("지역을 입력해 주세요", color = Color.Gray) },
-                        trailingIcon = { Icon(Icons.Default.Search, contentDescription = "검색", tint = Color(0xFF6C60FD)) },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        shape = CircleShape,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = Color(0xFF6C60FD),
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
-                        ),
-                        singleLine = true
-                    )
-                }
-            }
-
-            item {
-                // 추가 설명 영역
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .border(1.dp, Color(0xFF6C60FD), CircleShape)
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
                     ) {
-                        Text(
-                            text = if (searchQuery.isEmpty()) "지도에서 검색해 주세요" else searchQuery,
-                            color = if (searchQuery.isEmpty()) Color.Gray else Color.Black,
-                            fontSize = 14.sp
+                        NaverMap(
+                            modifier = Modifier.fillMaxSize(),
+                            cameraPositionState = cameraPositionState
+                        )
+
+                        OutlinedTextField(
+                            value = searchTextFieldValue,
+                            onValueChange = {
+                                searchTextFieldValue = it
+                                viewModel.updateSearchQuery(it.text)
+                            },
+                            placeholder = { Text("지역을 입력해 주세요", color = Color.Gray) },
+                            trailingIcon = {
+                                if (searchTextFieldValue.text.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.clearSearchQuery() }) {
+                                        Icon(Icons.Default.Close, contentDescription = "지우기", tint = Color.Gray)
+                                    }
+                                } else {
+                                    Icon(Icons.Default.Search, contentDescription = "검색", tint = Color(0xFF6C60FD))
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            shape = CircleShape,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                focusedBorderColor = Color(0xFF6C60FD),
+                                unfocusedBorderColor = Color(0xFFE0E0E0)
+                            ),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { focusManager.clearFocus() }
+                            )
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(Color(0xFF6C60FD), CircleShape)
-                            .clickable {
-                                if (searchQuery.isNotEmpty()) {
-                                    viewModel.addLocationManual(searchQuery)
-                                    searchQuery = ""
+                    // 검색 결과 표시
+                    if (searchTextFieldValue.text.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column {
+                                if (isSearching) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = Color(0xFF6C60FD),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                } else if (searchResults.isEmpty()) {
+                                    Text(
+                                        text = "검색 결과가 없습니다",
+                                        color = Color.Gray,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                } else {
+                                    searchResults.forEach { item ->
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    viewModel.addPlaceFromSearch(item)
+                                                    // 지도 카메라를 해당 위치로 이동
+                                                    cameraPositionState.position = CameraPosition(
+                                                        LatLng(item.getLatitude(), item.getLongitude()),
+                                                        14.0
+                                                    )
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = item.getCleanTitle(),
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color.Black
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = item.getBestAddress(),
+                                                fontSize = 13.sp,
+                                                color = Color.Gray
+                                            )
+                                            if (item.category.isNotEmpty()) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = item.category,
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF6C60FD)
+                                                )
+                                            }
+                                        }
+                                        if (item != searchResults.last()) {
+                                            HorizontalDivider(color = Color(0xFFE0E0E0))
+                                        }
+                                    }
                                 }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "추가", tint = Color.White)
+                            }
+                        }
                     }
                 }
             }
+
 
             // 코스 리스트 출력
             // 삭제, 화살표로 위아래 순서바꾸기 정도만 구현함. 터치로 자유롭게 바꾸는 것은 상당히 많은 코드 변화 우려
