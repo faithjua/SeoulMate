@@ -42,23 +42,27 @@ data class MeetingDetailResponse(
     val estimatedCost: Long? = null,
     val status: String? = null,
     val thumbnailUrl: String? = null,
+    val imageUrls: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
     val hostNickname: String? = null,
     val coursePlaceCount: Int? = null,
-    val congestionLevel: String? = null,
-    val congestionLabel: String? = null,
-    val courses: List<CourseResponse> = emptyList(),
+    val congestion: CongestionInfo? = null,
+    val course: CourseDetailResponse? = null,
     val host: HostInfo? = null,
     val createdAt: String? = null,
     val isFavorite: Boolean = false
 )
 
 @Serializable
-data class CourseResponse(
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val order: Int
+data class CongestionInfo(
+    val basisPlaceName: String? = null,
+    val label: String,
+    val level: String,
+    val ppltnMax: Int? = null,
+    val ppltnMin: Int? = null,
+    val sourceMessage: String? = null,
+    val sourceType: String,
+    val updatedAt: String? = null
 )
 
 @Serializable

@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.addcourse
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraPosition
@@ -60,6 +63,19 @@ fun AddCourseScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+
+    // AI 생성 에러 메시지 수집
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+
+    // 에러 메시지 토스트 표시
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearErrorMessage()
+        }
+    }
 
     // 한글 자모 분리 방지를 위한 로컬 TextFieldValue 상태
     var searchTextFieldValue by remember { mutableStateOf(TextFieldValue(searchQuery)) }

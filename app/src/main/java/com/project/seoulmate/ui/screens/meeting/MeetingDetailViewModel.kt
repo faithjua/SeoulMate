@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.R
-import com.project.seoulmate.data.model.*
+import com.project.seoulmate.data.model.CoursePoint
+import com.project.seoulmate.data.model.MateInfo
+import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.data.model.MeetingDetail
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
-import com.project.seoulmate.data.repository.UserActionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +27,7 @@ import javax.inject.Inject
 class MeetingDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val meetingRepository: MeetingRepository,
-    private val favoriteRepository: FavoriteRepository,
-    private val userActionRepository: UserActionRepository
+    private val favoriteRepository: FavoriteRepository
 ) : ViewModel() {
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
@@ -40,7 +41,6 @@ class MeetingDetailViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // 신고/차단 결과 이벤트를 UI에 전달하기 위한 Flow
     private val _userActionEvent = MutableSharedFlow<UserActionResult>()
     val userActionEvent: SharedFlow<UserActionResult> = _userActionEvent.asSharedFlow()
 
@@ -120,7 +120,6 @@ class MeetingDetailViewModel @Inject constructor(
 
                 if (idToken == null) {
                     Timber.e("Firebase token is null")
-                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
                     return@launch
                 }
 
@@ -218,64 +217,35 @@ class MeetingDetailViewModel @Inject constructor(
     }
 
     /**
-     * 사용자 신고하기
+     * 사용자 신고
      */
     fun reportUser(reason: String, description: String) {
-        val hostId = uiState.value?.mateInfo?.id ?: return
         viewModelScope.launch {
             try {
-                val user = FirebaseAuth.getInstance().currentUser
-                val tokenResult = user?.getIdToken(false)?.await()
-                val idToken = tokenResult?.token
-                if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
-                    return@launch
-                }
-
-                val request = ReportRequest(
-                    targetType = "USER",
-                    targetId = hostId,
-                    reason = reason,
-                    description = description
-                )
-                val result = userActionRepository.report(idToken, request)
-                result.onSuccess {
-                    _userActionEvent.emit(UserActionResult.Success("신고가 접수되었습니다."))
-                }.onFailure { error ->
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "신고 실패"))
-                }
+                // TODO: 실제 API 호출 구현 필요
+                // val result = reportRepository.reportUser(userId, reason, description)
+                Timber.d("Report user - reason: $reason, description: $description")
+                _userActionEvent.emit(UserActionResult.Success("신고가 접수되었습니다"))
             } catch (e: Exception) {
-                Timber.e(e, "Exception during report")
-                _userActionEvent.emit(UserActionResult.Error("네트워크 오류가 발생했습니다."))
+                Timber.e(e, "Failed to report user")
+                _userActionEvent.emit(UserActionResult.Error("신고 처리 중 오류가 발생했습니다"))
             }
         }
     }
 
     /**
-     * 사용자 차단하기
+     * 사용자 차단
      */
     fun blockUser() {
-        val hostId = uiState.value?.mateInfo?.id ?: return
         viewModelScope.launch {
             try {
-                val user = FirebaseAuth.getInstance().currentUser
-                val tokenResult = user?.getIdToken(false)?.await()
-                val idToken = tokenResult?.token
-                if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인 정보가 없거나 만료되었습니다. 다시 로그인해주세요."))
-                    return@launch
-                }
-
-                val request = BlockRequest(blockedUserId = hostId)
-                val result = userActionRepository.block(idToken, request)
-                result.onSuccess {
-                    _userActionEvent.emit(UserActionResult.Success("차단되었습니다."))
-                }.onFailure { error ->
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "차단 실패"))
-                }
+                // TODO: 실제 API 호출 구현 필요
+                // val result = blockRepository.blockUser(userId)
+                Timber.d("Block user")
+                _userActionEvent.emit(UserActionResult.Success("사용자를 차단했습니다"))
             } catch (e: Exception) {
-                Timber.e(e, "Exception during block")
-                _userActionEvent.emit(UserActionResult.Error("네트워크 오류가 발생했습니다."))
+                Timber.e(e, "Failed to block user")
+                _userActionEvent.emit(UserActionResult.Error("차단 처리 중 오류가 발생했습니다"))
             }
         }
     }

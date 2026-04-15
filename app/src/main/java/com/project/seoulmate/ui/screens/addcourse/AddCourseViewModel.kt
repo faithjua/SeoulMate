@@ -41,6 +41,9 @@ class AddCourseViewModel @Inject constructor(
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     // 네이버 검색 관련 상태
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -115,16 +118,21 @@ class AddCourseViewModel @Inject constructor(
 
                         Timber.tag("AiCourse").d("AI 생성 성공: ${aiResult.description}")
                     } else {
-                        // 통신은 성공했지만 서버 내부 로직이 실패한 경우 (예: 프롬프트 불량 등)
-                        Timber.tag("AiCourse").e("AI 생성 실패: ${apiResponse.message}")
-                        // 필요시 _errorMessage.value = apiResponse.message ?: "생성 실패" 등으로 UI에 알려주세요.
+                        // 통신은 성공했지만 서버 내부 로직이 실패한 경우 (예: 프롬프트 불량, 횟수 초과 등)
+                        val errorMsg = apiResponse.message ?: "생성 실패"
+                        Timber.tag("AiCourse").e("AI 생성 실패: $errorMsg")
+                        _errorMessage.value = errorMsg
                     }
                 } else {
                     // 서버 통신 자체가 실패한 경우 (403, 404, 500 에러 등)
-                    Timber.tag("AiCourse").e("서버 통신 에러: ${response.code()}")
+                    val errorMsg = response.body()?.message ?: "서버 통신 에러"
+                    Timber.tag("AiCourse").e("서버 통신 에러: ${response.code()} - $errorMsg")
+                    _errorMessage.value = errorMsg
                 }
             } catch (e: Exception) {
-                Timber.tag("AiCourse").e("네트워크 에러: ${e.message}")
+                val errorMsg = e.message ?: "네트워크 에러"
+                Timber.tag("AiCourse").e("네트워크 에러: $errorMsg")
+                _errorMessage.value = errorMsg
             } finally {
                 _isAiLoading.value = false
                 onComplete()
@@ -170,12 +178,14 @@ class AddCourseViewModel @Inject constructor(
                     "$region 코스"
                 }
 
-                // 2. 최종 요청 상자 포장
+                // 2. 최종 요청 상자 포장 (Swagger 규격에 맞춰 title 제거)
                 val request = CourseCreateRequest(
                     region = region,
-                    places = placeItems,
                     detailPlace = detailLocation.ifBlank { null },
-                    prompt = originalPrompt.ifBlank { null }
+                    places = placeItems,
+                    prompt = originalPrompt.ifBlank { null },
+                    aiGenerated = originalPrompt.isNotBlank(), // 프롬프트가 있으면 AI가 만든 것
+                    modified = true // 사용자가 중간에 삭제/추가 했는지 판단하는 변수를 별도로 두면 더 좋습니다.
                 )
 
                 // 3. 서버로 전송!
@@ -232,6 +242,10 @@ class AddCourseViewModel @Inject constructor(
     fun clearSearchQuery() {
         _searchQuery.value = ""
         _searchResults.value = emptyList()
+    }
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 
     private suspend fun searchNaverPlaces(query: String) {

@@ -138,5 +138,8 @@ dependencies {
 
     //로그를 위한 timber
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // 이미지 로딩 Coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
 

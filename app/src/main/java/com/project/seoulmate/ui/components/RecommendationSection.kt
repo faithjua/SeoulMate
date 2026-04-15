@@ -1,6 +1,8 @@
 package com.project.seoulmate.ui.components
 
+import com.project.seoulmate.R
 import androidx.compose.foundation.Image
+import coil.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
@@ -38,7 +41,8 @@ fun RecommendationSection(
     modifier: Modifier = Modifier,
     meetings: List<Meeting> = emptyList(),
     onSeeAllClick: () -> Unit = {},
-    onMeetingClick: (String) -> Unit = {}
+    onMeetingClick: (String) -> Unit = {},
+    onFavoriteClick: (String, Boolean) -> Unit = { _, _ -> }
 ) {
     Column(
         modifier = modifier
@@ -78,7 +82,8 @@ fun RecommendationSection(
             items(meetings) { meeting ->
                 RecommendationCard(
                     meeting = meeting,
-                    onClick = onMeetingClick
+                    onClick = onMeetingClick,
+                    onFavoriteClick = onFavoriteClick
                 )
             }
         }
@@ -89,7 +94,11 @@ fun RecommendationSection(
  * 만남 카드 하나. Meeting 데이터 클래스를 받아 UI를 그립니다.
  */
 @Composable
-fun RecommendationCard(meeting: Meeting, onClick: (String) -> Unit = {}) {
+fun RecommendationCard(
+    meeting: Meeting,
+    onClick: (String) -> Unit = {},
+    onFavoriteClick: (String, Boolean) -> Unit = { _, _ -> }
+) {
     Card(
         modifier = Modifier
             .width(260.dp)
@@ -105,12 +114,23 @@ fun RecommendationCard(meeting: Meeting, onClick: (String) -> Unit = {}) {
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                Image(
-                    painter = painterResource(id = meeting.imageRes),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (meeting.imageUrl != null) {
+                    AsyncImage(
+                        model = meeting.imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                        placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 // 하단 태그 가독성을 위한 그라데이션 오버레이
                 Box(
@@ -154,13 +174,14 @@ fun RecommendationCard(meeting: Meeting, onClick: (String) -> Unit = {}) {
 
                 // 좋아요 아이콘 (우측 상단)
                 Icon(
-                    imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "찜하기",
-                    tint = Color.White,
+                    imageVector = if (meeting.isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = if (meeting.isFavorited) "찜 취소" else "찜하기",
+                    tint = if (meeting.isFavorited) Color(0xFFFF6B6B) else Color.White,
                     modifier = Modifier
                         .padding(16.dp)
                         .size(28.dp)
                         .align(Alignment.TopEnd)
+                        .clickable { onFavoriteClick(meeting.id, meeting.isFavorited) }
                 )
             }
 

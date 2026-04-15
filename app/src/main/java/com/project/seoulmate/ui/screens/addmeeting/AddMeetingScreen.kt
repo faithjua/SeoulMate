@@ -1,5 +1,8 @@
 package com.project.seoulmate.ui.screens.addmeeting
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -89,18 +94,34 @@ fun AddMeetingScreen(
         }
     }
 
+    val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     val datePickerState = rememberDatePickerState()
     val timePickerState = rememberTimePickerState()
 
+    // 이미지 선택기
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.uploadImages(uris) { success, errorMessage ->
+                if (success) {
+                    Toast.makeText(context, "이미지 업로드 완료", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, errorMessage ?: "업로드 실패", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     val customTextFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
         focusedBorderColor = Color(0xFFDBDBDB),
         unfocusedBorderColor = Color(0xFFDBDBDB),
-        focusedTextColor = Color(0xFFDBDBDB),
+        focusedTextColor = Color.Gray,
         unfocusedTextColor = Color(0xFFDBDBDB),
         focusedPlaceholderColor = Color(0xFFDBDBDB),
         unfocusedPlaceholderColor = Color(0xFFDBDBDB)
@@ -165,7 +186,10 @@ fun AddMeetingScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    PhotoUploadSection(photoCount = formState.photoCount)
+                    PhotoUploadSection(
+                        imageUrls = formState.imageUrls,
+                        onGalleryClick = { imagePickerLauncher.launch("image/*") }
+                    )
                 }
             }
 
@@ -228,7 +252,8 @@ fun AddMeetingScreen(
             FormSection(title = "요일/시간", required = true) {
                 TimeSlotSection(
                     timeSlots = formState.timeSlots,
-                    onAddClick = { showDatePicker = true } 
+                    onAddClick = { showDatePicker = true },
+                    onRemoveClick = { index -> viewModel.removeTimeSlot(index) }
                 )
             }
 
@@ -238,7 +263,7 @@ fun AddMeetingScreen(
                     value = formState.description,
                     onValueChange = { viewModel.updateDescription(it) },
                     placeholder = { Text("무엇을 할 것인가요?") },
-                    modifier = Modifier.width(368.dp).height(59.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                     colors = customTextFieldColors,
                     shape = RoundedCornerShape(8.dp)
                 )
@@ -343,7 +368,7 @@ fun AddMeetingScreen(
                         val dateFormatter = SimpleDateFormat("M월 d일 (E)", Locale.KOREA)
                         dateFormatter.timeZone = TimeZone.getTimeZone("UTC") // Material DatePicker returns UTC millis
                         val dateString = dateFormatter.format(date)
-                        
+
                         // Parse time piece (e.g. 오후 7시)
                         val amPm = if (timePickerState.hour < 12) "오전" else "오후"
                         val hour12 = if (timePickerState.hour % 12 == 0) 12 else timePickerState.hour % 12
@@ -354,9 +379,22 @@ fun AddMeetingScreen(
                             // "오후 7시 30분" 형식
                             "$amPm ${hour12}시 ${minute}분"
                         }
-                        
+
                         val finalFormattedString = "$dateString $timeString"
                         viewModel.addTimeSlot(finalFormattedString)
+
+                        // ISO 형식 날짜/시간 생성 (서버 전송용)
+                        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        calendar.timeInMillis = selectedDateMillis!!
+                        calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        calendar.set(Calendar.MINUTE, timePickerState.minute)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+
+                        val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                        isoFormatter.timeZone = TimeZone.getTimeZone("UTC")
+                        val isoDateString = isoFormatter.format(calendar.time)
+                        viewModel.updateMeetDate(isoDateString)
                     }
                     showTimePicker = false
                 }) {

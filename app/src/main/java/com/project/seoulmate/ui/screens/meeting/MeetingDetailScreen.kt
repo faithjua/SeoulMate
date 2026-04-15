@@ -1,6 +1,8 @@
 package com.project.seoulmate.ui.screens.meeting
 
+import com.project.seoulmate.R
 import android.widget.Toast
+import coil.compose.AsyncImage
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -95,7 +97,7 @@ fun MeetingDetailScreen(
             ) {
                 // 상단 이미지 & TopBar
                 HeaderSection(
-                    imageRes = detail.meeting.imageRes,
+                    meeting = detail.meeting,
                     onBackClick = { navController.popBackStack() },
                     onSearchClick = { /* TODO */ }
                 )
@@ -143,19 +145,30 @@ fun MeetingDetailScreen(
 }
 
 @Composable
-fun HeaderSection(imageRes: Int, onBackClick: () -> Unit, onSearchClick: () -> Unit) {
+fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp)
     ) {
         // 배경 이미지
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (meeting.imageUrl != null) {
+            AsyncImage(
+                model = meeting.imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
+            )
+        } else {
+            Image(
+                painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // TopBar (투명)
         Row(
@@ -282,7 +295,7 @@ fun InfoSection(detail: MeetingDetail) {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "13",
+                    text = "",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -342,6 +355,16 @@ fun CourseSection(courses: List<CoursePoint>) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (courses.isEmpty()) {
+            Text(
+                text = "등록된 코스가 없습니다",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            return@Column
+        }
 
         // 타임라인 UI
         courses.forEachIndexed { index, course ->
