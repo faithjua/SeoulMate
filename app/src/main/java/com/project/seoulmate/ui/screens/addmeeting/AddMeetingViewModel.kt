@@ -1,18 +1,27 @@
 package com.project.seoulmate.ui.screens.addmeeting
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.MeetingForm
+import com.project.seoulmate.data.remote.ImageApi
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -21,7 +30,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class AddMeetingViewModel @Inject constructor(
-    private val repository: MeetingRepository
+    private val repository: MeetingRepository,
+    private val imageApi: ImageApi,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _formState = MutableStateFlow(MeetingForm())
@@ -71,6 +82,21 @@ class AddMeetingViewModel @Inject constructor(
 
     fun addTimeSlot(slot: String) {
         _formState.update { it.copy(timeSlots = it.timeSlots + slot) }
+    }
+
+    fun removeTimeSlot(index: Int) {
+        _formState.update { current ->
+            val newTimeSlots = current.timeSlots.filterIndexed { i, _ -> i != index }
+            current.copy(
+                timeSlots = newTimeSlots,
+                // timeSlot이 모두 삭제되면 meetDate도 초기화
+                meetDate = if (newTimeSlots.isEmpty()) "" else current.meetDate
+            )
+        }
+    }
+
+    fun updateMeetDate(meetDate: String) {
+        _formState.update { it.copy(meetDate = meetDate) }
     }
 
     fun updateDescription(description: String) {
@@ -142,6 +168,100 @@ class AddMeetingViewModel @Inject constructor(
 
     fun onEventConsumed() {
         _uiEvent.value = null
+    }
+
+    /**
+     * 이미지 업로드 (단일/다중)
+     */
+    fun uploadImages(uris: List<Uri>, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 1. Firebase 토큰 획득
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token == null) {
+                    Timber.e("User not logged in")
+                    onComplete(false, "로그인이 필요합니다")
+                    return@launch
+                }
+
+                // 2. 파일 크기 검증
+                val files = uris.mapNotNull { uri ->
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val fileSize = inputStream?.available() ?: 0
+                        inputStream?.close()
+
+                        // 단일 파일 5MB 체크
+                        if (fileSize > 5 * 1024 * 1024) {
+                            onComplete(false, "이미지는 5MB 이하만 업로드할 수 있습니다")
+                            return@launch
+                        }
+
+                        // 임시 파일로 저장
+                        val tempFile = File.createTempFile("upload_", ".jpg", context.cacheDir)
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        tempFile to fileSize.toLong()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error processing file")
+                        null
+                    }
+                }
+
+                // 전체 크기 20MB 체크
+                val totalSize = files.sumOf { it.second }
+                if (totalSize > 20 * 1024 * 1024) {
+                    onComplete(false, "한 번에 업로드할 수 있는 총 용량은 20MB 이하입니다")
+                    files.forEach { it.first.delete() }
+                    return@launch
+                }
+
+                // 3. Multipart 생성
+                val fileParts = files.map { (file, _) ->
+                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("file", file.name, requestFile)
+                }
+
+                val folderBody = "meetups".toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // 4. API 호출
+                val imageUrls = mutableListOf<String>()
+
+                for (filePart in fileParts) {
+                    val response = imageApi.uploadImage("Bearer $token", filePart, folderBody)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        response.body()?.data?.url?.let { url ->
+                            imageUrls.add(url)
+                        }
+                    } else {
+                        val errorMsg = response.body()?.message ?: "이미지 업로드 실패"
+                        Timber.e("Image upload failed: $errorMsg")
+                        files.forEach { it.first.delete() }
+                        onComplete(false, errorMsg)
+                        return@launch
+                    }
+                }
+
+                // 5. 성공 - imageUrls에 저장
+                _formState.update { it.copy(imageUrls = imageUrls) }
+
+                // 임시 파일 삭제
+                files.forEach { it.first.delete() }
+
+                Timber.d("Images uploaded successfully: ${imageUrls.size}")
+                onComplete(true, null)
+
+            } catch (e: Exception) {
+                Timber.e(e, "Image upload error")
+                onComplete(false, "이미지 업로드 중 오류가 발생했습니다")
+            }
+        }
     }
 }
 

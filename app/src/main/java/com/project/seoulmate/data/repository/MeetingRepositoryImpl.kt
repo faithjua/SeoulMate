@@ -243,7 +243,8 @@ private fun MeetingListResponse.toMeeting(): Meeting {
         time = this.schedule ?: "",
         price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
         rating = "0.0", // 리스트 응답에 평점이 없으므로 기본값 처리
-        imageRes = R.drawable.img_recommend_1, // thumbnailUrl 처리는 추후 Coil 적용 시 수정
+        imageRes = R.drawable.img_recommend_1,
+        imageUrl = this.thumbnailUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
         tags = buildList {
             this@toMeeting.congestionLevel?.let { add(it) }
             addAll(this@toMeeting.tags.map { "#$it" })
@@ -261,17 +262,21 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         time = this.schedule ?: "",
         price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
         rating = this.host?.rating?.toString() ?: "0.0",
-        imageRes = R.drawable.img_recommend_1, // Coil 적용 시 imageUrls.firstOrNull() 활용
+        imageRes = R.drawable.img_recommend_1,
+        imageUrl = this.imageUrls.firstOrNull()?.takeIf { it.isNotBlank() } ?: this.thumbnailUrl?.takeIf { it.isNotBlank() },
         tags = this.tags.map { "#$it" }
     )
 
-    val coursePoints = this.courses.sortedBy { it.order }.mapIndexed { index, course ->
+    val places = this.course?.places ?: emptyList()
+    Timber.d("MeetingDetail - course places size: ${places.size}")
+    val coursePoints = places.sortedBy { it.orderIndex }.mapIndexed { index, place ->
+        Timber.d("MeetingDetail - place[$index]: ${place.placeName} (${place.latitude}, ${place.longitude})")
         CoursePoint(
-            name = course.name,
+            name = place.placeName,
             isStart = index == 0,
-            isEnd = index == this.courses.size - 1,
-            lat = course.latitude,
-            lng = course.longitude
+            isEnd = index == places.size - 1,
+            lat = place.latitude ?: 0.0,
+            lng = place.longitude ?: 0.0
         )
     }
 
@@ -289,7 +294,7 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         meeting = meeting,
         location = this.region ?: "",
         timeElapsed = "", // TODO: 시간 경과 계산 로직 추가
-        dateAndTime = this.meetDate ?: this.schedule ?: "",
+        dateAndTime = this.schedule ?: this.meetDate ?: "",
         description = this.description,
         courses = coursePoints,
         mateInfo = mateInfo,
@@ -308,7 +313,7 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
         price = "미정", // 홈 API에 가격 정보가 없는 경우 고정 텍스트 처리
         rating = "0.0",
         imageRes = R.drawable.img_recommend_1, // 기본 이미지
-        imageUrl = this.imageUrl,
+        imageUrl = this.imageUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
         tags = buildList {
             this@toMeeting.congestionLabel?.let { add(it) }
             addAll(this@toMeeting.tags.map { "#$it" })

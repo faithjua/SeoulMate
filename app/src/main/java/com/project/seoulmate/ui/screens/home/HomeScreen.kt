@@ -113,6 +113,9 @@ fun HomeScreen(
                     onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    },
+                    onFavoriteClick = { meetingId, isFavorited ->
+                        viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
 
@@ -124,6 +127,9 @@ fun HomeScreen(
                     onSeeAllClick = { /* TODO */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    },
+                    onFavoriteClick = { meetingId, isFavorited ->
+                        viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
 
@@ -135,6 +141,9 @@ fun HomeScreen(
                     onSeeAllClick = { /* TODO */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    },
+                    onFavoriteClick = { meetingId, isFavorited ->
+                        viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
 
@@ -146,6 +155,9 @@ fun HomeScreen(
                     onSeeAllClick = { /* TODO */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                    },
+                    onFavoriteClick = { meetingId, isFavorited ->
+                        viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
 

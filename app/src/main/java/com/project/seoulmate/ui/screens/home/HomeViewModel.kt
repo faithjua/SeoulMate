@@ -2,8 +2,10 @@ package com.project.seoulmate.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.Category
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -21,7 +25,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: MeetingRepository
+    private val repository: MeetingRepository,
+    private val favoriteRepository: FavoriteRepository
 ) : ViewModel() {
 
     // StateFlow: 현재 상태를 저장하고, 상태가 바뀌면 수집자(Composable)에게 알림
@@ -44,8 +49,8 @@ class HomeViewModel @Inject constructor(
     private fun loadData() {
         val categoryList = repository.getCategories()
         _categories.value = categoryList
-        // 기본 선택값: "관광" (두 번째 항목, 인덱스 1)
-        val defaultCategory = categoryList.getOrNull(1)
+        // 기본 선택값: "전체메뉴" (첫 번째 항목, 인덱스 0)
+        val defaultCategory = categoryList.getOrNull(0)
         _selectedCategory.value = defaultCategory
         
         loadHomeData(defaultCategory)
@@ -53,9 +58,14 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData(category: Category?) {
         viewModelScope.launch {
-            repository.getHomeData(category?.name).onSuccess { meetings ->
+            // "전체메뉴"이면 null 전달, 다른 카테고리면 name 전달
+            val categoryParam = if (category?.isAllMenu == true) null else category?.name
+            Timber.d("Loading home data with category: $categoryParam")
+            repository.getHomeData(categoryParam).onSuccess { meetings ->
+                Timber.d("Success: received ${meetings.size} meetings")
                 _recentMeetings.value = meetings
-            }.onFailure {
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load home data for category: $categoryParam")
                 // TODO: 에러 처리 로직 추가 (Toast 등)
             }
         }
@@ -68,5 +78,50 @@ class HomeViewModel @Inject constructor(
     fun onCategorySelected(category: Category) {
         _selectedCategory.update { category }
         loadHomeData(category)
+    }
+
+    /**
+     * 찜 추가/제거 토글
+     */
+    fun toggleFavorite(meetingId: String, currentFavoriteState: Boolean) {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token == null) {
+                    Timber.e("User not logged in")
+                    return@launch
+                }
+
+                val meetingIdLong = meetingId.toLongOrNull() ?: return@launch
+
+                // API 호출
+                val result = if (currentFavoriteState) {
+                    favoriteRepository.removeFavorite(token, "MEETUP", meetingIdLong)
+                } else {
+                    favoriteRepository.addFavorite(token, "MEETUP", meetingIdLong)
+                }
+
+                result.onSuccess {
+                    // 성공 시 UI 상태 업데이트 (isFavorited 토글)
+                    _recentMeetings.update { meetings ->
+                        meetings.map { meeting ->
+                            if (meeting.id == meetingId) {
+                                meeting.copy(isFavorited = !currentFavoriteState)
+                            } else {
+                                meeting
+                            }
+                        }
+                    }
+                    Timber.d("Favorite toggled for meeting $meetingId")
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to toggle favorite")
+                    // TODO: 에러 메시지 UI에 표시
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error toggling favorite")
+            }
+        }
     }
 }

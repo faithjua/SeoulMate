@@ -15,6 +15,7 @@ data class MeetingCreateRequest(
     val imageUrls: List<String>,
     val schedule: String,
     val meetDate: String,
+    val minMembers: Int,
     val maxMembers: Int,
     val estimatedCost: Long
 )
@@ -26,11 +27,13 @@ fun MeetingForm.toCreateRequest(): MeetingCreateRequest {
     return MeetingCreateRequest(
         title = this.name,
         description = this.description,
-        tags = this.selectedCategories.toList(),
+        // tags: #을 제거하고 공백 정리 (예: "#관광" → "관광", "# K-팝" → "K-팝")
+        tags = this.selectedCategories.map { it.removePrefix("#").trim() },
         courseId = this.courseId ?: 1L, // 기본값 1L (실제로는 코스 생성 후 ID를 받아와야 함)
         imageUrls = this.imageUrls,
         schedule = this.timeSlots.firstOrNull() ?: "",
         meetDate = this.meetDate,
+        minMembers = this.minMembers.toIntOrNull() ?: 1,
         maxMembers = this.maxMembers.toIntOrNull() ?: 1,
         estimatedCost = this.expectedCost.filter { it.isDigit() }.toLongOrNull() ?: 0L
     )

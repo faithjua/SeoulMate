@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,27 +24,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
 
 @Composable
 fun PhotoUploadSection(
-    photoCount: Int = 0,
+    imageUrls: List<String> = emptyList(),
     onCameraClick: () -> Unit = {},
     onGalleryClick: () -> Unit = {}
 ) {
+    val photoCount = imageUrls.size
+    
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Camera Button
+        // Camera Button (현시점에서는 갤러리와 동일한 동작 혹은 비활성화)
         PhotoUploadButton(
             icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_camera),
                     contentDescription = "사진",
                     tint = Color.Unspecified,
-                    // contentScale = ContentScale.None
                     modifier = Modifier.size(30.dp)
                 )
             },
@@ -54,16 +59,48 @@ fun PhotoUploadSection(
         // Gallery Button with counter
         PhotoUploadButton(
             icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_image),
-                    contentDescription = "갤러리",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(30.dp)
-                )
+                if (imageUrls.isNotEmpty()) {
+                    // 업로드된 이미지가 있으면 첫 번째 이미지를 썸네일로 표시
+                    AsyncImage(
+                        model = imageUrls.first(),
+                        contentDescription = "갤러리 썸네일",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_image),
+                        contentDescription = "갤러리",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
             },
             label = "$photoCount/9",
             onClick = onGalleryClick
         )
+        
+        // 업로드된 이미지 프리뷰 (최대 3개 정도만 추가로 표시)
+        if (imageUrls.size > 1) {
+            imageUrls.drop(1).take(2).forEach { url ->
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                ) {
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "이미지 프리뷰",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -104,9 +141,9 @@ fun CategoryTagSection(
     onCategoryToggle: (String) -> Unit
 ) {
     val categories = listOf(
-        "#관광", "# K-팝", "#K-뷰티", "#쇼핑",
-        "#한식", "#카페", "#교통 가이드", "#숙소·지역",
-        "#클래스", "#커뮤니티", "#전시·스타일", "#안전·생활"
+        "#관광", "#K-팝", "#K-뷰티", "#쇼핑",
+        "#한식", "#카페", "#교통 가이드", "#숙소/지역",
+        "#클래스", "#커뮤니티", "#전시/공연", "#안전/생활"
     )
 
     FlowRow(
@@ -212,7 +249,8 @@ fun CourseSection(
 @Composable
 fun TimeSlotSection(
     timeSlots: List<String>,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    onRemoveClick: (Int) -> Unit = {}
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -220,19 +258,32 @@ fun TimeSlotSection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Display existing time slots
-        timeSlots.forEach { slot ->
+        timeSlots.forEachIndexed { index, slot ->
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White,
                 border = null,
                 shadowElevation = 4.dp
             ) {
-                Text(
-                    text = slot,
+                Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = slot,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "삭제",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { onRemoveClick(index) }
+                    )
+                }
             }
         }
 
