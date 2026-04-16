@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.project.seoulmate.R
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.RecommendationCard
 import com.project.seoulmate.ui.navigation.Screen
 
@@ -230,45 +231,47 @@ fun IdleStateContent(
     onSearchClick: (String) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Recent Searches
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "최근 검색어",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "모두 지우기",
-                    fontSize = 12.sp,
-                    color = Color.DarkGray,
-                    modifier = Modifier.clickable { /* TODO: Clear all */ }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val recentSearches = listOf("홍대 베이커리", "경복궁 야간", "맛집", "한강 피크닉")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                recentSearches.forEach { search ->
-                    SearchChip(
-                        text = search,
-                        onClick = { onSearchClick(search) }
+        // Recent Searches (개발 모드에서만 표시)
+        if (!AppConfig.IS_PRODUCTION) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "최근 검색어",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "모두 지우기",
+                        fontSize = 12.sp,
+                        color = Color.DarkGray,
+                        modifier = Modifier.clickable { /* TODO: Clear all */ }
                     )
                 }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val recentSearches = listOf("홍대 베이커리", "경복궁 야간", "맛집", "한강 피크닉")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    recentSearches.forEach { search ->
+                        SearchChip(
+                            text = search,
+                            onClick = { onSearchClick(search) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         // Ad Banner
         Box(
@@ -317,28 +320,30 @@ fun IdleStateContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Trending Searches
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Text(
-                text = "주간 급상승 검색어",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+        // Trending Searches (개발 모드에서만 표시)
+        if (!AppConfig.IS_PRODUCTION) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = "주간 급상승 검색어",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            val trendingSearches = listOf("광화문 광장", "성수동 카페거리", "인사동 쌈지길", "남산 타워", "청계천 야경")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                trendingSearches.forEach { search ->
-                    SearchChip(
-                        text = search,
-                        onClick = { onSearchClick(search) }
-                    )
+                val trendingSearches = listOf("광화문 광장", "성수동 카페거리", "인사동 쌈지길", "남산 타워", "청계천 야경")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    trendingSearches.forEach { search ->
+                        SearchChip(
+                            text = search,
+                            onClick = { onSearchClick(search) }
+                        )
+                    }
                 }
             }
         }
