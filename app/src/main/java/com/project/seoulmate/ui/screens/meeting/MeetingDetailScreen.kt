@@ -1,5 +1,6 @@
-package com.project.seoulmate.ui.screens.meeting
+﻿package com.project.seoulmate.ui.screens.meeting
 
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.R
 import android.widget.Toast
 import coil.compose.AsyncImage

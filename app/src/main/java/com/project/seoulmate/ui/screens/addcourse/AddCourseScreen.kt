@@ -39,7 +39,7 @@ import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.compose.*
 import com.project.seoulmate.R
-import com.project.seoulmate.ui.screens.addcourse.AddCourseViewModel
+import com.project.seoulmate.config.AppConfig
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalNaverMapApi::class)
@@ -136,9 +136,8 @@ fun AddCourseScreen(
                 Button(
                     onClick = {
                         // "서울" 등 기본 지역명이 없으므로 첫 번째 장소의 지역 혹은 빈 값으로 처리
-                        // (Back-end 스펙에 맞춰 적절한 지역명 선정이 필요할 수 있으나 여기선 '서울'로 가정)
                         viewModel.submitFinalCourse(
-                            region = "서울", 
+                            region = "서울",
                             detailLocation = detailLocation,
                             originalPrompt = aiDescription,
                             onSuccess = { savedId ->
@@ -149,7 +148,6 @@ fun AddCourseScreen(
                                 navController.popBackStack()
                             },
                             onError = { error ->
-                                // 토스트 혹은 로그 출력 (UI 피드백 강화 필요 시)
                                 Timber.tag("CourseSubmit").e("저장 실패: $error")
                             }
                         )
@@ -373,26 +371,32 @@ fun AddCourseScreen(
                 }
             }
 
+            // IS_PRODUCTION이 false일 때만 세부 장소 입력란 표시
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("세부 장소", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("(선택 작성)", fontSize = 14.sp, color = Color.Gray)
-                    }
+                if (!AppConfig.IS_PRODUCTION) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("세부 장소", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("(선택 작성)", fontSize = 14.sp, color = Color.Gray)
+                        }
 
-                    OutlinedTextField(
-                        value = detailLocation,
-                        onValueChange = { detailLocation = it },
-                        placeholder = { Text("예: 태릉입구역 6번 출구", color = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 80.dp),
-                        shape = CircleShape,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6C60FD),
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
-                        ),
-                        singleLine = true
-                    )
+                        OutlinedTextField(
+                            value = detailLocation,
+                            onValueChange = { detailLocation = it },
+                            placeholder = { Text("예: 태릉입구역 6번 출구", color = Color.Gray) },
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 80.dp),
+                            shape = CircleShape,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF6C60FD),
+                                unfocusedBorderColor = Color(0xFFE0E0E0)
+                            ),
+                            singleLine = true
+                        )
+                    }
+                } else {
+                    // IS_PRODUCTION일 때는 하단 패딩만 유지
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
             }
         }

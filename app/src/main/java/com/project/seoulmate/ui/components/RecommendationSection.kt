@@ -157,6 +157,7 @@ fun RecommendationCard(
                             color = when (tag) {
                                 "혼잡" -> Color(0xFFFF6B6B)
                                 "여유" -> Color(0xFF6CF0A0)
+                                "정보 없음" -> Color(0xFF9E9E9E) // 회색
                                 else -> Color(0xFF8B80FF)
                             },
                             shape = RoundedCornerShape(8.dp),
@@ -233,20 +234,21 @@ fun RecommendationCard(
                         }
                     }
 
-                    Button(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text(
-                            text = "메이트 신청하기",
-                            color = Color.Black,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Button(
+                            onClick = { /* TODO */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Text(
+                                // 원래는 메이트 신청 버튼
+                                text = "만남 보기",
+                                color = Color.Black,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                     }
                 }
             }

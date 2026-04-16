@@ -20,6 +20,7 @@ import androidx.navigation.NavHostController
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
+import com.project.seoulmate.config.AppConfig
 
 /**
  * 홈 화면 Composable
@@ -37,6 +38,8 @@ fun HomeScreen(
     // collectAsStateWithLifecycle: 화면이 보이지 않을 때(백그라운드) 수집 중단 → 배터리 절약
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val recentMeetings by viewModel.recentMeetings.collectAsStateWithLifecycle()
+    val todayMeetings by viewModel.todayMeetings.collectAsStateWithLifecycle()
+    val lowCongestionMeetings by viewModel.lowCongestionMeetings.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
 
     // 하단 네비게이션 선택 상태 (네비게이션 바 전용 UI 상태, 간단하므로 여기서 관리)
@@ -54,10 +57,14 @@ fun HomeScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.route)
-                        4 -> navController.navigate(Screen.Profile.route) {
-                            popUpTo(Screen.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        // 개발 모드에서만 쪽지(3)/프로필(4) 탭 노출
+                        3 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
+                        4 -> if (!AppConfig.IS_PRODUCTION) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                         else -> selectedBottomItem = index
                     }
@@ -105,9 +112,9 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 4. 최근 본 만남 섹션
+                // 4. 최근 (올라온)본 만남 섹션
                 RecommendationSection(
-                    title = "최근 본 만남",
+                    title = "최근 올라온 만남",
                     modifier = Modifier.fillMaxWidth(),
                     meetings = recentMeetings,
                     onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ },
@@ -123,7 +130,7 @@ fun HomeScreen(
                 RecommendationSection(
                     title = "당일 만남",
                     modifier = Modifier.fillMaxWidth(),
-                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                    meetings = todayMeetings, // 오늘 날짜의 만남만 표시
                     onSeeAllClick = { /* TODO */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
@@ -133,11 +140,11 @@ fun HomeScreen(
                     }
                 )
 
-                // 6. 맛집탐방 관련 만남 섹션
+                // 6. 혼잡도 관련 만남 섹션
                 RecommendationSection(
-                    title = "맛집탐방 관련 만남",
+                    title = "혼잡도 낮은 만남",
                     modifier = Modifier.fillMaxWidth(),
-                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                    meetings = lowCongestionMeetings, // 혼잡도 낮은 만남만 표시
                     onSeeAllClick = { /* TODO */ },
                     onMeetingClick = { meetingId ->
                         navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
@@ -146,7 +153,7 @@ fun HomeScreen(
                         viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
-
+/*
                 // 7. 지금 인기있는 만남 섹션
                 RecommendationSection(
                     title = "지금 인기있는 만남",
@@ -160,7 +167,7 @@ fun HomeScreen(
                         viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
-
+*/
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }

@@ -29,7 +29,7 @@ class MeetingRepositoryImpl @Inject constructor(
         Category(id = "food", name = "한식", iconRes = R.drawable.ic_kfood),
         Category(id = "cafe", name = "카페", iconRes = R.drawable.ic_cafe),
         Category(id = "transport", name = "교통 가이드", iconRes = R.drawable.ic_subway),
-        Category(id = "accommodation", name = "숙소/지역", iconRes = R.drawable.ic_accommodation),
+        // Category(id = "accommodation", name = "숙소/지역", iconRes = R.drawable.ic_accommodation),
         Category(id = "class", name = "클래스", iconRes = R.drawable.ic_class),
         Category(id = "community", name = "커뮤니티", iconRes = R.drawable.ic_community),
         Category(id = "exhibition", name = "전시/공연", iconRes = R.drawable.ic_exhibition),
@@ -240,15 +240,16 @@ private fun MeetingListResponse.toMeeting(): Meeting {
     return Meeting(
         id = this.id.toString(),
         title = this.title,
-        time = this.schedule ?: "",
-        price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
+        time = this.schedule ?: this.meetDate ?: "",
+        price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0", // 리스트 응답에 평점이 없으므로 기본값 처리
         imageRes = R.drawable.img_recommend_1,
         imageUrl = this.thumbnailUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
         tags = buildList {
             this@toMeeting.congestionLevel?.let { add(it) }
             addAll(this@toMeeting.tags.map { "#$it" })
-        }
+        },
+        meetDate = this.meetDate
     )
 }
 
@@ -309,8 +310,8 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
     return Meeting(
         id = this.id.toString(),
         title = this.title,
-        time = this.meetDate ?: "",
-        price = "미정", // 홈 API에 가격 정보가 없는 경우 고정 텍스트 처리
+        time = this.schedule ?: this.meetDate ?: "",
+        price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0",
         imageRes = R.drawable.img_recommend_1, // 기본 이미지
         imageUrl = this.imageUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
@@ -318,6 +319,7 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
             this@toMeeting.congestionLabel?.let { add(it) }
             addAll(this@toMeeting.tags.map { "#$it" })
         },
-        isFavorited = this.isFavorited
+        isFavorited = this.isFavorited,
+        meetDate = this.meetDate
     )
 }

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.project.seoulmate.R
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.components.SuitFontFamily
 import com.project.seoulmate.ui.navigation.Screen
@@ -180,20 +181,22 @@ fun ProfileHeader() {
                         modifier = Modifier.size(36.dp)
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .align(Alignment.BottomEnd),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = "수정",
-                        tint = Color(0xFF6C60FD),
-                        modifier = Modifier.size(16.dp)
-                    )
+                if (!AppConfig.IS_PRODUCTION) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .align(Alignment.BottomEnd),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "수정",
+                            tint = Color(0xFF6C60FD),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
@@ -261,20 +264,22 @@ fun ProfileHeader() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        OutlinedButton(
-            onClick = { /* TODO */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
-        ) {
-            Text(
-                text = "수정하기",
-                fontSize = 16.sp,
-                fontFamily = SuitFontFamily,
-                fontWeight = FontWeight.Medium
-            )
+        if (!AppConfig.IS_PRODUCTION) {
+            OutlinedButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+            ) {
+                Text(
+                    text = "수정하기",
+                    fontSize = 16.sp,
+                    fontFamily = SuitFontFamily,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

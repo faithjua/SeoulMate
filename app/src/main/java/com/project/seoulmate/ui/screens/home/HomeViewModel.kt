@@ -38,6 +38,12 @@ class HomeViewModel @Inject constructor(
     private val _recentMeetings = MutableStateFlow<List<Meeting>>(emptyList())
     val recentMeetings: StateFlow<List<Meeting>> = _recentMeetings.asStateFlow()
 
+    private val _todayMeetings = MutableStateFlow<List<Meeting>>(emptyList())
+    val todayMeetings: StateFlow<List<Meeting>> = _todayMeetings.asStateFlow()
+
+    private val _lowCongestionMeetings = MutableStateFlow<List<Meeting>>(emptyList())
+    val lowCongestionMeetings: StateFlow<List<Meeting>> = _lowCongestionMeetings.asStateFlow()
+
     private val _selectedCategory = MutableStateFlow<Category?>(null)
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
@@ -60,10 +66,24 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // "전체메뉴"이면 null 전달, 다른 카테고리면 name 전달
             val categoryParam = if (category?.isAllMenu == true) null else category?.name
-            Timber.d("Loading home data with category: $categoryParam")
             repository.getHomeData(categoryParam).onSuccess { meetings ->
-                Timber.d("Success: received ${meetings.size} meetings")
                 _recentMeetings.value = meetings
+
+                // 오늘 날짜의 만남 필터링 (API 24+ 호환)
+                val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    .format(java.util.Date())
+                val todayMeetings = meetings.filter { meeting ->
+                    meeting.meetDate != null && meeting.meetDate.startsWith(today)
+                }
+                _todayMeetings.value = todayMeetings
+
+                // 혼잡도 낮은 만남 필터링 ("여유" 태그가 있는 만남)
+                val lowCongestionMeetings = meetings.filter { meeting ->
+                    meeting.tags.any { tag -> tag.contains("여유") }
+                }
+                _lowCongestionMeetings.value = lowCongestionMeetings
+
+                Timber.d("Home data loaded: ${meetings.size} total, ${todayMeetings.size} today, ${lowCongestionMeetings.size} low congestion")
             }.onFailure { error ->
                 Timber.e(error, "Failed to load home data for category: $categoryParam")
                 // TODO: 에러 처리 로직 추가 (Toast 등)
@@ -105,15 +125,18 @@ class HomeViewModel @Inject constructor(
 
                 result.onSuccess {
                     // 성공 시 UI 상태 업데이트 (isFavorited 토글)
-                    _recentMeetings.update { meetings ->
-                        meetings.map { meeting ->
-                            if (meeting.id == meetingId) {
-                                meeting.copy(isFavorited = !currentFavoriteState)
-                            } else {
-                                meeting
-                            }
+                    val updateMeeting: (Meeting) -> Meeting = { meeting ->
+                        if (meeting.id == meetingId) {
+                            meeting.copy(isFavorited = !currentFavoriteState)
+                        } else {
+                            meeting
                         }
                     }
+
+                    _recentMeetings.update { it.map(updateMeeting) }
+                    _todayMeetings.update { it.map(updateMeeting) }
+                    _lowCongestionMeetings.update { it.map(updateMeeting) }
+
                     Timber.d("Favorite toggled for meeting $meetingId")
                 }.onFailure { error ->
                     Timber.e(error, "Failed to toggle favorite")

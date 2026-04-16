@@ -1,5 +1,7 @@
 package com.project.seoulmate.ui.components
 
+import com.project.seoulmate.config.AppConfig
+
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,13 +53,15 @@ fun BottomNavigationBar(
     selectedItem: Int = 0,
     onItemSelected: (Int) -> Unit = {}
 ) {
-    val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Favorite,
-        BottomNavItem.Add,
-        BottomNavItem.Message,
-        BottomNavItem.Profile
-    )
+    val items = buildList {
+        add(BottomNavItem.Home)     // index 0
+        add(BottomNavItem.Favorite) // index 1
+        add(BottomNavItem.Add)      // index 2
+        if (!AppConfig.IS_PRODUCTION) {
+            add(BottomNavItem.Message)  // index 3 (개발 모드만)
+            add(BottomNavItem.Profile)  // index 4 (개발 모드만)
+        }
+    }
 
     Surface(
         modifier = Modifier

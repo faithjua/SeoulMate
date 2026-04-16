@@ -1,5 +1,7 @@
 package com.project.seoulmate.ui.components
 
+import com.project.seoulmate.config.AppConfig
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -46,39 +48,41 @@ fun TopBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onTranslateClick) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_translate),
-                    contentDescription = "번역",
-                    contentScale = ContentScale.None
-                )
-            }
-            
-            Box(contentAlignment = Alignment.TopEnd) {
-                IconButton(onClick = onNotificationClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "알림",
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.Black
+            if (!AppConfig.IS_PRODUCTION) {
+                IconButton(onClick = onTranslateClick) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_translate),
+                        contentDescription = "번역",
+                        contentScale = ContentScale.None
                     )
                 }
-                
-                // Badge
-                Box(
-                    modifier = Modifier
-                        .padding(top = 6.dp, end = 6.dp)
-                        .size(16.dp)
-                        .background(color = Color(0xFFFF6B6B), shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "2",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
+
+                Box(contentAlignment = Alignment.TopEnd) {
+                    IconButton(onClick = onNotificationClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "알림",
+                            modifier = Modifier.size(28.dp),
+                            tint = Color.Black
+                        )
+                    }
+
+                    // Badge
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 6.dp, end = 6.dp)
+                            .size(16.dp)
+                            .background(color = Color(0xFFFF6B6B), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "2",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
