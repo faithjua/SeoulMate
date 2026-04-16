@@ -49,8 +49,8 @@ fun WishlistScreen(
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
 
-    // 알림 개수를 저장하는 상태 변수
-    var unreadAlarmCount by remember { mutableStateOf(2) }
+    // 알림 개수를 저장하는 상태 변수 (현재 사용 안 함)
+    // var unreadAlarmCount by remember { mutableStateOf(2) }
 
     Scaffold(
         bottomBar = {
@@ -90,6 +90,8 @@ fun WishlistScreen(
                     color = Color.Black
                 )
 
+                // 번역 아이콘과 알람 아이콘 숨김처리
+                /*
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -134,6 +136,7 @@ fun WishlistScreen(
                         }
                     }
                 }
+                */
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -323,10 +326,12 @@ fun WishlistCard(
                 meeting.tags.forEach { tag ->
                     val isCrowded = tag == "혼잡"
                     val isFree = tag == "여유"
+                    val isUnknown = tag == "정보 없음"
                     Surface(
                         color = when {
                             isCrowded -> Color(0xFFFF6B6B) // Orange/Red
                             isFree -> Color.White // White with dark text
+                            isUnknown -> Color(0xFF9E9E9E) // 회색
                             else -> Color(0xFF6C60FD) // Purple
                         },
                         shape = RoundedCornerShape(4.dp),
