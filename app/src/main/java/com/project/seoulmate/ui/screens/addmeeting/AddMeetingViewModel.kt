@@ -135,10 +135,52 @@ class AddMeetingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 필수 항목 검증
+     * @return 검증 실패 시 에러 메시지, 성공 시 null
+     */
+    private fun validateRequiredFields(): String? {
+        val form = _formState.value
+
+        return when {
+            form.name.isBlank() -> "만남명을 입력해주세요"
+            form.selectedCategories.isEmpty() -> "카테고리를 하나 이상 선택해주세요"
+            form.courses.isEmpty() -> "코스를 추가해주세요"
+            form.timeSlots.isEmpty() -> "요일/시간을 선택해주세요"
+            form.expectedCost.isBlank() -> "예상 지출을 입력해주세요"
+            form.minMembers.isBlank() -> "최소 인원을 입력해주세요"
+            form.maxMembers.isBlank() -> "최대 인원을 입력해주세요"
+            else -> {
+                // 추가 검증: 최소 인원이 2명 이상인지 확인
+                val minMembers = form.minMembers.toIntOrNull()
+                when {
+                    minMembers == null -> "최소 인원은 숫자로 입력해주세요"
+                    minMembers < 2 -> "모집 최소 인원은 2명 이상이어야 합니다"
+                    else -> {
+                        // 최대 인원이 최소 인원보다 작지 않은지 확인
+                        val maxMembers = form.maxMembers.toIntOrNull()
+                        when {
+                            maxMembers == null -> "최대 인원은 숫자로 입력해주세요"
+                            maxMembers < minMembers -> "최대 인원은 최소 인원보다 크거나 같아야 합니다"
+                            else -> null
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun registerMeeting() {
         viewModelScope.launch {
             try {
-                // Firebase에서 토큰 가져오기
+                // 1. 필수 항목 검증
+                val validationError = validateRequiredFields()
+                if (validationError != null) {
+                    _uiEvent.value = AddMeetingUiEvent.Error(validationError)
+                    return@launch
+                }
+
+                // 2. Firebase에서 토큰 가져오기
                 val user = FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await()
                 val idToken = tokenResult?.token
@@ -149,7 +191,7 @@ class AddMeetingViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 백엔드 API로 만남 등록
+                // 3. 백엔드 API로 만남 등록
                 val result = repository.registerMeeting(idToken, _formState.value)
 
                 result.onSuccess {

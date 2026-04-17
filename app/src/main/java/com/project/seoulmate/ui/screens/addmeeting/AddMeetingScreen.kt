@@ -270,7 +270,7 @@ fun AddMeetingScreen(
             }
 
             // 예상 지출
-            FormSection(title = "예상 지출", required = false) {
+            FormSection(title = "예상 지출", required = true) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -285,6 +285,7 @@ fun AddMeetingScreen(
                         colors = customTextFieldColors,
                         shape = RoundedCornerShape(8.dp)
                     )
+                    /*
                     Button(
                         onClick = { viewModel.clearExpectedCost() },
                         colors = ButtonDefaults.buttonColors(
@@ -295,11 +296,12 @@ fun AddMeetingScreen(
                     ) {
                         Text("없음", color = Color.White)
                     }
+                    */
                 }
             }
 
             // 모집 인원
-            FormSection(title = "모집 인원", required = false) {
+            FormSection(title = "모집 인원", required = true) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(

@@ -155,10 +155,13 @@ fun RecommendationCard(
                     meeting.tags.forEach { tag ->
                         Surface(
                             color = when (tag) {
-                                "혼잡" -> Color(0xFFFF6B6B)
-                                "여유" -> Color(0xFF6CF0A0)
-                                "정보 없음" -> Color(0xFF9E9E9E) // 회색
-                                else -> Color(0xFF8B80FF)
+                                "여유" -> Color(0xFF6CF0A0)         // 초록 (RELAXED)
+                                "보통" -> Color(0xFF4A90E2)         // 파랑 (NORMAL)
+                                "약간 붐빔" -> Color(0xFFFF9500)   // 주황 (SLIGHTLY_BUSY)
+                                "붐빔" -> Color(0xFFFF6B6B)         // 빨강 (BUSY)
+                                "혼잡" -> Color(0xFFFF6B6B)         // 빨강 (BUSY - 하위 호환)
+                                "정보 없음" -> Color(0xFF9E9E9E)   // 회색 (UNKNOWN)
+                                else -> Color(0xFF8B80FF)            // 보라색 (카테고리 태그)
                             },
                             shape = RoundedCornerShape(8.dp),
                         ) {

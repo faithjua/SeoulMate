@@ -16,6 +16,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -145,30 +147,51 @@ fun MeetingDetailScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -> Unit) {
+    // 이미지가 없으면 기본 이미지 사용
+    val images = if (meeting.imageUrls.isNotEmpty()) {
+        meeting.imageUrls
+    } else if (meeting.imageRes != 0) {
+        listOf("drawable://${meeting.imageRes}")
+    } else {
+        listOf("drawable://${R.drawable.img_recommend_1}")
+    }
+
+    val pagerState = rememberPagerState(pageCount = { images.size })
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp)
     ) {
-        // 배경 이미지
-        if (meeting.imageUrl != null) {
-            AsyncImage(
-                model = meeting.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-                error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
-                placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
-            )
-        } else {
-            Image(
-                painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+        // 이미지 페이저
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val imageUrl = images[page]
+
+            if (imageUrl.startsWith("http")) {
+                // 서버 이미지 (S3 URL)
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "만남 이미지 ${page + 1}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    error = painterResource(id = R.drawable.img_recommend_1)
+                )
+            } else if (imageUrl.startsWith("drawable://")) {
+                // 로컬 drawable 리소스
+                val resId = imageUrl.removePrefix("drawable://").toIntOrNull() ?: R.drawable.img_recommend_1
+                Image(
+                    painter = painterResource(id = resId),
+                    contentDescription = "만남 이미지 ${page + 1}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
         // TopBar (투명)
@@ -194,22 +217,24 @@ fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -
             }
         }
 
-        // 뷰페이저 인디케이터 형태 (가상)
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            repeat(6) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(if (index == 1) 8.dp else 6.dp)
-                        .background(
-                            color = if (index == 1) Color(0xFF7A6BFF) else Color.White.copy(alpha = 0.5f),
-                            shape = CircleShape
-                        )
-                )
+        // 페이지 인디케이터 (동적)
+        if (images.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                repeat(images.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                            .background(
+                                color = if (index == pagerState.currentPage) Color(0xFF7A6BFF) else Color.White.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                    )
+                }
             }
         }
     }
@@ -619,6 +644,7 @@ fun DetailBottomBar(
         Spacer(modifier = Modifier.width(12.dp))
 
         // 쪽지 버튼
+        /*
         Button(
             onClick = { /* TODO */ },
             modifier = Modifier
@@ -642,6 +668,8 @@ fun DetailBottomBar(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(text = "예약 요청", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
+        }    
+        */
+    
     }
 }

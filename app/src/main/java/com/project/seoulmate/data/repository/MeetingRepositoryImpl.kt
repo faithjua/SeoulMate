@@ -21,7 +21,7 @@ class MeetingRepositoryImpl @Inject constructor(
 
     override fun getCategories(): List<Category> = listOf(
         Category(id = "all", name = "전체메뉴", isAllMenu = true),
-        Category(id = "daily", name = "당일만남", iconRes = R.drawable.ic_tourism), // 아이콘 적절히 수정 필요
+        Category(id = "daily", name = "당일만남", iconRes = R.drawable.ic_today), // 아이콘 적절히 수정 필요
         Category(id = "tourism", name = "관광", iconRes = R.drawable.ic_tourism),
         Category(id = "kpop", name = "K-팝", iconRes = R.drawable.ic_kpop),
         Category(id = "kbeauty", name = "K-뷰티", iconRes = R.drawable.ic_kbeauty),
@@ -237,6 +237,9 @@ class MeetingRepositoryImpl @Inject constructor(
  * MeetingListResponse를 UI Meeting 모델로 변환
  */
 private fun MeetingListResponse.toMeeting(): Meeting {
+    // 혼잡도 정보 로깅
+    Timber.d("MeetingList[${this.id}] - congestionLevel: ${this.congestionLevel}, congestionLabel: ${this.congestionLabel}")
+
     return Meeting(
         id = this.id.toString(),
         title = this.title,
@@ -244,9 +247,14 @@ private fun MeetingListResponse.toMeeting(): Meeting {
         price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0", // 리스트 응답에 평점이 없으므로 기본값 처리
         imageRes = R.drawable.img_recommend_1,
-        imageUrl = this.thumbnailUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
+        imageUrls = listOfNotNull(this.thumbnailUrl?.takeIf { it.isNotBlank() }),
         tags = buildList {
-            this@toMeeting.congestionLevel?.let { add(it) }
+            // congestionLabel을 우선 사용, 없으면 congestionLevel 사용
+            val congestionTag = this@toMeeting.congestionLabel ?: this@toMeeting.congestionLevel
+            congestionTag?.let {
+                Timber.d("Adding congestion tag: $it")
+                add(it)
+            }
             addAll(this@toMeeting.tags.map { "#$it" })
         },
         meetDate = this.meetDate
@@ -257,6 +265,9 @@ private fun MeetingListResponse.toMeeting(): Meeting {
  * MeetingDetailResponse를 UI MeetingDetail 모델로 변환
  */
 private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
+    // 혼잡도 정보 로깅
+    Timber.d("MeetingDetail[${this.id}] - congestion: ${this.congestion?.label}")
+
     val meeting = Meeting(
         id = this.id.toString(),
         title = this.title,
@@ -264,8 +275,19 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
         rating = this.host?.rating?.toString() ?: "0.0",
         imageRes = R.drawable.img_recommend_1,
-        imageUrl = this.imageUrls.firstOrNull()?.takeIf { it.isNotBlank() } ?: this.thumbnailUrl?.takeIf { it.isNotBlank() },
-        tags = this.tags.map { "#$it" }
+        imageUrls = this.imageUrls.filter { it.isNotBlank() }.ifEmpty {
+            listOfNotNull(this.thumbnailUrl?.takeIf { it.isNotBlank() })
+        },
+        tags = buildList {
+            // 혼잡도 라벨 추가 (찜 화면 등에서 카드에 표시하기 위해)
+            this@toMeetingDetail.congestion?.label?.let {
+                Timber.d("Adding congestion label to detail tags: $it")
+                add(it)
+            }
+            addAll(this@toMeetingDetail.tags.map { "#$it" })
+        },
+        isFavorited = this.isFavorite,
+        meetDate = this.meetDate
     )
 
     val places = this.course?.places ?: emptyList()
@@ -307,6 +329,9 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
  * HomeMeetingResponse를 UI Meeting 모델로 변환
  */
 private fun HomeMeetingResponse.toMeeting(): Meeting {
+    // 혼잡도 정보 로깅
+    Timber.d("HomeMeeting[${this.id}] - congestionLevel: ${this.congestionLevel}, congestionLabel: ${this.congestionLabel}")
+
     return Meeting(
         id = this.id.toString(),
         title = this.title,
@@ -314,9 +339,12 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
         price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0",
         imageRes = R.drawable.img_recommend_1, // 기본 이미지
-        imageUrl = this.imageUrl?.takeIf { it.isNotBlank() }, // 빈 문자열 방지
+        imageUrls = listOfNotNull(this.imageUrl?.takeIf { it.isNotBlank() }),
         tags = buildList {
-            this@toMeeting.congestionLabel?.let { add(it) }
+            this@toMeeting.congestionLabel?.let {
+                Timber.d("Adding congestionLabel to tags: $it")
+                add(it)
+            }
             addAll(this@toMeeting.tags.map { "#$it" })
         },
         isFavorited = this.isFavorited,

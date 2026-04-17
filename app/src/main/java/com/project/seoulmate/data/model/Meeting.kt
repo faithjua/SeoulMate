@@ -11,6 +11,7 @@ import androidx.annotation.DrawableRes
  * @param price 예상 비용
  * @param rating 평점
  * @param imageRes 대표 이미지 drawable 리소스 ID
+ * @param imageUrls 이미지 URL 목록 (여러 장 지원)
  * @param tags 태그 목록 (예: ["혼잡", "#관광", "#한식"])
  * @param meetDate 만남 날짜 (yyyy-MM-dd 형식)
  */
@@ -21,8 +22,15 @@ data class Meeting(
     val price: String,
     val rating: String,
     @DrawableRes val imageRes: Int = 0,
-    val imageUrl: String? = null,
+    val imageUrls: List<String> = emptyList(),
     val tags: List<String>,
     val isFavorited: Boolean = false,
     val meetDate: String? = null
-)
+) {
+    /**
+     * 하위 호환성을 위한 단일 이미지 URL 프로퍼티
+     * imageUrls의 첫 번째 이미지를 반환
+     */
+    val imageUrl: String?
+        get() = imageUrls.firstOrNull()
+}

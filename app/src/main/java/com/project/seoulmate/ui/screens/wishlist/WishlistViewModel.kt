@@ -52,7 +52,14 @@ class WishlistViewModel @Inject constructor(
                         // 각 찜 항목의 상세 정보 조회 (N+1 쿼리이지만 현재 백엔드 API 구조상 불가피)
                         try {
                             val detailResult = meetingRepository.getMeetingDetail(item.targetId.toString())
-                            detailResult.getOrNull()?.meeting
+                            val detail = detailResult.getOrNull()
+
+                            // 혼잡도 정보를 tags에 추가
+                            detail?.let {
+                                val congestionLabel = it.mateInfo.name // 임시로 접근 가능한 필드 사용
+                                // MeetingDetail에서 혼잡도 정보 추출 필요
+                                it.meeting
+                            }
                         } catch (e: Exception) {
                             Timber.e(e, "Failed to load detail for meeting ${item.targetId}")
                             null
