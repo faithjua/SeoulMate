@@ -257,7 +257,8 @@ private fun MeetingListResponse.toMeeting(): Meeting {
             }
             addAll(this@toMeeting.tags.map { "#$it" })
         },
-        meetDate = this.meetDate
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0
     )
 }
 
@@ -287,7 +288,8 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
             addAll(this@toMeetingDetail.tags.map { "#$it" })
         },
         isFavorited = this.isFavorite,
-        meetDate = this.meetDate
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0
     )
 
     val places = this.course?.places ?: emptyList()
@@ -348,6 +350,7 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
             addAll(this@toMeeting.tags.map { "#$it" })
         },
         isFavorited = this.isFavorited,
-        meetDate = this.meetDate
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0
     )
 }

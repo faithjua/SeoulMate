@@ -401,7 +401,7 @@ fun WishlistCard(
             )
             Spacer(modifier = Modifier.width(2.dp))
             Text(
-                text = meeting.rating,
+                text = String.format("%.1f", meeting.ratingAvg ?: 0.0),
                 color = Color(0xFF888888),
                 fontSize = 13.sp,
             )

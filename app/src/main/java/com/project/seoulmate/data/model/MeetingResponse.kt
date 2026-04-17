@@ -22,7 +22,8 @@ data class MeetingListResponse(
     val hostNickname: String? = null,
     val coursePlaceCount: Int? = null,
     val congestionLevel: String? = null,
-    val congestionLabel: String? = null
+    val congestionLabel: String? = null,
+    val ratingAvg: Double? = null
 )
 
 /**
@@ -50,7 +51,8 @@ data class MeetingDetailResponse(
     val course: CourseDetailResponse? = null,
     val host: HostInfo? = null,
     val createdAt: String? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val ratingAvg: Double? = null
 )
 
 @Serializable

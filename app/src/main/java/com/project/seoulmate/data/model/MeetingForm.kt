@@ -29,5 +29,6 @@ data class MeetingForm(
     /** 업로드된 사진 URL 목록 */
     val imageUrls: List<String> = emptyList(),
     /** 업로드된 사진 수 (UI 처리용) */
-    val photoCount: Int = 0
+    val photoCount: Int = 0,
+    val ratingAvg: Double? = null
 )
