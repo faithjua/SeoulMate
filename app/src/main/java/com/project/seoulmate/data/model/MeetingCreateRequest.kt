@@ -17,7 +17,8 @@ data class MeetingCreateRequest(
     val meetDate: String,
     val minMembers: Int,
     val maxMembers: Int,
-    val estimatedCost: Long
+    val estimatedCost: Long,
+    val ratingAvg: Double
 )
 
 /**
@@ -35,6 +36,7 @@ fun MeetingForm.toCreateRequest(): MeetingCreateRequest {
         meetDate = this.meetDate,
         minMembers = this.minMembers.toIntOrNull() ?: 1,
         maxMembers = this.maxMembers.toIntOrNull() ?: 1,
-        estimatedCost = this.expectedCost.filter { it.isDigit() }.toLongOrNull() ?: 0L
+        estimatedCost = this.expectedCost.filter { it.isDigit() }.toLongOrNull() ?: 0L,
+        ratingAvg = this.ratingAvg ?: 0.0
     )
 }

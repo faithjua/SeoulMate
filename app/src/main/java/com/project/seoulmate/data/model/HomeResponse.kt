@@ -27,5 +27,6 @@ data class HomeMeetingResponse(
     val congestionLabel: String? = null,
     val isFavorited: Boolean = false,
     val tags: List<String> = emptyList(),
-    val region: String? = null
+    val region: String? = null,
+    val ratingAvg: Double? = null
 )

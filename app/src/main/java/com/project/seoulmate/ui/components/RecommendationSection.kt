@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -215,12 +218,6 @@ fun RecommendationCard(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${meeting.time} 예상 ${meeting.price}",
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontSize = 12.sp,
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = "평점",
@@ -229,12 +226,24 @@ fun RecommendationCard(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = meeting.rating,
+                                text = String.format("%.1f", meeting.ratingAvg ?: 0.0),
                                 color = Color.White,
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                style = NoPaddingTextStyle
                             )
                         }
+
+                        //Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${meeting.time} 예상 ${meeting.price}",
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 12.sp,
+                                style = NoPaddingTextStyle
+                            )
+                            // Spacer(modifier = Modifier.width(4.dp))
+                            
+                        //}
                     }
 
                         Button(
@@ -258,6 +267,17 @@ fun RecommendationCard(
         }
     }
 }
+
+val NoPaddingTextStyle = TextStyle(
+    platformStyle = PlatformTextStyle(
+        includeFontPadding = false
+    ),
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.Both
+    )
+)
+
 
 @Preview
 @Composable
