@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.ui.components.BottomNavigationBar
@@ -294,12 +295,24 @@ fun WishlistCard(
                 .aspectRatio(1f) // Square shape based on design
                 .clip(RoundedCornerShape(12.dp))
         ) {
-            Image(
-                painter = painterResource(id = meeting.imageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            // 서버 이미지 URL 우선 사용, 없으면 로컬 리소스 사용
+            if (meeting.imageUrl != null) {
+                AsyncImage(
+                    model = meeting.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                    placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             // Heart Icon (Top Right)
             IconButton(
@@ -324,21 +337,23 @@ fun WishlistCard(
                     .padding(8.dp)
             ) {
                 meeting.tags.forEach { tag ->
-                    val isCrowded = tag == "혼잡"
-                    val isFree = tag == "여유"
-                    val isUnknown = tag == "정보 없음"
+                    val congestionColor = when (tag) {
+                        "여유" -> Color(0xFF6CF0A0)         // 초록 (RELAXED)
+                        "보통" -> Color(0xFF4A90E2)         // 파랑 (NORMAL)
+                        "약간 붐빔" -> Color(0xFFFF9500)   // 주황 (SLIGHTLY_BUSY)
+                        "붐빔" -> Color(0xFFFF6B6B)         // 빨강 (BUSY)
+                        "혼잡" -> Color(0xFFFF6B6B)         // 빨강 (BUSY - 하위 호환)
+                        "정보 없음" -> Color(0xFF9E9E9E)   // 회색 (UNKNOWN)
+                        else -> Color(0xFF6C60FD)            // 보라색 (카테고리 태그)
+                    }
+
                     Surface(
-                        color = when {
-                            isCrowded -> Color(0xFFFF6B6B) // Orange/Red
-                            isFree -> Color.White // White with dark text
-                            isUnknown -> Color(0xFF9E9E9E) // 회색
-                            else -> Color(0xFF6C60FD) // Purple
-                        },
+                        color = congestionColor,
                         shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
                             text = tag,
-                            color = if (isFree) Color(0xFF6C60FD) else Color.White,
+                            color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
