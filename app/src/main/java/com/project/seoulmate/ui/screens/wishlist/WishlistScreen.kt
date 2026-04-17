@@ -150,7 +150,7 @@ fun WishlistScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChipItem(text = "지역·명소", options = listOf("전체", "서울", "부산", "제주"))
+                FilterChipItem(text = "카테고리", options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통 가이드", "숙소/지역", "클래스", "커뮤니티", "전시/공연", "안전/생활"))
                 FilterChipItem(text = "메이트 선호", options = listOf("전체", "동성", "이성", "무관"))
                 FilterChipItem(text = "혼잡도", options = listOf("전체", "여유", "보통", "혼잡"))
                 
