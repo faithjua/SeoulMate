@@ -53,7 +53,7 @@ class LoginViewModel @Inject constructor(
                     val apiResponse = response.body()!!
                     if (apiResponse.success && apiResponse.data != null) {
                         val memberResponse = apiResponse.data // 진짜 AuthResponse 알맹이
-                        Timber.tag("LoginViewModel").e("서버 통신 성공: $memberResponse")
+                        Timber.tag("LoginViewModel").d("서버 통신 성공: $memberResponse")
                         _loginState.value = LoginState.Success(memberResponse)
                     } else {
                         // HTTP 200이지만 서버 로직상 에러인 경우 (예: "존재하지 않는 회원입니다")

@@ -86,6 +86,8 @@ fun AddMeetingScreen(
     //여기까지 추가
 
 
+    //TODO 오류 수정후 밑에 지우기
+    /*
     // uiEvent 처리: NavigateBack 이벤트 발생 시 이전 화면(홈)으로 이동
     LaunchedEffect(uiEvent) {
         if (uiEvent is AddMeetingUiEvent.NavigateBack) {
@@ -94,7 +96,28 @@ fun AddMeetingScreen(
         }
     }
 
+     */
+
+    // 1. 현재 화면의 컨텍스트를 확실히 고정
     val context = LocalContext.current
+
+    // uiEvent 처리: 성공 시 뒤로 가기, 실패 시 에러 메시지(Toast) 띄우기
+    LaunchedEffect(uiEvent) {
+        when (val event = uiEvent) {
+            is AddMeetingUiEvent.NavigateBack -> {
+                navController.popBackStack()
+                viewModel.onEventConsumed()
+            }
+            is AddMeetingUiEvent.Error -> {
+                Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                viewModel.onEventConsumed()
+            }
+            null -> {} // 이벤트가 없을 때는 무시
+        }
+    }
+    //여기까지 ㅂ
+
+    //val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }

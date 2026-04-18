@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.project.seoulmate.R
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
 
 @Composable
@@ -42,19 +44,22 @@ fun PhotoUploadSection(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Camera Button (현시점에서는 갤러리와 동일한 동작 혹은 비활성화)
-        PhotoUploadButton(
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_camera),
-                    contentDescription = "사진",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(30.dp)
-                )
-            },
-            label = "사진",
-            onClick = onCameraClick
-        )
+        if (!AppConfig.IS_PRODUCTION) {
+            // Camera Button (현시점에서는 갤러리와 동일한 동작 혹은 비활성화)
+            PhotoUploadButton(
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_camera),
+                        contentDescription = "사진",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(30.dp)
+                    )
+                },
+                label = "사진",
+                enabled = false, // caemraX 연결시 true
+                onClick = onCameraClick
+            )
+        }
 
         // Gallery Button with counter
         PhotoUploadButton(
@@ -108,28 +113,35 @@ fun PhotoUploadSection(
 fun PhotoUploadButton(
     icon: @Composable () -> Unit,
     label: String,
+    enabled: Boolean = true, // 비활성화 파라미터 추가
     onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .size(80.dp)
             .shadow(
-                elevation = 2.dp, 
+                elevation = if (enabled) 2.dp else 0.dp, // 비활성화 시 그림자 제거
                 shape = RoundedCornerShape(12.dp)
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .clickable(onClick = onClick)
+            .background(if (enabled) Color.White else Color(0xFFF5F5F5)) // 비활성화 시 연회색 배경
+            .then(
+                if (enabled) Modifier.clickable(onClick = onClick)
+                else Modifier // 비활성화 시 클릭 방지
+            )
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        icon()
+        // 아이콘 투명도 조절로 비활성화 느낌 강조
+        Box(modifier = Modifier.alpha(if (enabled) 1f else 0.4f)) {
+            icon()
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color.Gray
+            color = if (enabled) Color.Gray else Color.LightGray
         )
     }
 }

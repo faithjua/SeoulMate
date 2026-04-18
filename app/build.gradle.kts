@@ -26,7 +26,8 @@ android {
         buildConfigField(
             "String",
             "BASE_URL",
-            properties.getProperty("BASE_URL") ?: "\"http://localhost:8080\""
+            "\"${properties.getProperty("BASE_URL") ?: "http://localhost:8080"}\""
+            //properties.getProperty("BASE_URL") ?: "\"http://localhost:8080\""
 
         )
         // 네이버 API 키
