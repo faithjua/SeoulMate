@@ -445,19 +445,22 @@ fun AddCourseScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(70.dp)
                         .background(color = Color(0xFFF4F5F6), shape = RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_logo),
+                        painter = painterResource(id = R.drawable.ic_seoul_mate_logo),
                         contentDescription = "로고",
                         contentScale = ContentScale.None
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text("무슨 코스를 완성해드릴까요?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text("무슨 코스를 완성해드릴까요?", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("(시간이 오래걸리면 잠시후 다시 시도해주세요)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("일정: $passedDate | 테마: $passedCategoriesText\n인원: $passedMembers | 예산: $passedCost", color = Color.Gray, fontSize = 13.sp)
