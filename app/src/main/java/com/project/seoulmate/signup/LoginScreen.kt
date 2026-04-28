@@ -55,7 +55,7 @@ fun LoginScreen(
     // Firebase 토큰을 가져오는 극초반 로딩 상태
     var isFirebaseLoading by remember { mutableStateOf(true) }
 
-    val WEB_CLIENT_ID = "103184785151-cmr2evs6iu8kau7fi7oqgu5ajig7a1mo.apps.googleusercontent.com"
+    val WEB_CLIENT_ID = context.getString(R.string.default_web_client_id)
 
     // 2. ViewModel 상태 변화에 따른 UI 처리 (네비게이션 및 에러 메시지 팝업)
     LaunchedEffect(loginState) {

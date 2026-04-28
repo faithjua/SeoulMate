@@ -40,3 +40,5 @@ keystore.properties
 # --- Android Profiling ---
 *.hprof
 
+/app/release/
+*.dm
