@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ import com.project.seoulmate.ui.navigation.Screen
 fun ProfileScreen(
     navController: NavController
 ) {
-    var selectedTab by remember { mutableStateOf(2) } // default to "정보" (Index 2)
+    var selectedTab by remember { mutableStateOf(2) } // default to stringResource(id = R.string.profile_tab_info) (Index 2)
     var selectedBottomItem by remember { mutableStateOf(4) } // Profile is index 4
 
     Scaffold(
@@ -83,7 +84,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 탭 (만남, 리뷰, 정보)
-            val tabs = listOf("만남", "리뷰", "정보")
+            val tabs = listOf(stringResource(id = R.string.profile_tab_meeting), stringResource(id = R.string.profile_tab_review), stringResource(id = R.string.profile_tab_info))
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
@@ -134,7 +135,7 @@ fun ProfileTopBar(onBackClick: () -> Unit, onMenuClick: () -> Unit) {
     ) {
         Icon(
             imageVector = Icons.Default.KeyboardArrowLeft,
-            contentDescription = "뒤로가기",
+            contentDescription = stringResource(id = R.string.profile_back),
             modifier = Modifier
                 .size(32.dp)
                 .clickable { onBackClick() },
@@ -142,7 +143,7 @@ fun ProfileTopBar(onBackClick: () -> Unit, onMenuClick: () -> Unit) {
         )
         Icon(
             imageVector = Icons.Default.MoreHoriz,
-            contentDescription = "메뉴",
+            contentDescription = stringResource(id = R.string.profile_menu),
             modifier = Modifier
                 .size(32.dp)
                 .clickable { onMenuClick() },
@@ -192,7 +193,7 @@ fun ProfileHeader() {
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Edit,
-                            contentDescription = "수정",
+                            contentDescription = stringResource(id = R.string.profile_edit),
                             tint = Color(0xFF6C60FD),
                             modifier = Modifier.size(16.dp)
                         )
@@ -213,14 +214,14 @@ fun ProfileHeader() {
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         painter = painterResource(id = R.drawable.ic_add), // TODO: Change to verify badge
-                        contentDescription = "인증됨",
+                        contentDescription = stringResource(id = R.string.profile_verified),
                         tint = Color(0xFF6C60FD),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Icon(
                         imageVector = Icons.Filled.Star,
-                        contentDescription = "별점",
+                        contentDescription = stringResource(id = R.string.profile_rating),
                         tint = Color(0xFF6C60FD),
                         modifier = Modifier.size(16.dp)
                     )
@@ -254,7 +255,7 @@ fun ProfileHeader() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "간략히 보기",
+            text = stringResource(id = R.string.profile_view_briefly),
             fontSize = 12.sp,
             fontFamily = SuitFontFamily,
             color = Color.Gray,
@@ -274,7 +275,7 @@ fun ProfileHeader() {
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
             ) {
                 Text(
-                    text = "수정하기",
+                    text = stringResource(id = R.string.profile_edit_button),
                     fontSize = 16.sp,
                     fontFamily = SuitFontFamily,
                     fontWeight = FontWeight.Medium
@@ -294,7 +295,7 @@ fun InfoTabContent() {
             .padding(24.dp)
     ) {
         Text(
-            text = "최근 3일 이내 활동함",
+            text = stringResource(id = R.string.profile_recent_activity),
             fontSize = 14.sp,
             fontFamily = SuitFontFamily,
             color = Color.Gray
@@ -303,7 +304,7 @@ fun InfoTabContent() {
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "가입한 날짜",
+            text = stringResource(id = R.string.profile_join_date),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = SuitFontFamily,
@@ -320,14 +321,14 @@ fun InfoTabContent() {
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "인증 내역",
+            text = stringResource(id = R.string.profile_verification_history),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = SuitFontFamily,
             color = Color.Black
         )
         Text(
-            text = "이메일 인증 완료",
+            text = stringResource(id = R.string.profile_email_verified),
             fontSize = 14.sp,
             fontFamily = SuitFontFamily,
             color = Color.Gray,
@@ -337,14 +338,14 @@ fun InfoTabContent() {
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "이전 사용자 이름",
+            text = stringResource(id = R.string.profile_previous_username),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = SuitFontFamily,
             color = Color.Black
         )
         Text(
-            text = "소울이님은 사용자 이름을 2회 변경했습니다.",
+            text = stringResource(id = R.string.profile_username_changed_count, "소울이", 2),
             fontSize = 14.sp,
             fontFamily = SuitFontFamily,
             color = Color.Gray,
@@ -354,7 +355,7 @@ fun InfoTabContent() {
         Spacer(modifier = Modifier.weight(1f))
 
         Text(
-            text = "FAQ · 문의하기 ·\nCopyright © 2026 SEOULMATE. All Rights Reserved.",
+            text = stringResource(id = R.string.profile_faq_contact),
             fontSize = 12.sp,
             fontFamily = SuitFontFamily,
             color = Color.LightGray,
@@ -424,7 +425,7 @@ fun ReviewTabContent() {
                         repeat(5) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
-                                contentDescription = "별점",
+                                contentDescription = stringResource(id = R.string.profile_rating),
                                 tint = Color(0xFF6C60FD),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -573,7 +574,7 @@ fun MeetingTabContent() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
-                                contentDescription = "별점",
+                                contentDescription = stringResource(id = R.string.profile_rating),
                                 tint = Color.Gray,
                                 modifier = Modifier.size(12.dp)
                             )

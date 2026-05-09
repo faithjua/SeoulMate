@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +39,7 @@ fun NotificationScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "알림",
+                        text = stringResource(id = R.string.notification_title),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -91,7 +92,7 @@ fun NotificationScreen(
                 meetingImageRes = R.drawable.img_recommend_1,
                 username = "썰메야",
                 timeAgo = "1분 전",
-                message = "예약 신청을 보내왔습니다.",
+                message = stringResource(id = R.string.notification_reservation_request),
                 showButtons = true
             )
             
@@ -140,7 +141,7 @@ fun NotificationItem(
         // 사각형 사진
         Image(
             painter = painterResource(id = meetingImageRes),
-            contentDescription = "만남 이미지",
+            contentDescription = stringResource(id = R.string.notification_meeting_image),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(46.dp)
@@ -192,7 +193,7 @@ fun NotificationItem(
                         .height(34.dp)
                         .widthIn(min = 52.dp)
                 ) {
-                    Text("승인", fontSize = 13.sp, color = Color.White)
+                    Text(stringResource(id = R.string.notification_approve), fontSize = 13.sp, color = Color.White)
                 }
                 
                 OutlinedButton(
@@ -205,7 +206,7 @@ fun NotificationItem(
                         .height(34.dp)
                         .widthIn(min = 52.dp)
                 ) {
-                    Text("무시", fontSize = 13.sp, color = Color(0xFFD0D0D0))
+                    Text(stringResource(id = R.string.notification_ignore), fontSize = 13.sp, color = Color(0xFFD0D0D0))
                 }
             }
         }

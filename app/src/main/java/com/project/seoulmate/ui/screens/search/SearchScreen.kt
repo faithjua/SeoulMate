@@ -24,6 +24,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -128,7 +129,7 @@ fun SearchScreen(
                                 Box(modifier = Modifier.weight(1f)) {
                                     if (textFieldValue.text.isEmpty()) {
                                         Text(
-                                            text = "만남을 검색해보세요!",
+                                            text = stringResource(id = R.string.search_hint),
                                             color = Color.LightGray,
                                             fontSize = 14.sp
                                         )
@@ -196,7 +197,7 @@ fun SearchScreen(
                     if (state.meetings.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = "검색 결과가 없습니다.",
+                                text = stringResource(id = R.string.search_no_result),
                                 color = Color.Gray,
                                 fontSize = 16.sp
                             )
@@ -240,13 +241,13 @@ fun IdleStateContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "최근 검색어",
+                        text = stringResource(id = R.string.search_recent),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                     Text(
-                        text = "모두 지우기",
+                        text = stringResource(id = R.string.search_clear_all),
                         fontSize = 12.sp,
                         color = Color.DarkGray,
                         modifier = Modifier.clickable { /* TODO: Clear all */ }
@@ -285,14 +286,14 @@ fun IdleStateContent(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "광고광고광고",
+                    text = stringResource(id = R.string.search_ad_label),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "일석이조의 서울메이트 활동",
+                    text = stringResource(id = R.string.search_ad_title),
                     color = Color.White,
                     fontSize = 12.sp
                 )
@@ -324,7 +325,7 @@ fun IdleStateContent(
         if (!AppConfig.IS_PRODUCTION) {
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(
-                    text = "주간 급상승 검색어",
+                    text = stringResource(id = R.string.search_trending),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black

@@ -1,4 +1,4 @@
-﻿package com.project.seoulmate.ui.screens.meeting
+package com.project.seoulmate.ui.screens.meeting
 
 import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.R
@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -83,6 +84,8 @@ fun MeetingDetailScreen(
         }
     } else {
         val detail = uiState!!
+        val reportPostDesc = stringResource(id = R.string.meeting_report_post_inappropriate)
+        val reportUserDesc = stringResource(id = R.string.meeting_report_user_inappropriate)
         Scaffold(
             bottomBar = { 
                 DetailBottomBar(
@@ -115,7 +118,7 @@ fun MeetingDetailScreen(
                     detail = detail,
                     onReportMeeting = {
                         // 게시글 신고 (임시로 '게시글 문제' 사유 사용)
-                        viewModel.reportUser(reason = "POST_CONTENT", description = "게시글 부적절")
+                        viewModel.reportUser(reason = "POST_CONTENT", description = reportPostDesc)
                     }
                 )
 
@@ -132,7 +135,7 @@ fun MeetingDetailScreen(
                     otherMeetings = detail.mateOtherMeetings,
                     onReportUser = {
                         // 사용자 신고 (임시로 '기타' 사후 사용)
-                        viewModel.reportUser(reason = "USER_BEHAVIOR", description = "사용자 부적절")
+                        viewModel.reportUser(reason = "USER_BEHAVIOR", description = reportUserDesc)
                     },
                     onBlockUser = { viewModel.blockUser() },
                     onMeetingClick = { meetingId ->
@@ -374,7 +377,7 @@ fun CourseSection(courses: List<CoursePoint>) {
             .padding(24.dp)
     ) {
         Text(
-            text = "코스",
+            text = stringResource(id = R.string.meeting_course),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -408,14 +411,14 @@ fun CourseSection(courses: List<CoursePoint>) {
                     if (course.isStart) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "시작",
+                            contentDescription = stringResource(id = R.string.meeting_start),
                             tint = Color(0xFF6C60FD),
                             modifier = Modifier.size(24.dp)
                         )
                     } else if (course.isEnd) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "종료",
+                            contentDescription = stringResource(id = R.string.meeting_end),
                             tint = Color.White,
                             modifier = Modifier
                                 .size(24.dp)
@@ -510,7 +513,7 @@ fun MateInfoSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "메이트 정보",
+                text = stringResource(id = R.string.meeting_mate_info),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -518,14 +521,14 @@ fun MateInfoSection(
             
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "차단하기",
+                    text = stringResource(id = R.string.meeting_block),
                     fontSize = 12.sp,
                     color = Color.Gray,
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable { onBlockUser() }
                 )
                 Text(
-                    text = "신고하기",
+                    text = stringResource(id = R.string.meeting_report),
                     fontSize = 12.sp,
                     color = Color.Gray,
                     textDecoration = TextDecoration.Underline,
@@ -545,7 +548,7 @@ fun MateInfoSection(
         ) {
             Image(
                 painter = painterResource(id = mateInfo.profileRes),
-                contentDescription = "프로필 이미지",
+                contentDescription = stringResource(id = R.string.meeting_profile_image),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(64.dp)
@@ -636,7 +639,7 @@ fun DetailBottomBar(
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "찜하기",
+                contentDescription = stringResource(id = R.string.meeting_favorite),
                 tint = if (isFavorite) Color(0xFFF44336) else Color.Gray
             )
         }

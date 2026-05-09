@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SeoulMate</string>
+
+    <!-- WishlistScreen.kt -->
+    <string name="wishlist_title">Wishlist</string>
+    <string name="wishlist_translate">Translate</string>
+    <string name="wishlist_notification">Notifications</string>
+    <string name="wishlist_filter_region">Region</string>
+    <string name="wishlist_filter_mate">Mate Preference</string>
+    <string name="wishlist_filter_congestion">Crowd Level</string>
+    <string name="wishlist_filter_all">All</string>
+    <string name="wishlist_region_seoul">Seoul</string>
+    <string name="wishlist_region_busan">Busan</string>
+    <string name="wishlist_region_jeju">Jeju</string>
+    <string name="wishlist_mate_same">Same Gender</string>
+    <string name="wishlist_mate_opposite">Opposite Gender</string>
+    <string name="wishlist_mate_any">Any</string>
+    <string name="wishlist_congestion_free">Not Crowded</string>
+    <string name="wishlist_congestion_normal">Normal</string>
+    <string name="wishlist_congestion_crowded">Crowded</string>
+    <string name="wishlist_filter_setting">Filter Settings</string>
+    <string name="wishlist_total_count">Total %d</string>
+    <string name="wishlist_cancel">Remove from Wishlist</string>
+    <string name="wishlist_expected_price">Expected %s</string>
+    <string name="wishlist_rating">Rating</string>
+
+    <!-- SearchScreen.kt & SearchViewModel.kt -->
+    <string name="search_hint">Search for a meetup!</string>
+    <string name="search_no_result">No search results found.</string>
+    <string name="search_recent">Recent Searches</string>
+    <string name="search_clear_all">Clear All</string>
+    <string name="search_ad_label">AD</string>
+    <string name="search_ad_title">SeoulMate Activity Benefits</string>
+    <string name="search_trending">Weekly Trending Searches</string>
+
+    <!-- Search Network Errors -->
+    <string name="error_timeout">Server response timed out. Please try again.</string>
+    <string name="error_network">A network problem occurred. Please check your connection.</string>
+    <string name="error_server">A server error occurred. Please try again later.</string>
+    <string name="error_unknown">An unknown error occurred.</string>
+    <string name="error_load_data">An error occurred while loading data.</string>
+
+    <!-- Meeting / MeetingDetail -->
+    <string name="meeting_search">Search Meetup</string>
+    <string name="meeting_favorite">Add to Wishlist</string>
+    <string name="meeting_course">Course</string>
+    <string name="meeting_start">Start</string>
+    <string name="meeting_end">End</string>
+    <string name="meeting_mate_info">Mate Info</string>
+    <string name="meeting_block">Block</string>
+    <string name="meeting_report">Report</string>
+    <string name="meeting_profile_image">Profile Image</string>
+    <string name="meeting_report_post_inappropriate">Inappropriate Post</string>
+    <string name="meeting_report_user_inappropriate">Inappropriate User</string>
+
+    <!-- ProfileScreen.kt -->
+    <string name="profile_tab_meeting">Meetups</string>
+    <string name="profile_tab_review">Reviews</string>
+    <string name="profile_tab_info">Info</string>
+    <string name="profile_back">Back</string>
+    <string name="profile_menu">Menu</string>
+    <string name="profile_edit">Edit</string>
+    <string name="profile_verified">Verified</string>
+    <string name="profile_rating">Rating</string>
+    <string name="profile_view_briefly">View Briefly</string>
+    <string name="profile_edit_button">Edit Profile</string>
+    <string name="profile_recent_activity">Active within 3 days</string>
+    <string name="profile_join_date">Date Joined</string>
+    <string name="profile_verification_history">Verification History</string>
+    <string name="profile_email_verified">Email Verified</string>
+    <string name="profile_previous_username">Previous Username</string>
+    <string name="profile_username_changed_count">%1$s changed their username %2$d times.</string>
+    <string name="profile_faq_contact">FAQ · Contact Us</string>
+
+    <!-- NotificationScreen.kt -->
+    <string name="notification_title">Notifications</string>
+    <string name="notification_reservation_request">has sent a reservation request.</string>
+    <string name="notification_meeting_image">Meetup Image</string>
+    <string name="notification_approve">Approve</string>
+    <string name="notification_ignore">Ignore</string>
+</resources>
