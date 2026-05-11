@@ -213,6 +213,7 @@ fun LoginScreen(
                                     }
                                 } catch (e: GetCredentialException) {
                                     Timber.tag("GoogleLogin").e(e, "로그인 창 닫힘 또는 에러 발생")
+                                    Toast.makeText(context, "구글 로그인이 취소되었거나 계정이 없습니다.", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Timber.tag("GoogleLogin").e(e, "기타 에러 발생")
                                     Toast.makeText(context, "로그인 중 에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
