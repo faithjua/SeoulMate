@@ -139,6 +139,11 @@ fun AppNavGraph(
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Signup.route) { inclusive = true }
                     }
+                },
+                onCancelSignup = {                                          // 가입 취소
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Signup.route) { inclusive = true }
+                    }
                 }
             )
         }

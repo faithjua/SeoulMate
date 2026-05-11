@@ -85,4 +85,37 @@
 <string name="notification_approve">승인</string>
 <string name="notification_ignore">무시</string>
 
+
+<!-- 로그인 화면 -->
+<string name="app_tagline">K-뷰티·덕질·탐방·클래스\n모두 동네의 서울 메이트와 함께</string>
+<string name="login_get_started">시작하기</string>
+<string name="login_checking_status">로그인 정보 확인 중...</string>
+<string name="login_selecting_account">Google 계정 선택 중...</string>
+<string name="login_signing_in">로그인 중...</string>
+<string name="login_error_status_unknown">구글 로그인 상태를 확인할 수 없습니다.</string>
+<string name="login_error_token_failed">토큰 발급 실패</string>
+<string name="login_error_firebase_failed">Firebase 인증에 실패했습니다.</string>
+<string name="login_error_cancelled">구글 로그인이 취소되었거나 계정이 없습니다.</string>
+<string name="login_error_generic">로그인 중 에러가 발생했습니다.</string>
+<string name="logo_description">로고</string>
+
+<!-- 회원가입 화면 -->
+<string name="signup_title">회원가입</string>
+<string name="signup_label_email">이메일</string>
+<string name="signup_label_nickname">닉네임</string>
+<string name="signup_label_role">역할 (Role)</string>
+<string name="signup_label_nationality">국적</string>
+<string name="signup_button_cancel">취소</string>
+<string name="signup_button_submit">이대로 완료</string>
+
+<!-- 국적 선택 바텀시트 -->
+<string name="nationality_search_title">국적 검색</string>
+<string name="nationality_search_placeholder">국가를 검색하세요</string>
+<string name="nationality_search_icon_desc">검색</string>
+
+<!-- 가입 취소 다이얼로그 -->
+<string name="signup_cancel_dialog_title">가입을 취소하시겠습니까?</string>
+<string name="signup_cancel_dialog_message">지금까지 입력한 정보가 저장되지 않습니다.</string>
+<string name="signup_cancel_dialog_confirm">가입 취소</string>
+<string name="signup_cancel_dialog_dismiss">계속 가입</string>
 </resources>

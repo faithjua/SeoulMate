@@ -79,4 +79,37 @@
     <string name="notification_meeting_image">Meetup Image</string>
     <string name="notification_approve">Approve</string>
     <string name="notification_ignore">Ignore</string>
+
+<!-- Login -->
+<string name="app_tagline">K-Beauty, fandom, tours, classes\nAll with your local Seoul Mate</string>
+<string name="login_get_started">Get Started</string>
+<string name="login_checking_status">Checking login status…</string>
+<string name="login_selecting_account">Selecting Google account…</string>
+<string name="login_signing_in">Signing in…</string>
+<string name="login_error_status_unknown">Unable to verify Google sign-in status.</string>
+<string name="login_error_token_failed">Failed to issue token.</string>
+<string name="login_error_firebase_failed">Firebase authentication failed.</string>
+<string name="login_error_cancelled">Google sign-in was cancelled or no account was selected.</string>
+<string name="login_error_generic">An error occurred during sign-in.</string>
+<string name="logo_description">Logo</string>
+
+<!-- Signup -->
+<string name="signup_title">Sign Up</string>
+<string name="signup_label_email">Email</string>
+<string name="signup_label_nickname">Nickname</string>
+<string name="signup_label_role">Role</string>
+<string name="signup_label_nationality">Nationality</string>
+<string name="signup_button_cancel">Cancel</string>
+<string name="signup_button_submit">Complete</string>
+
+<!-- Nationality Bottom Sheet -->
+<string name="nationality_search_title">Select Nationality</string>
+<string name="nationality_search_placeholder">Search country</string>
+<string name="nationality_search_icon_desc">Search</string>
+
+<!-- Cancel Confirmation Dialog -->
+<string name="signup_cancel_dialog_title">Cancel sign up?</string>
+<string name="signup_cancel_dialog_message">The information you entered will not be saved.</string>
+<string name="signup_cancel_dialog_confirm">Cancel sign up</string>
+<string name="signup_cancel_dialog_dismiss">Continue</string>
 </resources>
