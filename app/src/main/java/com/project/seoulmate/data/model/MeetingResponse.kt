@@ -52,6 +52,7 @@ data class MeetingDetailResponse(
     val host: HostInfo? = null,
     val createdAt: String? = null,
     val isFavorite: Boolean = false,
+    val isHost: Boolean = false,
     val ratingAvg: Double? = null
 )
 

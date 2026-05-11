@@ -10,6 +10,10 @@ import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.FavoriteRepositoryImpl
 import com.project.seoulmate.data.repository.UserActionRepository
 import com.project.seoulmate.data.repository.UserActionRepositoryImpl
+import com.project.seoulmate.data.repository.ApplicationRepository
+import com.project.seoulmate.data.repository.ApplicationRepositoryImpl
+import com.project.seoulmate.data.repository.NotificationRepository
+import com.project.seoulmate.data.repository.NotificationRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -65,5 +69,17 @@ abstract class AppModule {
     abstract fun bindUserActionRepository(
         impl: UserActionRepositoryImpl
     ): UserActionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindApplicationRepository(
+        impl: ApplicationRepositoryImpl
+    ): ApplicationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(
+        impl: NotificationRepositoryImpl
+    ): NotificationRepository
 
 }

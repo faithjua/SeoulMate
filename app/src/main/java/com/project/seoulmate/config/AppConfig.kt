@@ -8,5 +8,5 @@ package com.project.seoulmate.config
 object AppConfig {
     // true → 프로덕션 모드 (미구현 UI 숨김)
     // false → 개발 모드 (모든 UI 표시)
-    const val IS_PRODUCTION = true
+    const val IS_PRODUCTION = false
 }

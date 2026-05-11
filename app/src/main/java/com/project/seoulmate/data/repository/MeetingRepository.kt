@@ -46,4 +46,18 @@ interface MeetingRepository {
 
     /** 만남 상태 변경 */
     suspend fun updateMeetingStatus(token: String, meetingId: String, status: String): Result<Unit>
+
+    /** 만남 수정 */
+    suspend fun updateMeeting(token: String, meetingId: String, form: MeetingForm): Result<MeetingDetail>
+
+    /** 만남 삭제 */
+    suspend fun deleteMeeting(token: String, meetingId: String): Result<Unit>
+
+    /** 사용자 만남 목록 조회 */
+    suspend fun getUserMeetups(
+        token: String?,
+        memberId: Long,
+        page: Int = 0,
+        size: Int = 10
+    ): Result<PageResponse<Meeting>>
 }

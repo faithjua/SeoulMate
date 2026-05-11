@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,8 +53,15 @@ fun LoginScreen(
     // 1. ViewModel의 상태를 관찰합니다! (무한 로딩 방지의 핵심)
     val loginState by viewModel.loginState.collectAsState()
 
-    // Firebase 토큰을 가져오는 극초반 로딩 상태
-    var isFirebaseLoading by remember { mutableStateOf(true) }
+    // Firebase 토큰을 가져오는 극초반 로딩 상태를
+    // Firebase currentUser를 동기로 먼저 확인하고 초기값을 결정
+    //   - 비로그인 유저: 처음부터 false → 시작하기 버튼 즉시 노출
+    //   - 자동로그인 유저: true → 스피너 + "로그인 정보 확인 중" 텍스트
+    var isFirebaseLoading by remember {
+        mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
+    }
+    //  시작하기 버튼 자체 로딩 상태 (CredentialManager 호출 구간 가시화)
+    var isCredentialLoading by remember { mutableStateOf(false) }
 
     val WEB_CLIENT_ID = context.getString(R.string.default_web_client_id)
 
@@ -70,8 +78,8 @@ fun LoginScreen(
                 }
             }
             is LoginState.Error -> {
-                val errorMessage = (loginState as LoginState.Error).message
-                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                isCredentialLoading = false  //  에러 시 버튼 복구
+                Toast.makeText(context, (loginState as LoginState.Error).message, Toast.LENGTH_SHORT).show()
             }
             else -> {}
         }
@@ -79,32 +87,33 @@ fun LoginScreen(
 
     LaunchedEffect(Unit) {
         val currentUser = FirebaseAuth.getInstance().currentUser
-
-        if (currentUser != null) {
-            currentUser.getIdToken(true).addOnCompleteListener { task ->
-                if (task.isSuccessful && task.result?.token != null) {
-                    val firebaseToken = task.result!!.token!!
-                    val email = currentUser.email ?: ""
-
-                    viewModel.loginToServer(firebaseToken, email)
-                    isFirebaseLoading = false
-                } else {
-                    isFirebaseLoading = false
-                    Toast.makeText(context, "구글 로그인 상태를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
-                }
+        if (currentUser == null) {
+            isFirebaseLoading = false
+            return@LaunchedEffect
+        }
+        currentUser.getIdToken(true).addOnCompleteListener { task ->
+            if (task.isSuccessful && task.result?.token != null) {
+                viewModel.loginToServer(task.result!!.token!!, currentUser.email ?: "")
+            } else {
+                Toast.makeText(context, "구글 로그인 상태를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
-        } else {
             isFirebaseLoading = false
         }
     }
 
-    // 3. 실제 로딩바를 보여줄 조건 = (Firebase 조회 중) OR (서버 API 통신 중)
-    val showLoadingBar = isFirebaseLoading || loginState is LoginState.Loading
+    //  로딩 상태별 안내 텍스트 분기
+    val loadingText = when {
+        isCredentialLoading -> "Google 계정 선택 중..."
+        loginState is LoginState.Loading -> "로그인 중..."
+        isFirebaseLoading -> "로그인 정보 확인 중..."
+        else -> null
+    }
+    val showLoadingBar = loadingText != null
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // ✨ 변경점 1: 단색 배경 → 이미지 배경으로 교체
+
         // 화면 전체를 덮는 배경 이미지 (피그마에서 export한 노이즈 텍스처 포함 배경)
         Image(
             painter = painterResource(id = R.drawable.bg_onboarding),
@@ -121,7 +130,7 @@ fun LoginScreen(
                 .padding(bottom = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ✨ 변경점 2: 보라색 라운드 박스 + 그림자 wrapper 제거
+            // 보라색 라운드 박스 + 그림자 wrapper 제거
             // 새 로고(Group_481771)는 단독으로 배치 — 별도 배경 박스 불필요
             Image(
                 painter = painterResource(id = R.drawable.ic_seoul_mate_logo),
@@ -167,10 +176,28 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (showLoadingBar) {
-                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
+                    //androidx.compose.material3.CircularProgressIndicator(color = Color.White)
+                    //  스피너 + 텍스트 같이 노출
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.5.dp
+                        )
+                        Text(
+                            text = loadingText ?: "",
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
                 } else {
                     Button(
                         onClick = {
+                            // 클릭 즉시 로컬 로딩 ON
+                            isCredentialLoading = true
                             coroutineScope.launch {
                                 try {
                                     val credentialManager = CredentialManager.create(context)
@@ -202,10 +229,12 @@ fun LoginScreen(
                                                                 credential.id ?: ""
                                                             )
                                                         } else {
+                                                            isCredentialLoading = false
                                                             Toast.makeText(context, "토큰 발급 실패", Toast.LENGTH_SHORT).show()
                                                         }
                                                     }
                                                 } else {
+                                                    isCredentialLoading = false
                                                     Timber.tag("GoogleLogin").e(task.exception, "Firebase 인증 실패")
                                                     Toast.makeText(context, "Firebase 인증에 실패했습니다.", Toast.LENGTH_SHORT).show()
                                                 }

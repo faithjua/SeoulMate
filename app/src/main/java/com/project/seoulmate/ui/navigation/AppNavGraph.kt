@@ -41,8 +41,16 @@ sealed class Screen(val route: String) {
 
     /** 홈 화면 */
     object Home : Screen("home")
-    /** 만남 등록 화면 */
-    object AddMeeting : Screen("add_meeting")
+    /** 만남 등록/수정 화면 */
+    object AddMeeting : Screen("add_meeting?meetingId={meetingId}") {
+        fun createRoute(meetingId: String? = null): String {
+            return if (meetingId != null) {
+                "add_meeting?meetingId=$meetingId"
+            } else {
+                "add_meeting"
+            }
+        }
+    }
     /** 알림 화면 */
     object Notifications : Screen("notifications")
     /** 검색 화면 */
@@ -140,8 +148,17 @@ fun AppNavGraph(
         composable(route = Screen.Home.route) {
             HomeScreen(navController = navController)
         }
-        // 만남 등록 화면
-        composable(route = Screen.AddMeeting.route) {
+        // 만남 등록/수정 화면
+        composable(
+            route = Screen.AddMeeting.route,
+            arguments = listOf(
+                navArgument("meetingId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             AddMeetingScreen(navController = navController)
         }
         // 알림 화면

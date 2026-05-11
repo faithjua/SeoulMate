@@ -13,7 +13,11 @@ data class MeetingDetail(
     val description: String,
     val courses: List<CoursePoint>,
     val mateInfo: MateInfo,
-    val mateOtherMeetings: List<Meeting>
+    val mateOtherMeetings: List<Meeting>,
+    val isHost: Boolean = false,
+    val maxMembers: Int? = null,
+    val currentMembers: Int? = null,
+    val status: String? = null
 )
 
 data class CoursePoint(

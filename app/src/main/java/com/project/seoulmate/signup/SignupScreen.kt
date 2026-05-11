@@ -1,5 +1,6 @@
 package com.project.seoulmate.signup
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,7 +36,7 @@ fun SignupScreen(
     onSignupSuccess: () -> Unit,
     viewModel: SignupViewModel = hiltViewModel()
 ) {
-    var nickname by remember { mutableStateOf("소울이") }
+    var nickname by remember { mutableStateOf("soul") }
 
     //  Enum을 상태로 관리합니다! (UI에서는 한글을 보여주고, 데이터는 Enum 객체로 안전하게 보관)
     var selectedRole by remember { mutableStateOf(MemberRole.TRAVELER) }
@@ -44,6 +46,8 @@ fun SignupScreen(
 
     val backgroundColor = Color(0xFFF4F5F6)
     val primaryColor = Color(0xFF6C60FD)
+    var isSubmitting by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
         Column(
@@ -97,20 +101,40 @@ fun SignupScreen(
 
                 Button(
                     onClick = {
-                        //  통신 직전에 Enum 객체를 String(.name)으로 바꿔서 던집니다! (Enum-String-Enum 흐름 완성)
+                        if (isSubmitting) return@Button  // 중복 클릭 방지
+                        isSubmitting = true
                         viewModel.performSignup(
                             idToken = idToken, email = email, nickname = nickname,
-                            role = selectedRole.name, // "TRAVELER" 또는 "GUIDE" 로 변환됨
+                            role = selectedRole.name,
                             nationality = nationality,
-                            onSuccess = { onSignupSuccess() },
-                            onError = { message -> Timber.tag("Signup").e(" 실패: $message") }
+                            onSuccess = {
+                                // isSubmitting = false 안 해도 됨 — 화면 빠져나가니까
+                                onSignupSuccess()
+                            },
+                            onError = { message ->
+                                isSubmitting = false  // 실패 시 복구
+                                Timber.tag("Signup").e("실패: $message")
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()  // 사용자 피드백 추가
+                            }
                         )
                     },
+                    enabled = !isSubmitting,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        disabledContainerColor = primaryColor.copy(alpha = 0.6f)
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("이대로 완료", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("이대로 완료", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
             }
         }

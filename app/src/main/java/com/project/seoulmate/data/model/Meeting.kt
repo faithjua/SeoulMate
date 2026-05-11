@@ -26,7 +26,10 @@ data class Meeting(
     val tags: List<String>,
     val isFavorited: Boolean = false,
     val meetDate: String? = null,
-    val ratingAvg: Double? = null
+    val ratingAvg: Double? = null,
+    val maxMembers: Int? = null,
+    val currentMembers: Int? = null,
+    val status: String? = null
 ) {
     /**
      * 하위 호환성을 위한 단일 이미지 URL 프로퍼티
