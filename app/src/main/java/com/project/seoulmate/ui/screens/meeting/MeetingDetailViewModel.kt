@@ -212,7 +212,8 @@ class MeetingDetailViewModel @Inject constructor(
                     imageRes = R.drawable.img_recommend_2,
                     tags = listOf("여유", "맛집", "커뮤니티")
                 )
-            )
+            ),
+            isHost = false // 더미 데이터는 호스트 아님
         )
 
         _uiState.value = detail
@@ -254,8 +255,9 @@ class MeetingDetailViewModel @Inject constructor(
 
     /**
      * 만남 신청 (예약 요청)
+     * @param message 신청 메시지
      */
-    fun applyForMeeting() {
+    fun applyForMeeting(message: String) {
         viewModelScope.launch {
             try {
                 val user = FirebaseAuth.getInstance().currentUser
@@ -274,23 +276,133 @@ class MeetingDetailViewModel @Inject constructor(
                 }
 
                 _isLoading.value = true
-                val result = applicationRepository.createApplication(idToken, meetingIdLong)
+                Timber.d("Applying for meeting: meetingId=$meetingIdLong, message=$message")
+                val result = applicationRepository.createApplication(idToken, meetingIdLong, message)
 
                 result.onSuccess { applicationResponse ->
-                    Timber.d("Application created: ${applicationResponse.id}")
-                    _userActionEvent.emit(UserActionResult.Success("예약 요청이 완료되었습니다"))
+                    Timber.d("Application created: id=${applicationResponse.id}, status=${applicationResponse.status}")
+                    _userActionEvent.emit(UserActionResult.Success("메이트 신청이 완료되었습니다. 호스트의 승인을 기다려주세요!"))
                     // 상세 화면 새로고침 (신청 상태 반영)
                     loadMeetingDetail()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to create application")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "예약 요청 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "메이트 신청 실패"))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during apply for meeting")
-                _userActionEvent.emit(UserActionResult.Error("예약 요청 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error("메이트 신청 중 오류가 발생했습니다"))
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * 만남 삭제 (호스트만 가능)
+     */
+    fun deleteMeeting(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    return@launch
+                }
+
+                _isLoading.value = true
+                val result = meetingRepository.deleteMeeting(idToken, meetingId)
+
+                result.onSuccess {
+                    Timber.d("Meeting deleted successfully")
+                    _userActionEvent.emit(UserActionResult.Success("만남이 삭제되었습니다"))
+                    onSuccess()
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to delete meeting")
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "만남 삭제 실패"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during delete meeting")
+                _userActionEvent.emit(UserActionResult.Error("만남 삭제 중 오류가 발생했습니다"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 만남 상태 변경 (호스트만 가능)
+     * 상태 변경 시 백엔드에서 참여자 전체에게 알림을 자동으로 발송합니다.
+     *
+     * @param status 변경할 상태 (OPEN, CLOSED, COMPLETED 등)
+     */
+    fun updateMeetingStatus(status: String) {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    return@launch
+                }
+
+                _isLoading.value = true
+                Timber.d("Updating meeting status to: $status")
+
+                val result = meetingRepository.updateMeetingStatus(idToken, meetingId, status)
+
+                result.onSuccess {
+                    Timber.d("Meeting status updated successfully to $status")
+
+                    val message = when (status) {
+                        "CLOSED" -> "만남이 마감되었습니다. 참여자들에게 알림이 전송됩니다."
+                        "COMPLETED" -> "만남이 완료 처리되었습니다. 참여자들에게 알림이 전송됩니다."
+                        "OPEN" -> "만남이 다시 열렸습니다. 참여자들에게 알림이 전송됩니다."
+                        else -> "만남 상태가 변경되었습니다."
+                    }
+
+                    _userActionEvent.emit(UserActionResult.Success(message))
+
+                    // 상세 정보 새로고침
+                    loadMeetingDetail()
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update meeting status")
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "상태 변경 실패"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during update meeting status")
+                _userActionEvent.emit(UserActionResult.Error("상태 변경 중 오류가 발생했습니다"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 만남 마감 (호스트만 가능)
+     * 백엔드에서 참여자 전체에게 "만남이 마감되었습니다" 알림을 발송합니다.
+     */
+    fun closeMeeting() {
+        updateMeetingStatus("CLOSED")
+    }
+
+    /**
+     * 만남 완료 처리 (호스트만 가능)
+     * 백엔드에서 참여자 전체에게 "만남이 완료되었습니다" 알림을 발송합니다.
+     */
+    fun completeMeeting() {
+        updateMeetingStatus("COMPLETED")
+    }
+
+    /**
+     * 만남 재개 (호스트만 가능)
+     * 마감된 만남을 다시 열 때 사용합니다.
+     */
+    fun reopenMeeting() {
+        updateMeetingStatus("OPEN")
     }
 }

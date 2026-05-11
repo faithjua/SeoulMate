@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Edit
@@ -39,11 +41,14 @@ import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.components.SuitFontFamily
 import com.project.seoulmate.ui.navigation.Screen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(2) } // default to stringResource(id = R.string.profile_tab_info) (Index 2)
     var selectedBottomItem by remember { mutableStateOf(4) } // Profile is index 4
@@ -114,7 +119,7 @@ fun ProfileScreen(
                     .weight(1f)
             ) {
                 when (selectedTab) {
-                    0 -> MeetingTabContent()
+                    0 -> MeetingTabContent(viewModel = viewModel, navController = navController)
                     1 -> ReviewTabContent()
                     2 -> InfoTabContent()
                 }
@@ -163,25 +168,18 @@ fun ProfileHeader() {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Image (Placeholder for now)
+            // Profile Image (Default image used)
             Box(
                 modifier = Modifier.size(72.dp)
             ) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.img_default_profile),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .background(Color(0xFF6C60FD)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Placeholder for actual image
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_profile),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
+                )
                 if (!AppConfig.IS_PRODUCTION) {
                     Box(
                         modifier = Modifier
@@ -447,34 +445,34 @@ fun ReviewTabContent() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MeetingTabContent() {
-    // Dummy Data
-    val meetings = List(4) {
-        object {
-            val title = "창덕궁 탐방 및 맛집"
-            val time = "28일 오후 7-9시"
-            val price = "예상 ₩20,000"
-            val rating = "5.0"
-        }
-    }
+fun MeetingTabContent(
+    viewModel: ProfileViewModel,
+    navController: NavController
+) {
+    // ViewModel 상태 구독
+    val meetings by viewModel.myMeetings.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val totalMeetings by viewModel.totalMeetings.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 검색바 (간단하게 구현)
+                // 검색바 (활성화)
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -500,8 +498,9 @@ fun MeetingTabContent() {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 동적으로 만남 개수 표시
                 Text(
-                    text = "55개의 만남",
+                    text = "${totalMeetings}개의 만남",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = SuitFontFamily,
@@ -513,7 +512,16 @@ fun MeetingTabContent() {
         }
 
         items(meetings) { meeting ->
-                Column(modifier = Modifier.fillMaxWidth()) {
+                var showMenu by remember { mutableStateOf(false) }
+                var showDeleteDialog by remember { mutableStateOf(false) }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            navController.navigate(Screen.MeetingDetail.createRoute(meeting.id))
+                        }
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -521,37 +529,150 @@ fun MeetingTabContent() {
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color.LightGray)
                     ) {
-                        // Image placeholder
+                        // 실제 이미지 표시 (이미지가 있으면)
+                        if (meeting.imageUrls.isNotEmpty()) {
+                            coil.compose.AsyncImage(
+                                model = meeting.imageUrls.first(),
+                                contentDescription = meeting.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        // 더보기 메뉴 아이콘 (왼쪽 상단)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "더보기",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("수정", fontFamily = SuitFontFamily) },
+                                    onClick = {
+                                        showMenu = false
+                                        navController.navigate(Screen.AddMeeting.createRoute(meeting.id))
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Edit,
+                                            contentDescription = "수정"
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("삭제", fontFamily = SuitFontFamily, color = Color.Red) },
+                                    onClick = {
+                                        showMenu = false
+                                        showDeleteDialog = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "삭제",
+                                            tint = Color.Red
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
+                        // 찜 아이콘 (오른쪽 상단)
                         Icon(
                             painter = painterResource(id = R.drawable.ic_heart),
                             contentDescription = "찜하기",
-                            tint = Color.White,
+                            tint = if (meeting.isFavorited) Color.Red else Color.White,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(8.dp)
                                 .size(24.dp)
                         )
-                        // Tags placeholder
+
+                        // 태그 및 상태 표시
                         Row(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Badge(containerColor = Color(0xFFFF6B6B)) { Text("혼잡", color = Color.White) }
-                            Badge(containerColor = Color(0xFF6C60FD)) { Text("관광", color = Color.White) }
-                            Badge(containerColor = Color(0xFF6C60FD)) { Text("한식", color = Color.White) }
+                            // 만남 상태 배지 (최우선 표시)
+                            when (meeting.status) {
+                                "CLOSED" -> {
+                                    Badge(containerColor = Color(0xFFFF9800)) {
+                                        Text(
+                                            stringResource(id = R.string.meeting_status_closed),
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                                "COMPLETED" -> {
+                                    Badge(containerColor = Color(0xFF4CAF50)) {
+                                        Text(
+                                            stringResource(id = R.string.meeting_status_completed),
+                                            color = Color.White,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                                "OPEN" -> {
+                                    // 정원 마감 체크
+                                    if (meeting.maxMembers != null && meeting.currentMembers != null &&
+                                        meeting.currentMembers >= meeting.maxMembers) {
+                                        Badge(containerColor = Color.Red) {
+                                            Text(
+                                                stringResource(id = R.string.meeting_status_full),
+                                                color = Color.White,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 기존 태그들 (최대 2개만 표시하여 공간 확보)
+                            meeting.tags.take(2).forEach { tag ->
+                                Badge(
+                                    containerColor = when {
+                                        tag.contains("혼잡") -> Color(0xFFFF6B6B)
+                                        else -> Color(0xFF6C60FD)
+                                    }
+                                ) {
+                                    Text(
+                                        tag.removePrefix("#"),
+                                        color = Color.White,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = meeting.title,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = SuitFontFamily,
-                        color = Color.Black
+                        color = Color.Black,
+                        maxLines = 1
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -560,33 +681,131 @@ fun MeetingTabContent() {
                         fontFamily = SuitFontFamily,
                         color = Color.Gray
                     )
+                    // 정원 정보 및 가격/평점 행
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = meeting.price,
-                            fontSize = 12.sp,
-                            fontFamily = SuitFontFamily,
-                            color = Color.Gray
-                        )
+                        Column {
+                            Text(
+                                text = meeting.price,
+                                fontSize = 12.sp,
+                                fontFamily = SuitFontFamily,
+                                color = Color.Gray
+                            )
+                            // 정원 정보 (있는 경우)
+                            if (meeting.maxMembers != null && meeting.currentMembers != null) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = stringResource(
+                                        id = R.string.meeting_capacity_format,
+                                        meeting.currentMembers,
+                                        meeting.maxMembers
+                                    ),
+                                    fontSize = 11.sp,
+                                    fontFamily = SuitFontFamily,
+                                    color = if (meeting.currentMembers >= meeting.maxMembers)
+                                        Color.Red else Color(0xFF6C60FD),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = stringResource(id = R.string.profile_rating),
-                                tint = Color.Gray,
+                                tint = Color(0xFFFFC107),
                                 modifier = Modifier.size(12.dp)
                             )
+                            Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = meeting.rating,
+                                text = String.format("%.1f", meeting.ratingAvg),
                                 fontSize = 12.sp,
                                 fontFamily = SuitFontFamily,
                                 color = Color.Gray
                             )
                         }
                     }
+
+                    // 삭제 확인 다이얼로그
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = {
+                                Text(
+                                    "만남 삭제",
+                                    fontFamily = SuitFontFamily,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Text(
+                                    "정말로 이 만남을 삭제하시겠습니까?\n삭제된 만남은 복구할 수 없습니다.",
+                                    fontFamily = SuitFontFamily
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showDeleteDialog = false
+                                        viewModel.deleteMeeting(meeting.id)
+                                    }
+                                ) {
+                                    Text("삭제", fontFamily = SuitFontFamily, color = Color.Red)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteDialog = false }) {
+                                    Text("취소", fontFamily = SuitFontFamily)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
+
+        // 로딩 상태
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color(0xFF6C60FD)
+            )
+        }
+
+        // 빈 상태 (만남이 없을 때)
+        if (!isLoading && meetings.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_search),
+                    contentDescription = "만남 없음",
+                    tint = Color.LightGray,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (searchQuery.isNotBlank()) "검색 결과가 없습니다" else "아직 만남이 없습니다",
+                    fontSize = 16.sp,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Gray
+                )
+                if (searchQuery.isBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "첫 만남을 만들어보세요!",
+                        fontSize = 14.sp,
+                        fontFamily = SuitFontFamily,
+                        color = Color.LightGray
+                    )
+                }
+            }
+        }
+    }
 }

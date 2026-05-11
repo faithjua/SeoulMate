@@ -17,30 +17,29 @@ interface ApplicationApi {
     @POST("/api/meetups/{meetupId}/applications")
     suspend fun createApplication(
         @Header("Authorization") token: String,
-        @Path("meetupId") meetupId: Long
+        @Path("meetupId") meetupId: Long,
+        @Body request: ApplicationRequest
     ): Response<ApiResponse<ApplicationResponse>>
 
     /**
      * 신청 승인 (호스트)
-     * PATCH /api/meetups/{meetupId}/applications/{appId}/approve
+     * POST /api/meetup-applications/{applicationId}/approve
      */
-    @PATCH("/api/meetups/{meetupId}/applications/{appId}/approve")
+    @POST("/api/meetup-applications/{applicationId}/approve")
     suspend fun approveApplication(
         @Header("Authorization") token: String,
-        @Path("meetupId") meetupId: Long,
-        @Path("appId") appId: Long
-    ): Response<ApiResponse<Unit>>
+        @Path("applicationId") applicationId: Long
+    ): Response<ApiResponse<ApplicationResponse>>
 
     /**
      * 신청 거절 (호스트)
-     * PATCH /api/meetups/{meetupId}/applications/{appId}/reject
+     * POST /api/meetup-applications/{applicationId}/reject
      */
-    @PATCH("/api/meetups/{meetupId}/applications/{appId}/reject")
+    @POST("/api/meetup-applications/{applicationId}/reject")
     suspend fun rejectApplication(
         @Header("Authorization") token: String,
-        @Path("meetupId") meetupId: Long,
-        @Path("appId") appId: Long
-    ): Response<ApiResponse<Unit>>
+        @Path("applicationId") applicationId: Long
+    ): Response<ApiResponse<ApplicationResponse>>
 
     /**
      * 신청 목록 조회 (호스트)
@@ -63,15 +62,30 @@ interface ApplicationApi {
 }
 
 /**
+ * 신청 요청 데이터
+ */
+@Serializable
+data class ApplicationRequest(
+    val message: String
+)
+
+/**
  * 신청 응답 데이터
  */
 @Serializable
 data class ApplicationResponse(
     val id: Long,
     val meetupId: Long,
+    val meetupTitle: String? = null,
+    val meetupThumbnailUrl: String? = null,
+    val meetDate: String? = null,
     val applicantId: Long,
-    val applicantName: String,
-    val applicantProfileUrl: String?,
+    val applicantNickname: String,
+    val applicantProfileImage: String? = null,
+    val hostId: Long? = null,
+    val hostNickname: String? = null,
+    val message: String? = null,
     val status: String, // PENDING, ACCEPTED, REJECTED
-    val createdAt: String
+    val createdAt: String,
+    val processedAt: String? = null
 )

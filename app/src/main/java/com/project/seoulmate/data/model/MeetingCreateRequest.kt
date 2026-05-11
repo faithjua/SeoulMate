@@ -3,8 +3,9 @@ package com.project.seoulmate.data.model
 import kotlinx.serialization.Serializable
 
 /**
- * 만남 생성 요청 DTO
- * POST /api/meetups
+ * 만남 생성/수정 요청 DTO
+ * POST /api/meetups (생성)
+ * PATCH /api/meetups/{meetupId} (수정)
  */
 @Serializable
 data class MeetingCreateRequest(
@@ -18,13 +19,14 @@ data class MeetingCreateRequest(
     val minMembers: Int,
     val maxMembers: Int,
     val estimatedCost: Long,
-    val ratingAvg: Double
+    val publish: Boolean = true,
+    val repeat: Boolean = false
 )
 
 /**
  * MeetingForm을 MeetingCreateRequest로 변환하는 확장 함수
  */
-fun MeetingForm.toCreateRequest(): MeetingCreateRequest {
+fun MeetingForm.toCreateRequest(publish: Boolean = true, repeat: Boolean = false): MeetingCreateRequest {
     return MeetingCreateRequest(
         title = this.name,
         description = this.description,
@@ -37,6 +39,7 @@ fun MeetingForm.toCreateRequest(): MeetingCreateRequest {
         minMembers = this.minMembers.toIntOrNull() ?: 1,
         maxMembers = this.maxMembers.toIntOrNull() ?: 1,
         estimatedCost = this.expectedCost.filter { it.isDigit() }.toLongOrNull() ?: 0L,
-        ratingAvg = this.ratingAvg ?: 0.0
+        publish = publish,
+        repeat = repeat
     )
 }

@@ -2,6 +2,7 @@ package com.project.seoulmate.ui.screens.addmeeting
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -22,18 +23,30 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 /**
  * AddMeetingScreen의 폼 상태와 비즈니스 로직을 담당하는 ViewModel
  * MeetingForm 데이터 클래스 하나의 StateFlow로 통합 관리합니다
+ *
+ * 수정 모드: meetingId가 있는 경우
+ * 등록 모드: meetingId가 null인 경우
  */
 @HiltViewModel
 class AddMeetingViewModel @Inject constructor(
     private val repository: MeetingRepository,
     private val imageApi: ImageApi,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // Navigation argument로 받은 meetingId (수정 모드인지 확인용)
+    private val meetingId: String? = savedStateHandle["meetingId"]
+
+    // 수정 모드 여부
+    val isEditMode: Boolean = meetingId != null
 
     private val _formState = MutableStateFlow(MeetingForm())
     val formState: StateFlow<MeetingForm> = _formState.asStateFlow()
@@ -41,6 +54,17 @@ class AddMeetingViewModel @Inject constructor(
     // 저장/등록 결과를 UI에 전달하기 위한 이벤트 상태
     private val _uiEvent = MutableStateFlow<AddMeetingUiEvent?>(null)
     val uiEvent: StateFlow<AddMeetingUiEvent?> = _uiEvent.asStateFlow()
+
+    // 로딩 상태
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    init {
+        // 수정 모드인 경우 기존 만남 데이터 로드
+        if (isEditMode && meetingId != null) {
+            loadMeetingForEdit(meetingId)
+        }
+    }
 
     // ──────────────────────────────────────────
     // 각 필드별 업데이트 함수
@@ -204,6 +228,104 @@ class AddMeetingViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Exception during meeting registration")
                 _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+            }
+        }
+    }
+
+    /**
+     * 만남 수정
+     */
+    fun updateMeeting() {
+        if (meetingId == null) {
+            _uiEvent.value = AddMeetingUiEvent.Error("수정할 만남 ID가 없습니다")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // 1. 필수 항목 검증
+                val validationError = validateRequiredFields()
+                if (validationError != null) {
+                    _uiEvent.value = AddMeetingUiEvent.Error(validationError)
+                    return@launch
+                }
+
+                // 2. Firebase에서 토큰 가져오기
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    Timber.e("Firebase token is null. User not logged in.")
+                    _uiEvent.value = AddMeetingUiEvent.Error("로그인이 필요합니다")
+                    return@launch
+                }
+
+                _isLoading.value = true
+
+                // 3. 백엔드 API로 만남 수정
+                val result = repository.updateMeeting(idToken, meetingId, _formState.value)
+
+                result.onSuccess {
+                    Timber.d("Meeting updated successfully: ${it.meeting.id}")
+                    _uiEvent.value = AddMeetingUiEvent.NavigateBack
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update meeting")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 수정 실패")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during meeting update")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 수정 모드에서 기존 만남 데이터 로드
+     */
+    private fun loadMeetingForEdit(meetingId: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                Timber.d("Loading meeting for edit: $meetingId")
+
+                val result = repository.getMeetingDetail(meetingId)
+
+                result.onSuccess { meetingDetail ->
+                    Timber.d("Meeting loaded successfully: ${meetingDetail.meeting.title}")
+
+                    // MeetingDetail을 MeetingForm으로 변환
+                    val form = MeetingForm(
+                        name = meetingDetail.meeting.title,
+                        description = meetingDetail.description,
+                        selectedCategories = meetingDetail.meeting.tags.toSet(),
+                        courses = meetingDetail.courses.map { it.name },
+                        courseId = meetingDetail.courses.firstOrNull()?.let {
+                            // TODO: Course ID는 서버 응답에 포함되어야 함
+                            null
+                        },
+                        timeSlots = listOf(meetingDetail.meeting.time),
+                        meetDate = meetingDetail.meeting.meetDate ?: "",
+                        expectedCost = meetingDetail.meeting.price.filter { it.isDigit() },
+                        minMembers = "2", // TODO: 서버 응답에서 가져와야 함
+                        maxMembers = "10", // TODO: 서버 응답에서 가져와야 함
+                        isRepeating = false, // TODO: 서버 응답에서 가져와야 함
+                        imageUrls = meetingDetail.meeting.imageUrls,
+                        ratingAvg = meetingDetail.meeting.ratingAvg
+                    )
+
+                    _formState.value = form
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to load meeting for edit")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 정보를 불러올 수 없습니다")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception loading meeting for edit")
+                _uiEvent.value = AddMeetingUiEvent.Error("만남 정보를 불러오는 중 오류가 발생했습니다")
+            } finally {
+                _isLoading.value = false
             }
         }
     }

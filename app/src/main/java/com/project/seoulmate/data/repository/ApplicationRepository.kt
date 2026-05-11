@@ -9,18 +9,19 @@ interface ApplicationRepository {
 
     /**
      * 만남 신청
+     * @param message 신청 메시지
      */
-    suspend fun createApplication(token: String, meetupId: Long): Result<ApplicationResponse>
+    suspend fun createApplication(token: String, meetupId: Long, message: String): Result<ApplicationResponse>
 
     /**
      * 신청 승인 (호스트)
      */
-    suspend fun approveApplication(token: String, meetupId: Long, appId: Long): Result<Unit>
+    suspend fun approveApplication(token: String, applicationId: Long): Result<ApplicationResponse>
 
     /**
      * 신청 거절 (호스트)
      */
-    suspend fun rejectApplication(token: String, meetupId: Long, appId: Long): Result<Unit>
+    suspend fun rejectApplication(token: String, applicationId: Long): Result<ApplicationResponse>
 
     /**
      * 신청 목록 조회 (호스트)
