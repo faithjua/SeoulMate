@@ -11,6 +11,7 @@ import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.model.MeetingDetail
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
+import com.project.seoulmate.data.repository.ApplicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ import javax.inject.Inject
 class MeetingDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val meetingRepository: MeetingRepository,
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    private val applicationRepository: ApplicationRepository
 ) : ViewModel() {
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
@@ -246,6 +248,48 @@ class MeetingDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to block user")
                 _userActionEvent.emit(UserActionResult.Error("차단 처리 중 오류가 발생했습니다"))
+            }
+        }
+    }
+
+    /**
+     * 만남 신청 (예약 요청)
+     */
+    fun applyForMeeting() {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    return@launch
+                }
+
+                val meetingIdLong = meetingId.toLongOrNull()
+                if (meetingIdLong == null) {
+                    _userActionEvent.emit(UserActionResult.Error("잘못된 만남 ID입니다"))
+                    return@launch
+                }
+
+                _isLoading.value = true
+                val result = applicationRepository.createApplication(idToken, meetingIdLong)
+
+                result.onSuccess { applicationResponse ->
+                    Timber.d("Application created: ${applicationResponse.id}")
+                    _userActionEvent.emit(UserActionResult.Success("예약 요청이 완료되었습니다"))
+                    // 상세 화면 새로고침 (신청 상태 반영)
+                    loadMeetingDetail()
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to create application")
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "예약 요청 실패"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during apply for meeting")
+                _userActionEvent.emit(UserActionResult.Error("예약 요청 중 오류가 발생했습니다"))
+            } finally {
+                _isLoading.value = false
             }
         }
     }

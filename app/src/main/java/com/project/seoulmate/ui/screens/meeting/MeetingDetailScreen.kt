@@ -87,11 +87,12 @@ fun MeetingDetailScreen(
         val reportPostDesc = stringResource(id = R.string.meeting_report_post_inappropriate)
         val reportUserDesc = stringResource(id = R.string.meeting_report_user_inappropriate)
         Scaffold(
-            bottomBar = { 
+            bottomBar = {
                 DetailBottomBar(
                     isFavorite = isFavorite,
-                    onFavoriteClick = { viewModel.toggleFavorite() }
-                ) 
+                    onFavoriteClick = { viewModel.toggleFavorite() },
+                    onApplyClick = { viewModel.applyForMeeting() }
+                )
             },
             containerColor = Color.White
         ) { paddingValues ->
@@ -619,7 +620,8 @@ fun MateInfoSection(
 @Composable
 fun DetailBottomBar(
     isFavorite: Boolean = false,
-    onFavoriteClick: () -> Unit = {}
+    onFavoriteClick: () -> Unit = {},
+    onApplyClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -646,24 +648,9 @@ fun DetailBottomBar(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 쪽지 버튼
-        /*
-        Button(
-            onClick = { /* TODO */ },
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8D8D8D)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text(text = "쪽지", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
         // 예약 요청 버튼
         Button(
-            onClick = { /* TODO */ },
+            onClick = onApplyClick,
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
@@ -671,8 +658,7 @@ fun DetailBottomBar(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(text = "예약 요청", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }    
-        */
+        }
     
     }
 }
