@@ -166,5 +166,8 @@ dependencies {
 
     // 이미지 로딩 Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // ML Kit 온디바이스 번역 (한국어 ↔ 영어)
+    implementation("com.google.mlkit:translate:17.0.3")
 }
 
