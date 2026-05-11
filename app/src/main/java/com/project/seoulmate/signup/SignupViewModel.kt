@@ -10,7 +10,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SignupViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val userPreferences: com.project.seoulmate.data.local.UserPreferences
 ) : ViewModel() {
 
     // 로딩, 성공, 에러 상태를 관리 (필요시 정의)
@@ -39,7 +40,12 @@ class SignupViewModel @Inject constructor(
                     val apiResponse = response.body()!!
 
                     //  2. 백엔드 로직이 진짜로 성공했는지 (success == true) 한 번 더 확인!
-                    if (apiResponse.success) {
+                    if (apiResponse.success && apiResponse.data != null) {
+                        // 회원 ID 저장
+                        val authResponse = apiResponse.data
+                        if (authResponse.id != null) {
+                            userPreferences.saveMemberId(authResponse.id)
+                        }
                         onSuccess()
                     } else {
                         // 통신은 됐지만 서버에서 실패를 보낸 경우 (예: 필수값 누락, DB 에러 등)

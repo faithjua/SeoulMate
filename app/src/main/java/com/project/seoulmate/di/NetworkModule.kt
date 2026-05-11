@@ -122,6 +122,18 @@ object NetworkModule {
         return retrofit.create(com.project.seoulmate.data.remote.ImageApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideApplicationApi(retrofit: Retrofit): com.project.seoulmate.data.remote.ApplicationApi {
+        return retrofit.create(com.project.seoulmate.data.remote.ApplicationApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): com.project.seoulmate.data.remote.NotificationApi {
+        return retrofit.create(com.project.seoulmate.data.remote.NotificationApi::class.java)
+    }
+
     // --- 네이버 API용 Retrofit (별도 Base URL) ---
 
     @Provides

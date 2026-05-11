@@ -231,6 +231,99 @@ class MeetingRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun updateMeeting(token: String, meetingId: String, form: MeetingForm): Result<MeetingDetail> {
+        return try {
+            val request = form.toCreateRequest()
+            val response = meetingApi.updateMeeting("Bearer $token", meetingId.toLongOrNull() ?: 0L, request)
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null) {
+                    Result.success(data.toMeetingDetail())
+                } else {
+                    Result.failure(Exception("응답 데이터가 없습니다"))
+                }
+            } else {
+                val errorMsg = response.body()?.message ?: "만남 수정 실패"
+                Timber.e("Meeting update failed: $errorMsg")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Meeting update error")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteMeeting(token: String, meetingId: String): Result<Unit> {
+        return try {
+            val response = meetingApi.deleteMeeting("Bearer $token", meetingId.toLongOrNull() ?: 0L)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.body()?.message ?: "만남 삭제 실패"
+                Timber.e("Meeting deletion failed: $errorMsg")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Meeting deletion error")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUserMeetups(
+        token: String?,
+        memberId: Long,
+        page: Int,
+        size: Int
+    ): Result<PageResponse<Meeting>> {
+        return try {
+            Timber.d("MeetingRepo - getUserMeetups called with memberId: $memberId, page: $page, size: $size")
+            Timber.d("MeetingRepo - Token: ${if (token != null) "Bearer ${token.take(20)}..." else "null"}")
+
+            val response = meetingApi.getUserMeetups(
+                token = token?.let { "Bearer $it" },
+                memberId = memberId,
+                page = page,
+                size = size
+            )
+
+            Timber.d("MeetingRepo - Response code: ${response.code()}")
+            Timber.d("MeetingRepo - Response successful: ${response.isSuccessful}")
+            Timber.d("MeetingRepo - Response body success: ${response.body()?.success}")
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val pageData = response.body()?.data
+                Timber.d("MeetingRepo - Page data: totalElements=${pageData?.totalElements}, content size=${pageData?.content?.size}")
+
+                if (pageData != null) {
+                    val meetings = pageData.content.map { it.toMeeting() }
+                    val resultPage = PageResponse(
+                        content = meetings,
+                        page = pageData.page,
+                        size = pageData.size,
+                        totalElements = pageData.totalElements,
+                        totalPages = pageData.totalPages,
+                        first = pageData.first,
+                        last = pageData.last
+                    )
+                    Timber.d("MeetingRepo - Success! Returning ${meetings.size} meetings")
+                    Result.success(resultPage)
+                } else {
+                    Timber.e("MeetingRepo - Response data is null")
+                    Result.failure(Exception("응답 데이터가 없습니다"))
+                }
+            } else {
+                val errorMsg = response.body()?.message ?: "사용자 만남 목록 조회 실패"
+                val errorBody = response.errorBody()?.string()
+                Timber.e("MeetingRepo - API failed: code=${response.code()}, message=$errorMsg, error=$errorBody")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "MeetingRepo - Exception in getUserMeetups: ${e.message}")
+            Result.failure(e)
+        }
+    }
 }
 
 /**
@@ -258,7 +351,10 @@ private fun MeetingListResponse.toMeeting(): Meeting {
             addAll(this@toMeeting.tags.map { "#$it" })
         },
         meetDate = this.meetDate,
-        ratingAvg = this.ratingAvg ?: 0.0
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }
 
@@ -289,7 +385,10 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         },
         isFavorited = this.isFavorite,
         meetDate = this.meetDate,
-        ratingAvg = this.ratingAvg ?: 0.0
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 
     val places = this.course?.places ?: emptyList()
@@ -323,7 +422,11 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         description = this.description,
         courses = coursePoints,
         mateInfo = mateInfo,
-        mateOtherMeetings = emptyList() // TODO: 호스트의 다른 만남 조회 추가
+        mateOtherMeetings = emptyList(), // TODO: 호스트의 다른 만남 조회 추가
+        isHost = this.isHost,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }
 
@@ -351,6 +454,9 @@ private fun HomeMeetingResponse.toMeeting(): Meeting {
         },
         isFavorited = this.isFavorited,
         meetDate = this.meetDate,
-        ratingAvg = this.ratingAvg ?: 0.0
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }

@@ -46,6 +46,10 @@ fun AddMeetingScreen(
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     // 저장/등록 완료 이벤트 수집
     val uiEvent by viewModel.uiEvent.collectAsStateWithLifecycle()
+    // 수정 모드 여부
+    val isEditMode = viewModel.isEditMode
+    // 로딩 상태
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     /**
      * 카테고리, 장소/시간 정보 공유를 위한 추가 코드
@@ -149,14 +153,33 @@ fun AddMeetingScreen(
                     Text("취소", fontSize = 16.sp, color = Color.Gray)
                 }
                 Button(
-                    onClick = { viewModel.registerMeeting() },
+                    onClick = {
+                        if (isEditMode) {
+                            viewModel.updateMeeting()
+                        } else {
+                            viewModel.registerMeeting()
+                        }
+                    },
                     modifier = Modifier.weight(1f),
+                    enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF6C60FD)
                     ),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
                 ) {
-                    Text("등록하기", fontSize = 16.sp, color = Color.White)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = if (isEditMode) "수정하기" else "등록하기",
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -177,7 +200,13 @@ fun AddMeetingScreen(
                     .padding(bottom = 24.dp)
             ) {
                 TopAppBar(
-                    title = { Text(text = "만남정보", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                    title = {
+                        Text(
+                            text = if (isEditMode) "만남 수정" else "만남정보",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
                     actions = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(imageVector = Icons.Default.Close, contentDescription = "닫기")

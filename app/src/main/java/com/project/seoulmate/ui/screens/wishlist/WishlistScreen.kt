@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.outlined.Tune
@@ -85,7 +86,7 @@ fun WishlistScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "찜",
+                    text = stringResource(id = R.string.wishlist_title),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -100,7 +101,7 @@ fun WishlistScreen(
                     IconButton(onClick = { /* TODO: Translate */ }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_translate),
-                            contentDescription = "번역",
+                            contentDescription = stringResource(id = R.string.wishlist_translate),
                             contentScale = ContentScale.None
                         )
                     }
@@ -111,7 +112,7 @@ fun WishlistScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "알림",
+                                contentDescription = stringResource(id = R.string.wishlist_notification),
                                 modifier = Modifier.size(28.dp),
                                 tint = Color.Black
                             )
@@ -151,8 +152,8 @@ fun WishlistScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChipItem(text = "카테고리", options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통 가이드", "숙소/지역", "클래스", "커뮤니티", "전시/공연", "안전/생활"))
-                FilterChipItem(text = "메이트 선호", options = listOf("전체", "동성", "이성", "무관"))
-                FilterChipItem(text = "혼잡도", options = listOf("전체", "여유", "보통", "혼잡"))
+                FilterChipItem(text = stringResource(id = R.string.wishlist_filter_mate), options = listOf(stringResource(id = R.string.wishlist_filter_all), stringResource(id = R.string.wishlist_mate_same), stringResource(id = R.string.wishlist_mate_opposite), stringResource(id = R.string.wishlist_mate_any)))
+                FilterChipItem(text = stringResource(id = R.string.wishlist_filter_congestion), options = listOf(stringResource(id = R.string.wishlist_filter_all), stringResource(id = R.string.wishlist_congestion_free), stringResource(id = R.string.wishlist_congestion_normal), stringResource(id = R.string.wishlist_congestion_crowded)))
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
@@ -171,7 +172,7 @@ fun WishlistScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Tune,
-                            contentDescription = "필터 설정",
+                            contentDescription = stringResource(id = R.string.wishlist_filter_setting),
                             tint = Color.Black,
                             modifier = Modifier.size(20.dp)
                         )
@@ -183,7 +184,7 @@ fun WishlistScreen(
 
             // 3. Count
             Text(
-                text = "총 ${meetings.size}개",
+                text = stringResource(id = R.string.wishlist_total_count, meetings.size),
                 modifier = Modifier.padding(horizontal = 24.dp),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -323,7 +324,7 @@ fun WishlistCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = "찜 취소",
+                    contentDescription = stringResource(id = R.string.wishlist_cancel),
                     tint = Color(0xFFFF6B6B), // Red-pinkish color
                     modifier = Modifier.size(28.dp)
                 )
@@ -388,14 +389,14 @@ fun WishlistCard(
         // Price & Rating
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "예상 ${meeting.price}",
+                text = stringResource(id = R.string.wishlist_expected_price, meeting.price),
                 color = Color(0xFF888888),
                 fontSize = 13.sp,
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.Star,
-                contentDescription = "평점",
+                contentDescription = stringResource(id = R.string.wishlist_rating),
                 tint = Color(0xFF888888),
                 modifier = Modifier.size(12.dp)
             )

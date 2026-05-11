@@ -82,4 +82,37 @@ interface MeetingApi {
         @Path("meetupId") meetupId: Long,
         @Query("status") status: String
     ): Response<ApiResponse<Unit>>
+
+    /**
+     * 만남 수정 (OPEN/DRAFT 상태만 가능)
+     * PATCH /api/meetups/{meetupId}
+     */
+    @PATCH("/api/meetups/{meetupId}")
+    suspend fun updateMeeting(
+        @Header("Authorization") token: String,
+        @Path("meetupId") meetupId: Long,
+        @Body request: MeetingCreateRequest
+    ): Response<ApiResponse<MeetingDetailResponse>>
+
+    /**
+     * 만남 삭제
+     * DELETE /api/meetups/{meetupId}
+     */
+    @DELETE("/api/meetups/{meetupId}")
+    suspend fun deleteMeeting(
+        @Header("Authorization") token: String,
+        @Path("meetupId") meetupId: Long
+    ): Response<ApiResponse<Unit>>
+
+    /**
+     * 사용자 만남 목록 조회
+     * GET /api/users/{memberId}/meetups
+     */
+    @GET("/api/users/{memberId}/meetups")
+    suspend fun getUserMeetups(
+        @Header("Authorization") token: String? = null,
+        @Path("memberId") memberId: Long,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10
+    ): Response<ApiResponse<PageResponse<MeetingListResponse>>>
 }
