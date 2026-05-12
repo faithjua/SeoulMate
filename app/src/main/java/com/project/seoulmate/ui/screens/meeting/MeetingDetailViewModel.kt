@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.meeting
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import com.project.seoulmate.data.repository.MeetingRepository
 import com.project.seoulmate.data.repository.ApplicationRepository
 import com.project.seoulmate.util.TranslationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -30,12 +32,15 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MeetingDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle,
     private val meetingRepository: MeetingRepository,
     private val favoriteRepository: FavoriteRepository,
     private val applicationRepository: ApplicationRepository,
     private val commentRepository: CommentRepository
 ) : ViewModel() {
+
+    private fun str(resId: Int): String = appContext.getString(resId)
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
 
@@ -272,10 +277,10 @@ class MeetingDetailViewModel @Inject constructor(
                 // TODO: 실제 API 호출 구현 필요
                 // val result = reportRepository.reportUser(userId, reason, description)
                 Timber.d("Report user - reason: $reason, description: $description")
-                _userActionEvent.emit(UserActionResult.Success("신고가 접수되었습니다"))
+                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_report_received)))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to report user")
-                _userActionEvent.emit(UserActionResult.Error("신고 처리 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_report_error)))
             }
         }
     }
@@ -289,10 +294,10 @@ class MeetingDetailViewModel @Inject constructor(
                 // TODO: 실제 API 호출 구현 필요
                 // val result = blockRepository.blockUser(userId)
                 Timber.d("Block user")
-                _userActionEvent.emit(UserActionResult.Success("사용자를 차단했습니다"))
+                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_user_blocked)))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to block user")
-                _userActionEvent.emit(UserActionResult.Error("차단 처리 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_block_error)))
             }
         }
     }
@@ -309,13 +314,13 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
                 val meetingIdLong = meetingId.toLongOrNull()
                 if (meetingIdLong == null) {
-                    _userActionEvent.emit(UserActionResult.Error("잘못된 만남 ID입니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_invalid_meeting_id)))
                     return@launch
                 }
 
@@ -325,16 +330,16 @@ class MeetingDetailViewModel @Inject constructor(
 
                 result.onSuccess { applicationResponse ->
                     Timber.d("Application created: id=${applicationResponse.id}, status=${applicationResponse.status}")
-                    _userActionEvent.emit(UserActionResult.Success("메이트 신청이 완료되었습니다. 호스트의 승인을 기다려주세요!"))
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_apply_success)))
                     // 상세 화면 새로고침 (신청 상태 반영)
                     loadMeetingDetail()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to create application")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "메이트 신청 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_apply_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during apply for meeting")
-                _userActionEvent.emit(UserActionResult.Error("메이트 신청 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_apply_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -352,7 +357,7 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
@@ -361,15 +366,15 @@ class MeetingDetailViewModel @Inject constructor(
 
                 result.onSuccess {
                     Timber.d("Meeting deleted successfully")
-                    _userActionEvent.emit(UserActionResult.Success("만남이 삭제되었습니다"))
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_meeting_deleted)))
                     onSuccess()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to delete meeting")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "만남 삭제 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_meeting_delete_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during delete meeting")
-                _userActionEvent.emit(UserActionResult.Error("만남 삭제 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_meeting_delete_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -390,7 +395,7 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
@@ -403,10 +408,10 @@ class MeetingDetailViewModel @Inject constructor(
                     Timber.d("Meeting status updated successfully to $status")
 
                     val message = when (status) {
-                        "CLOSED" -> "만남이 마감되었습니다. 참여자들에게 알림이 전송됩니다."
-                        "COMPLETED" -> "만남이 완료 처리되었습니다. 참여자들에게 알림이 전송됩니다."
-                        "OPEN" -> "만남이 다시 열렸습니다. 참여자들에게 알림이 전송됩니다."
-                        else -> "만남 상태가 변경되었습니다."
+                        "CLOSED" -> str(R.string.toast_status_closed_message)
+                        "COMPLETED" -> str(R.string.toast_status_completed_message)
+                        "OPEN" -> str(R.string.toast_status_open_message)
+                        else -> str(R.string.toast_status_changed_generic)
                     }
 
                     _userActionEvent.emit(UserActionResult.Success(message))
@@ -415,11 +420,11 @@ class MeetingDetailViewModel @Inject constructor(
                     loadMeetingDetail()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to update meeting status")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "상태 변경 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_status_change_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during update meeting status")
-                _userActionEvent.emit(UserActionResult.Error("상태 변경 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_status_change_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -477,7 +482,7 @@ class MeetingDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val token = currentToken()
             if (token == null) {
-                _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                 return@launch
             }
             val id = meetingId.toLongOrNull() ?: return@launch
@@ -488,7 +493,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     Timber.e(e, "createComment failed")
                     _userActionEvent.emit(
-                        UserActionResult.Error(e.message ?: "댓글 작성에 실패했습니다")
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_create_failed))
                     )
                 }
         }
@@ -497,7 +502,7 @@ class MeetingDetailViewModel @Inject constructor(
     fun editComment(commentId: Long, newContent: String) {
         viewModelScope.launch {
             val token = currentToken() ?: run {
-                _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                 return@launch
             }
             val id = meetingId.toLongOrNull() ?: return@launch
@@ -512,7 +517,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     Timber.e(e, "updateComment failed")
                     _userActionEvent.emit(
-                        UserActionResult.Error(e.message ?: "댓글 수정에 실패했습니다")
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_update_failed))
                     )
                 }
         }
@@ -521,7 +526,7 @@ class MeetingDetailViewModel @Inject constructor(
     fun deleteComment(commentId: Long) {
         viewModelScope.launch {
             val token = currentToken() ?: run {
-                _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                 return@launch
             }
             val id = meetingId.toLongOrNull() ?: return@launch
@@ -533,7 +538,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     Timber.e(e, "deleteComment failed")
                     _userActionEvent.emit(
-                        UserActionResult.Error(e.message ?: "댓글 삭제에 실패했습니다")
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_delete_failed))
                     )
                 }
         }
@@ -558,7 +563,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     Timber.e(e, "translate failed")
                     _userActionEvent.emit(
-                        UserActionResult.Error("번역에 실패했습니다 (Wi-Fi 연결 후 다시 시도)")
+                        UserActionResult.Error(str(R.string.toast_translate_failed))
                     )
                 }
             _translatingIds.update { it - commentId }
@@ -579,7 +584,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onSuccess { _translatedTitle.value = it }
                 .onFailure { e ->
                     Timber.e(e, "translate title failed")
-                    _userActionEvent.emit(UserActionResult.Error("번역에 실패했습니다 (Wi-Fi 연결 후 다시 시도)"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_translate_failed)))
                 }
             _isTranslatingTitle.value = false
         }
@@ -599,7 +604,7 @@ class MeetingDetailViewModel @Inject constructor(
                 .onSuccess { _translatedDescription.value = it }
                 .onFailure { e ->
                     Timber.e(e, "translate description failed")
-                    _userActionEvent.emit(UserActionResult.Error("번역에 실패했습니다 (Wi-Fi 연결 후 다시 시도)"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_translate_failed)))
                 }
             _isTranslatingDescription.value = false
         }

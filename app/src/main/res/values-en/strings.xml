@@ -237,4 +237,64 @@
     <string name="addcourse_prompt_placeholder">e.g. 3-hour Jongno food tour for foreign friends</string>
     <string name="addcourse_ai_loading">AI is generating the course...</string>
     <string name="addcourse_button_complete">Generate Course</string>
+
+    <!-- Toast / Error messages -->
+    <string name="toast_login_required">Please sign in</string>
+    <string name="toast_invalid_meeting_id">Invalid meetup ID</string>
+    <string name="toast_unknown_error">Unknown error</string>
+    <string name="toast_network_error">Network error</string>
+    <string name="toast_server_communication_error">Server communication error</string>
+
+    <!-- MeetingDetailViewModel toasts -->
+    <string name="toast_report_received">Report submitted</string>
+    <string name="toast_report_error">An error occurred while processing the report</string>
+    <string name="toast_user_blocked">User blocked</string>
+    <string name="toast_block_error">An error occurred while blocking</string>
+    <string name="toast_apply_success">Application sent. Waiting for the host\'s approval.</string>
+    <string name="toast_apply_failed">Failed to apply</string>
+    <string name="toast_apply_generic_error">An error occurred while applying</string>
+    <string name="toast_meeting_deleted">Meetup deleted</string>
+    <string name="toast_meeting_delete_failed">Failed to delete meetup</string>
+    <string name="toast_meeting_delete_generic_error">An error occurred while deleting the meetup</string>
+    <string name="toast_status_change_failed">Failed to change status</string>
+    <string name="toast_status_change_generic_error">An error occurred while changing the status</string>
+    <string name="toast_status_closed_message">The meetup is now closed. Participants will be notified.</string>
+    <string name="toast_status_completed_message">The meetup is now completed. Participants will be notified.</string>
+    <string name="toast_status_open_message">The meetup is reopened. Participants will be notified.</string>
+    <string name="toast_status_changed_generic">Meetup status changed.</string>
+    <string name="toast_comment_create_failed">Failed to post the comment</string>
+    <string name="toast_comment_update_failed">Failed to update the comment</string>
+    <string name="toast_comment_delete_failed">Failed to delete the comment</string>
+    <string name="toast_translate_failed">Translation failed (please connect to Wi-Fi and try again)</string>
+
+    <!-- AddMeetingViewModel toasts -->
+    <string name="toast_validate_name">Please enter a title</string>
+    <string name="toast_validate_category">Please select at least one category</string>
+    <string name="toast_validate_course">Please add a course</string>
+    <string name="toast_validate_time">Please pick a date/time</string>
+    <string name="toast_validate_cost">Please enter the expected cost</string>
+    <string name="toast_validate_min_members">Please enter the minimum members</string>
+    <string name="toast_validate_max_members">Please enter the maximum members</string>
+    <string name="toast_validate_min_numeric">Minimum members must be a number</string>
+    <string name="toast_validate_min_at_least_2">Minimum members must be at least 2</string>
+    <string name="toast_validate_max_numeric">Maximum members must be a number</string>
+    <string name="toast_validate_max_gte_min">Maximum members must be ≥ minimum</string>
+    <string name="toast_register_failed">Failed to register meetup</string>
+    <string name="toast_update_failed">Failed to update meetup</string>
+    <string name="toast_no_id_to_edit">No meetup ID to edit</string>
+    <string name="toast_load_failed">Could not load meetup info</string>
+    <string name="toast_load_generic_error">An error occurred while loading the meetup</string>
+    <string name="toast_image_too_large">Each image must be 5MB or smaller</string>
+    <string name="toast_total_too_large">Total upload size must be 20MB or smaller</string>
+    <string name="toast_image_upload_failed_default">Image upload failed</string>
+    <string name="toast_image_upload_generic_error">An error occurred while uploading images</string>
+
+    <!-- AddCourseViewModel toasts -->
+    <string name="toast_ai_generate_failed">Failed to generate</string>
+
+    <!-- LoginScreen toasts -->
+    <string name="toast_google_login_status_unknown">Unable to verify Google sign-in status.</string>
+    <string name="toast_token_issue_failed">Failed to issue token</string>
+    <string name="toast_firebase_auth_failed">Firebase authentication failed.</string>
+    <string name="toast_login_generic_error">An error occurred during sign-in.</string>
 </resources>

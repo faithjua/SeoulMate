@@ -116,7 +116,7 @@ fun HomeScreen(
                             launchSingleTop = true
                             restoreState = true
                         }
-                        2 -> navController.navigate(Screen.AddMeeting.route)
+                        2 -> navController.navigate(Screen.AddMeeting.createRoute())
                         3 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
                         4 -> if (!AppConfig.IS_PRODUCTION) {
                             navController.navigate(Screen.Profile.route) {

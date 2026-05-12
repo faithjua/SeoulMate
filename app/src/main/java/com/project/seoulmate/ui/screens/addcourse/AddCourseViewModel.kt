@@ -1,10 +1,12 @@
 package com.project.seoulmate.ui.screens.addcourse
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.BuildConfig
+import com.project.seoulmate.R
 import com.project.seoulmate.data.model.AiCourseRequest
 import com.project.seoulmate.data.model.CourseCreateRequest
 import com.project.seoulmate.data.model.NaverSearchItem
@@ -13,6 +15,7 @@ import com.project.seoulmate.data.repository.CourseRepository
 import com.project.seoulmate.data.model.CourseLocation
 import com.project.seoulmate.data.model.CoursePlaceItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,15 +26,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import javax.inject.Inject
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class AddCourseViewModel @Inject constructor(
-    // Hilt의 NetworkModule이 알아서 이 규격에 맞는 API 객체를 넣어줌
+    @ApplicationContext private val context: Context,
     private val courseRepository: CourseRepository,
     private val naverSearchApi: NaverSearchApi
 ) : ViewModel() {
@@ -115,35 +114,26 @@ class AddCourseViewModel @Inject constructor(
 
                     // 2. 서버 비즈니스 로직 성공 여부(success)와 알맹이 데이터(data) null 체크를 동시에!
                     if (apiResponse.success && apiResponse.data != null) {
-                        val aiResult = apiResponse.data // 이제 aiResult는 절대 null이 아님
+                        val aiResult = apiResponse.data // 이제 aiResult는 절대 null이 아닙니다!
 
                         _courseLocations.value = aiResult.places
                         _aiDescription.value = aiResult.description
 
-                        // AI 응답 후 좌표가 없는 장소만 지오코딩 병렬 처리!
-                        val enrichedLocations = fetchMissingCoordinates(aiResult.places)
-
-                        if (enrichedLocations.isEmpty()) {
-                            _errorMessage.value = "AI가 추천한 장소들을 지도에서 찾을 수 없습니다."
-                        } else {
-                            // StateFlow 업데이트 (copy를 썼기 때문에 UI가 즉각적으로 예쁘게 반응합니다)
-                            _courseLocations.value = enrichedLocations
-                            _aiDescription.value = aiResult.description
-                            Timber.tag("AiCourse").d("AI 코스 생성 및 지오코딩 완료: ${enrichedLocations.size}개")
-                        }
+                        Timber.tag("AiCourse").d("AI 생성 성공: ${aiResult.description}")
                     } else {
-                        val errorMsg = apiResponse.message ?: "생성 실패"
+                        // 통신은 성공했지만 서버 내부 로직이 실패한 경우 (예: 프롬프트 불량, 횟수 초과 등)
+                        val errorMsg = apiResponse.message ?: context.getString(R.string.toast_ai_generate_failed)
                         Timber.tag("AiCourse").e("AI 생성 실패: $errorMsg")
                         _errorMessage.value = errorMsg
                     }
                 } else {
                     // 서버 통신 자체가 실패한 경우 (403, 404, 500 에러 등)
-                    val errorMsg = response.body()?.message ?: "서버 통신 에러"
+                    val errorMsg = response.body()?.message ?: context.getString(R.string.toast_server_communication_error)
                     Timber.tag("AiCourse").e("서버 통신 에러: ${response.code()} - $errorMsg")
                     _errorMessage.value = errorMsg
                 }
             } catch (e: Exception) {
-                val errorMsg = e.message ?: "네트워크 에러"
+                val errorMsg = e.message ?: context.getString(R.string.toast_network_error)
                 Timber.tag("AiCourse").e("네트워크 에러: $errorMsg")
                 _errorMessage.value = errorMsg
             } finally {
@@ -161,6 +151,7 @@ class AddCourseViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                //------------------"여기 또 이렇게 추가해줘야해?
                 //  1. Firebase에서 내 아이디 증명서(토큰) 꺼내기
                 val user = FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await() // kotlinx-coroutines-play-services 필요, 안되면 리스너 사용
@@ -174,8 +165,8 @@ class AddCourseViewModel @Inject constructor(
                 val placeItems = _courseLocations.value.mapIndexed { index, location ->
                     CoursePlaceItem(
                         name = location.name,
-                        lat = location.lat ?: 0.0,
-                        lng = location.lng ?: 0.0,
+                        lat = location.lat,
+                        lng = location.lng,
                         address = location.address,
                         orderIndex = index + 1,
                         memo = null
@@ -246,46 +237,6 @@ class AddCourseViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchMissingCoordinates(aiPlaces: List<CourseLocation>): List<CourseLocation> {
-        return withContext(Dispatchers.IO) {
-            aiPlaces.map { place ->
-                async {
-                    if (place.lat != null && place.lat != 0.0 && place.lng != null && place.lng != 0.0) {
-                        return@async place
-                    }
-
-                    try {
-                        val query = if (!place.address.isNullOrBlank()) place.address else place.name
-                        val response = naverSearchApi.searchLocal(
-                            clientId = BuildConfig.NAVER_CLIENT_ID,
-                            clientSecret = BuildConfig.NAVER_CLIENT_SECRET,
-                            query = query,
-                            display = 1
-                        )
-
-                        val items = response.body()?.items
-                        if (response.isSuccessful && !items.isNullOrEmpty()) {
-                            val firstItem = items.first()
-                            place.copy(
-                                lat = firstItem.getLatitude(),
-                                lng = firstItem.getLongitude(),
-                                address = firstItem.getBestAddress()
-                            )
-                        } else {
-                            // null을 반환해서 버리지 말고, 원래 장소(좌표 없는 상태)를 그대로 반환
-                            Timber.tag("Geocoding").w("네이버 검색 실패, 마커 없이 리스트만 유지: ${place.name}")
-                            place
-                        }
-                    } catch (e: Exception) {
-                        Timber.tag("Geocoding").e(e, "지오코딩 통신 에러")
-                        // 에러가 나도 리스트에서는 살려둠
-                        place
-                    }
-                }
-            }.awaitAll()
-            // .filterNotNull() 삭제!! (이제 null이 반환되지 않으므로 필요 없음)
-        }
-    }
     // 네이버 지도 검색 관련 함수들
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query

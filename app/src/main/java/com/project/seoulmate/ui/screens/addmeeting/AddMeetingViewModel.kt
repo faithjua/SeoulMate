@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.project.seoulmate.R
 import com.project.seoulmate.data.model.MeetingForm
 import com.project.seoulmate.data.remote.ImageApi
 import com.project.seoulmate.data.repository.MeetingRepository
@@ -167,25 +168,23 @@ class AddMeetingViewModel @Inject constructor(
         val form = _formState.value
 
         return when {
-            form.name.isBlank() -> "만남명을 입력해주세요"
-            form.selectedCategories.isEmpty() -> "카테고리를 하나 이상 선택해주세요"
-            form.courses.isEmpty() -> "코스를 추가해주세요"
-            form.timeSlots.isEmpty() -> "요일/시간을 선택해주세요"
-            form.expectedCost.isBlank() -> "예상 지출을 입력해주세요"
-            form.minMembers.isBlank() -> "최소 인원을 입력해주세요"
-            form.maxMembers.isBlank() -> "최대 인원을 입력해주세요"
+            form.name.isBlank() -> context.getString(R.string.toast_validate_name)
+            form.selectedCategories.isEmpty() -> context.getString(R.string.toast_validate_category)
+            form.courses.isEmpty() -> context.getString(R.string.toast_validate_course)
+            form.timeSlots.isEmpty() -> context.getString(R.string.toast_validate_time)
+            form.expectedCost.isBlank() -> context.getString(R.string.toast_validate_cost)
+            form.minMembers.isBlank() -> context.getString(R.string.toast_validate_min_members)
+            form.maxMembers.isBlank() -> context.getString(R.string.toast_validate_max_members)
             else -> {
-                // 추가 검증: 최소 인원이 2명 이상인지 확인
                 val minMembers = form.minMembers.toIntOrNull()
                 when {
-                    minMembers == null -> "최소 인원은 숫자로 입력해주세요"
-                    minMembers < 2 -> "모집 최소 인원은 2명 이상이어야 합니다"
+                    minMembers == null -> context.getString(R.string.toast_validate_min_numeric)
+                    minMembers < 2 -> context.getString(R.string.toast_validate_min_at_least_2)
                     else -> {
-                        // 최대 인원이 최소 인원보다 작지 않은지 확인
                         val maxMembers = form.maxMembers.toIntOrNull()
                         when {
-                            maxMembers == null -> "최대 인원은 숫자로 입력해주세요"
-                            maxMembers < minMembers -> "최대 인원은 최소 인원보다 크거나 같아야 합니다"
+                            maxMembers == null -> context.getString(R.string.toast_validate_max_numeric)
+                            maxMembers < minMembers -> context.getString(R.string.toast_validate_max_gte_min)
                             else -> null
                         }
                     }
@@ -211,7 +210,7 @@ class AddMeetingViewModel @Inject constructor(
 
                 if (idToken == null) {
                     Timber.e("Firebase token is null. User not logged in.")
-                    _uiEvent.value = AddMeetingUiEvent.Error("로그인이 필요합니다")
+                    _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_login_required))
                     return@launch
                 }
 
@@ -223,11 +222,11 @@ class AddMeetingViewModel @Inject constructor(
                     _uiEvent.value = AddMeetingUiEvent.NavigateBack
                 }.onFailure { error ->
                     Timber.e(error, "Failed to register meeting")
-                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 등록 실패")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_register_failed))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during meeting registration")
-                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: context.getString(R.string.toast_unknown_error))
             }
         }
     }
@@ -237,7 +236,7 @@ class AddMeetingViewModel @Inject constructor(
      */
     fun updateMeeting() {
         if (meetingId == null) {
-            _uiEvent.value = AddMeetingUiEvent.Error("수정할 만남 ID가 없습니다")
+            _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_no_id_to_edit))
             return
         }
 
@@ -257,7 +256,7 @@ class AddMeetingViewModel @Inject constructor(
 
                 if (idToken == null) {
                     Timber.e("Firebase token is null. User not logged in.")
-                    _uiEvent.value = AddMeetingUiEvent.Error("로그인이 필요합니다")
+                    _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_login_required))
                     return@launch
                 }
 
@@ -271,11 +270,11 @@ class AddMeetingViewModel @Inject constructor(
                     _uiEvent.value = AddMeetingUiEvent.NavigateBack
                 }.onFailure { error ->
                     Timber.e(error, "Failed to update meeting")
-                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 수정 실패")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_update_failed))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during meeting update")
-                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: context.getString(R.string.toast_unknown_error))
             } finally {
                 _isLoading.value = false
             }
@@ -319,11 +318,11 @@ class AddMeetingViewModel @Inject constructor(
                     _formState.value = form
                 }.onFailure { error ->
                     Timber.e(error, "Failed to load meeting for edit")
-                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 정보를 불러올 수 없습니다")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_load_failed))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception loading meeting for edit")
-                _uiEvent.value = AddMeetingUiEvent.Error("만남 정보를 불러오는 중 오류가 발생했습니다")
+                _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_load_generic_error))
             } finally {
                 _isLoading.value = false
             }
@@ -346,7 +345,7 @@ class AddMeetingViewModel @Inject constructor(
 
                 if (token == null) {
                     Timber.e("User not logged in")
-                    onComplete(false, "로그인이 필요합니다")
+                    onComplete(false, context.getString(R.string.toast_login_required))
                     return@launch
                 }
 
@@ -359,7 +358,7 @@ class AddMeetingViewModel @Inject constructor(
 
                         // 단일 파일 5MB 체크
                         if (fileSize > 5 * 1024 * 1024) {
-                            onComplete(false, "이미지는 5MB 이하만 업로드할 수 있습니다")
+                            onComplete(false, context.getString(R.string.toast_image_too_large))
                             return@launch
                         }
 
@@ -380,7 +379,7 @@ class AddMeetingViewModel @Inject constructor(
                 // 전체 크기 20MB 체크
                 val totalSize = files.sumOf { it.second }
                 if (totalSize > 20 * 1024 * 1024) {
-                    onComplete(false, "한 번에 업로드할 수 있는 총 용량은 20MB 이하입니다")
+                    onComplete(false, context.getString(R.string.toast_total_too_large))
                     files.forEach { it.first.delete() }
                     return@launch
                 }
@@ -404,7 +403,7 @@ class AddMeetingViewModel @Inject constructor(
                             imageUrls.add(url)
                         }
                     } else {
-                        val errorMsg = response.body()?.message ?: "이미지 업로드 실패"
+                        val errorMsg = response.body()?.message ?: context.getString(R.string.toast_image_upload_failed_default)
                         Timber.e("Image upload failed: $errorMsg")
                         files.forEach { it.first.delete() }
                         onComplete(false, errorMsg)
@@ -423,7 +422,7 @@ class AddMeetingViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 Timber.e(e, "Image upload error")
-                onComplete(false, "이미지 업로드 중 오류가 발생했습니다")
+                onComplete(false, context.getString(R.string.toast_image_upload_generic_error))
             }
         }
     }
