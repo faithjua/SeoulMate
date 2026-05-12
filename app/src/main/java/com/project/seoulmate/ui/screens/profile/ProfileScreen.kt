@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,13 +53,50 @@ fun ProfileScreen(
 ) {
     var selectedTab by remember { mutableStateOf(2) } // default to stringResource(id = R.string.profile_tab_info) (Index 2)
     var selectedBottomItem by remember { mutableStateOf(4) } // Profile is index 4
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // 로그아웃 확인 다이얼로그
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("로그아웃", fontFamily = SuitFontFamily) },
+            text = { Text("정말 로그아웃 하시겠습니까?", fontFamily = SuitFontFamily) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        // Firebase 로그아웃
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                        // 로그인 화면으로 이동
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("로그아웃", color = Color.Red, fontFamily = SuitFontFamily)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("취소", fontFamily = SuitFontFamily)
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             ProfileTopBar(
                 onBackClick = { navController.popBackStack() },
-                onMenuClick = { /* TODO */ }
+                onMenuClick = { showMenu = true },
+                showMenu = showMenu,
+                onDismissMenu = { showMenu = false },
+                onLogoutClick = {
+                    showMenu = false
+                    showLogoutDialog = true
+                }
             )
         },
         bottomBar = {
@@ -86,10 +124,10 @@ fun ProfileScreen(
             // 알맹이(Profile Info)
             ProfileHeader()
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-            // 탭 (만남, 리뷰, 정보)
-            val tabs = listOf(stringResource(id = R.string.profile_tab_meeting), stringResource(id = R.string.profile_tab_review), stringResource(id = R.string.profile_tab_info))
+            // 탭 (만남, 리뷰, 배지)
+            val tabs = listOf(stringResource(id = R.string.profile_tab_meeting), stringResource(id = R.string.profile_tab_review), stringResource(id = R.string.profile_tab_badge))
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
@@ -105,7 +143,7 @@ fun ProfileScreen(
                                 fontFamily = SuitFontFamily,
                                 fontSize = 16.sp,
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTab == index) Color(0xFF6C60FD) else Color.Gray
+                                color = if (selectedTab == index) Color(0xFF6C60FD) else Color(0xFF929292)
                             )
                         }
                     )
@@ -121,7 +159,7 @@ fun ProfileScreen(
                 when (selectedTab) {
                     0 -> MeetingTabContent(viewModel = viewModel, navController = navController)
                     1 -> ReviewTabContent()
-                    2 -> InfoTabContent()
+                    2 -> BadgeTabContent(navController = navController)
                 }
             }
         }
@@ -129,7 +167,13 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileTopBar(onBackClick: () -> Unit, onMenuClick: () -> Unit) {
+fun ProfileTopBar(
+    onBackClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    showMenu: Boolean,
+    onDismissMenu: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,14 +190,33 @@ fun ProfileTopBar(onBackClick: () -> Unit, onMenuClick: () -> Unit) {
                 .clickable { onBackClick() },
             tint = Color.Black
         )
-        Icon(
-            imageVector = Icons.Default.MoreHoriz,
-            contentDescription = stringResource(id = R.string.profile_menu),
-            modifier = Modifier
-                .size(32.dp)
-                .clickable { onMenuClick() },
-            tint = Color.Black
-        )
+
+        Box {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = stringResource(id = R.string.profile_menu),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onMenuClick() },
+                tint = Color.Black
+            )
+
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = onDismissMenu
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "로그아웃",
+                            color = Color.Red,
+                            fontFamily = SuitFontFamily
+                        )
+                    },
+                    onClick = onLogoutClick
+                )
+            }
+        }
     }
 }
 
@@ -164,7 +227,7 @@ fun ProfileHeader() {
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -201,46 +264,46 @@ fun ProfileHeader() {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "소울이",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = SuitFontFamily,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_add), // TODO: Change to verify badge
-                        contentDescription = stringResource(id = R.string.profile_verified),
-                        tint = Color(0xFF6C60FD),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = stringResource(id = R.string.profile_rating),
-                        tint = Color(0xFF6C60FD),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "4.22",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = SuitFontFamily,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = " (83)",
-                        fontSize = 14.sp,
-                        fontFamily = SuitFontFamily,
-                        color = Color.Gray
-                    )
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "소울이",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_check_circle),
+                    contentDescription = stringResource(id = R.string.profile_verified),
+                    tint = Color(0xFF6C60FD),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = stringResource(id = R.string.profile_rating),
+                    tint = Color(0xFF6C60FD),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "4.22",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Black
+                )
+                Text(
+                    text = " (83)",
+                    fontSize = 14.sp,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Gray
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Text(
             text = "인스타 @imseoul 워킹맘\n관광학부 전공으로 개인 투어 맛집입니다 허허\n\n영어, 프랑스어, 한국어 가능합니다^^",
@@ -250,7 +313,7 @@ fun ProfileHeader() {
             lineHeight = 20.sp
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = stringResource(id = R.string.profile_view_briefly),
@@ -261,104 +324,144 @@ fun ProfileHeader() {
             modifier = Modifier.clickable { /* TODO */ }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        if (!AppConfig.IS_PRODUCTION) {
-            OutlinedButton(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.profile_edit_button),
-                    fontSize = 16.sp,
-                    fontFamily = SuitFontFamily,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+        OutlinedButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .width(361.dp)
+                .height(36.dp)
+                .align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.profile_edit_button),
+                fontSize = 14.sp,
+                fontFamily = SuitFontFamily,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
         }
     }
 }
 
 @Composable
-fun InfoTabContent() {
-    val scrollState = rememberScrollState()
-    Column(
+fun BadgeTabContent(navController: NavController) {
+    // 12개 배지 정의 (이름, 아이콘 리소스, 배경 톤 컬러)
+    val badgeList = remember {
+        listOf(
+            BadgeData("관광", R.drawable.ic_tourism, Color(0xFFE2F9F3)),
+            BadgeData("K-팝", R.drawable.ic_kpop, Color(0xFFE8EAF6)),
+            BadgeData("K-뷰티", R.drawable.ic_kbeauty, Color(0xFFFFFDE7)),
+            BadgeData("쇼핑", R.drawable.ic_shopping, Color(0xFFE1F5FE)),
+            BadgeData("한식", R.drawable.ic_kfood, Color(0xFFFFF3E0)),
+            BadgeData("카페", R.drawable.ic_cafe, Color(0xFFE8F5E9)),
+            BadgeData("교통 가이드", R.drawable.ic_subway, Color(0xFFF3E5F5)),
+            BadgeData("클래스", R.drawable.ic_class, Color(0xFFE0F2F1)),
+            BadgeData("스타일", R.drawable.ic_shopping, Color(0xFFEDE7F6)), // 스타일 대용으로 ic_shopping 활용
+            BadgeData("커뮤니티", R.drawable.ic_community, Color(0xFFFFEBEE)),
+            BadgeData("전시/공연", R.drawable.ic_exhibition, Color(0xFFF1F8E9)),
+            BadgeData("안전/생활", R.drawable.ic_safety, Color(0xFFFFF9C4))
+        )
+    }
+
+    // 선택된 배지 ID/이름을 저장하는 State (토글 가능)
+    var selectedBadges by remember { mutableStateOf(setOf<String>()) }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(24.dp)
+            .background(Color.White),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = stringResource(id = R.string.profile_recent_activity),
-            fontSize = 14.sp,
-            fontFamily = SuitFontFamily,
-            color = Color.Gray
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = stringResource(id = R.string.profile_join_date),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = SuitFontFamily,
-            color = Color.Black
-        )
-        Text(
-            text = "2026.02.20.",
-            fontSize = 14.sp,
-            fontFamily = SuitFontFamily,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = stringResource(id = R.string.profile_verification_history),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = SuitFontFamily,
-            color = Color.Black
-        )
-        Text(
-            text = stringResource(id = R.string.profile_email_verified),
-            fontSize = 14.sp,
-            fontFamily = SuitFontFamily,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = stringResource(id = R.string.profile_previous_username),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = SuitFontFamily,
-            color = Color.Black
-        )
-        Text(
-            text = stringResource(id = R.string.profile_username_changed_count, "소울이", 2),
-            fontSize = 14.sp,
-            fontFamily = SuitFontFamily,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        // 12개 그리드 배지 아이템들
+        items(badgeList) { badge ->
+            val isSelected = selectedBadges.contains(badge.name)
+            BadgeGridItem(
+                badge = badge,
+                isSelected = isSelected,
+                onClick = {
+                    selectedBadges = if (isSelected) {
+                        selectedBadges - badge.name
+                    } else {
+                        selectedBadges + badge.name
+                    }
+                }
+            )
+        }
+    }
+}
 
-        Spacer(modifier = Modifier.weight(1f))
+data class BadgeData(
+    val name: String,
+    val iconRes: Int,
+    val bgColor: Color
+)
 
-        Text(
-            text = stringResource(id = R.string.profile_faq_contact),
-            fontSize = 12.sp,
-            fontFamily = SuitFontFamily,
-            color = Color.LightGray,
-            lineHeight = 18.sp
-        )
+@Composable
+fun BadgeGridItem(
+    badge: BadgeData,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 아이콘을 담는 둥근 Squircle 박스
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(badge.bgColor)
+                .border(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) Color(0xFF6C60FD) else Color(0x1F000000),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = badge.iconRes),
+                contentDescription = badge.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+            
+            // 선택되었을 경우 우측 상단에 작은 체크 서클 또는 효과 표시
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.TopEnd
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF6C60FD),
+                        modifier = Modifier.size(16.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "✓",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -545,17 +648,18 @@ fun MeetingTabContent(
                                 .align(Alignment.TopStart)
                                 .padding(8.dp)
                         ) {
-                            IconButton(
-                                onClick = { showMenu = true },
+                            Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(20.dp)
                                     .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    .clickable { showMenu = true },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
                                     contentDescription = "더보기",
                                     tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
                             }
 

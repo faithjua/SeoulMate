@@ -57,7 +57,7 @@
     <!-- ProfileScreen.kt -->
     <string name="profile_tab_meeting">Meetups</string>
     <string name="profile_tab_review">Reviews</string>
-    <string name="profile_tab_info">Info</string>
+    <string name="profile_tab_badge">Info</string>
     <string name="profile_back">Back</string>
     <string name="profile_menu">Menu</string>
     <string name="profile_edit">Edit</string>
@@ -159,6 +159,14 @@
     <string name="home_section_recent">Recent Meetups</string>
     <string name="home_section_today">Today\'s Meetups</string>
     <string name="home_section_low_congestion">Less Crowded Meetups</string>
+    <string name="home_filter_category">Category</string>
+    <string name="home_filter_congestion">Crowd Level</string>
+    <string name="home_congestion_all">All</string>
+    <string name="home_congestion_free">Not Crowded</string>
+    <string name="home_congestion_normal">Normal</string>
+    <string name="home_congestion_slightly_crowded">Slightly Crowded</string>
+    <string name="home_congestion_crowded">Crowded</string>
+    <string name="home_meeting_count">%d meetups</string>
 
     <!-- TopBar.kt -->
     <string name="topbar_logo">Seoul Mate logo</string>

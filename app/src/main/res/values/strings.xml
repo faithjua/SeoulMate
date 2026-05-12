@@ -62,7 +62,7 @@
 <!-- ProfileScreen.kt -->
 <string name="profile_tab_meeting">만남</string>
 <string name="profile_tab_review">리뷰</string>
-<string name="profile_tab_info">정보</string>
+<string name="profile_tab_badge">정보</string>
 <string name="profile_back">뒤로가기</string>
 <string name="profile_menu">메뉴</string>
 <string name="profile_edit">수정</string>
@@ -165,6 +165,14 @@
     <string name="home_section_recent">최근 올라온 만남</string>
     <string name="home_section_today">당일 만남</string>
     <string name="home_section_low_congestion">혼잡도 낮은 만남</string>
+    <string name="home_filter_category">카테고리</string>
+    <string name="home_filter_congestion">혼잡도</string>
+    <string name="home_congestion_all">전체</string>
+    <string name="home_congestion_free">여유</string>
+    <string name="home_congestion_normal">보통</string>
+    <string name="home_congestion_slightly_crowded">약간 붐빔</string>
+    <string name="home_congestion_crowded">붐빔</string>
+    <string name="home_meeting_count">만남 %d개</string>
 
     <!-- TopBar.kt -->
     <string name="topbar_logo">Seoul Mate 로고</string>

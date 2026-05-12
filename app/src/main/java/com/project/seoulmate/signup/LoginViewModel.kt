@@ -55,10 +55,13 @@ class LoginViewModel @Inject constructor(
                     if (apiResponse.success && apiResponse.data != null) {
                         val memberResponse = apiResponse.data // 진짜 AuthResponse 알맹이
 
-                        // 회원 ID 저장 (기존 회원인 경우만)
-                        if (!memberResponse.isNewMember && memberResponse.id != null) {
+                        // 회원 ID 저장 (기존 회원, 신규 회원 모두)
+                        // 신규 회원도 백엔드에서 임시 ID를 받을 수 있으므로 저장
+                        if (memberResponse.id != null) {
                             userPreferences.saveMemberId(memberResponse.id)
-                            Timber.tag("LoginViewModel").d("Member ID saved: ${memberResponse.id}")
+                            Timber.tag("LoginViewModel").d("Member ID saved: ${memberResponse.id}, isNewMember: ${memberResponse.isNewMember}")
+                        } else {
+                            Timber.tag("LoginViewModel").w("Member ID is null from server response")
                         }
 
                         Timber.tag("LoginViewModel").d("서버 통신 성공: $memberResponse")
