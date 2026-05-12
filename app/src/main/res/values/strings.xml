@@ -62,7 +62,7 @@
 <!-- ProfileScreen.kt -->
 <string name="profile_tab_meeting">만남</string>
 <string name="profile_tab_review">리뷰</string>
-<string name="profile_tab_info">정보</string>
+<string name="profile_tab_badge">정보</string>
 <string name="profile_back">뒤로가기</string>
 <string name="profile_menu">메뉴</string>
 <string name="profile_edit">수정</string>

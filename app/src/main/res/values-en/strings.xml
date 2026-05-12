@@ -57,7 +57,7 @@
     <!-- ProfileScreen.kt -->
     <string name="profile_tab_meeting">Meetups</string>
     <string name="profile_tab_review">Reviews</string>
-    <string name="profile_tab_info">Info</string>
+    <string name="profile_tab_badge">Info</string>
     <string name="profile_back">Back</string>
     <string name="profile_menu">Menu</string>
     <string name="profile_edit">Edit</string>

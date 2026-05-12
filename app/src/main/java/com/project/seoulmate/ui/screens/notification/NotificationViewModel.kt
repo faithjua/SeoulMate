@@ -143,8 +143,8 @@ class NotificationViewModel @Inject constructor(
                 result.onSuccess { response ->
                     Timber.d("NotificationVM - Application approved: ${response.id}, status=${response.status}")
 
-                    // 승인 후 만남 정보 조회하여 정원 체크
-                    checkAndCloseMeetingIfFull(idToken, response.meetupId)
+                    // 백엔드에서 정원 체크 및 자동 마감을 처리하므로 클라이언트 체크는 불필요
+                    // checkAndCloseMeetingIfFull(idToken, response.meetupId)
 
                     _actionResult.value = ActionResult.Success("메이트 신청을 승인했습니다")
                     // 목록 새로고침
