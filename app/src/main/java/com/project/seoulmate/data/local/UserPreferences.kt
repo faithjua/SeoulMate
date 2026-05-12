@@ -35,6 +35,25 @@ class UserPreferences @Inject constructor(
     }
 
     /**
+     * 프로필 이미지 URL 저장
+     */
+    fun saveProfileImageUrl(imageUrl: String?) {
+        if (imageUrl != null) {
+            prefs.edit().putString(KEY_PROFILE_IMAGE_URL, imageUrl).apply()
+        } else {
+            prefs.edit().remove(KEY_PROFILE_IMAGE_URL).apply()
+        }
+    }
+
+    /**
+     * 저장된 프로필 이미지 URL 가져오기
+     * @return 저장된 이미지 URL, 없으면 null
+     */
+    fun getProfileImageUrl(): String? {
+        return prefs.getString(KEY_PROFILE_IMAGE_URL, null)
+    }
+
+    /**
      * 로그아웃 시 모든 사용자 데이터 삭제
      */
     fun clear() {
@@ -44,5 +63,6 @@ class UserPreferences @Inject constructor(
     companion object {
         private const val PREFS_NAME = "seoulmate_user_prefs"
         private const val KEY_MEMBER_ID = "member_id"
+        private const val KEY_PROFILE_IMAGE_URL = "profile_image_url"
     }
 }

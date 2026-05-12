@@ -20,6 +20,7 @@ import com.project.seoulmate.signup.SignupScreen
 //import com.project.seoulmate.signup.CourseAddViewModel
 import com.project.seoulmate.ui.screens.profile.ProfileScreen
 import com.project.seoulmate.ui.screens.meeting.MeetingDetailScreen
+import com.project.seoulmate.ui.screens.camera.CameraScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +68,8 @@ sealed class Screen(val route: String) {
     object MeetingDetail : Screen("meeting_detail/{meetingId}") {
         fun createRoute(meetingId: String) = "meeting_detail/$meetingId"
     }
+    /** 카메라 화면 */
+    object Camera : Screen("camera")
 }
 
 /**
@@ -195,6 +198,19 @@ fun AppNavGraph(
         ) {
             MeetingDetailScreen(navController = navController)
 
+        }
+        // 카메라 화면
+        composable(route = Screen.Camera.route) {
+            CameraScreen(
+                navController = navController,
+                onImageCaptured = { uri ->
+                    // 이전 화면(AddMeetingScreen)의 savedStateHandle에 URI 저장
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "captured_image_uri",
+                        uri.toString()
+                    )
+                }
+            )
         }
     }
 }

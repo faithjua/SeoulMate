@@ -168,6 +168,25 @@
     <string name="home_congestion_crowded">Crowded</string>
     <string name="home_meeting_count">%d meetups</string>
 
+    <!-- Category i18n keys (code → label) -->
+    <string name="category_TODAY">Same-day Meetup</string>
+    <string name="category_TOURISM">Tourism</string>
+    <string name="category_KPOP">K-Pop</string>
+    <string name="category_KBEAUTY">K-Beauty</string>
+    <string name="category_SHOPPING">Shopping</string>
+    <string name="category_KOREAN_FOOD">Korean Food</string>
+    <string name="category_CAFE">Cafe</string>
+    <string name="category_TRANSPORT_GUIDE">Transport Guide</string>
+    <string name="category_CLASS">Class</string>
+    <string name="category_COMMUNITY">Community</string>
+    <string name="category_EXHIBITION">Exhibition &amp; Style</string>
+    <string name="category_SAFETY">Safety &amp; Living</string>
+
+    <!-- Congestion Levels -->
+    <string name="congestion_RELAXED">Relaxed</string>
+    <string name="congestion_MODERATE">Moderate</string>
+    <string name="congestion_BUSY">Busy</string>
+
     <!-- TopBar.kt -->
     <string name="topbar_logo">Seoul Mate logo</string>
 
@@ -213,6 +232,15 @@
     <string name="addmeeting_freq_weekly">Weekly</string>
     <string name="addmeeting_freq_biweekly">Biweekly</string>
     <string name="addmeeting_freq_monthly">Monthly</string>
+
+    <!-- CameraScreen.kt -->
+    <string name="camera_permission_required">Camera permission required</string>
+    <string name="camera_grant_permission">Grant Permission</string>
+    <string name="camera_back">Back</string>
+    <string name="camera_title">Take Photo</string>
+    <string name="camera_capture">Capture</string>
+    <string name="camera_capture_success">Photo captured</string>
+    <string name="camera_capture_failed">Failed to capture photo</string>
 
     <!-- AddCourseScreen.kt -->
     <string name="addcourse_title">Add Course</string>

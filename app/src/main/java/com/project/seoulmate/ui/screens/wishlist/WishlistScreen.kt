@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,10 +36,13 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.project.seoulmate.util.getCategoryLabel
+import com.project.seoulmate.util.getCongestionLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +54,9 @@ fun WishlistScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val filterCategories by viewModel.filterCategories.collectAsStateWithLifecycle()
     val congestionLevels by viewModel.congestionLevels.collectAsStateWithLifecycle()
+
+    // Context for i18n
+    val context = LocalContext.current
 
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
@@ -67,7 +74,13 @@ fun WishlistScreen(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        // TODO: Handle other tabs when implemented
+                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     }
                 }
             )
@@ -154,19 +167,26 @@ fun WishlistScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 카테고리 필터 (카탈로그 API 데이터 사용)
+                // 카테고리 필터 (카탈로그 API 데이터 사용 + 다국어 지원)
                 if (filterCategories.isNotEmpty()) {
+                    val allCategoryLabel = stringResource(id = R.string.wishlist_filter_all)
+                    val localizedCategories = listOf(allCategoryLabel) + filterCategories.map {
+                        context.getCategoryLabel(it.code, it.label)
+                    }
                     FilterChipItem(
                         text = "카테고리",
-                        options = listOf("전체") + filterCategories
+                        options = localizedCategories
                     )
                 }
 
-                // 혼잡도 필터 (카탈로그 API 데이터 사용)
+                // 혼잡도 필터 (카탈로그 API 데이터 사용 + 다국어 지원)
                 if (congestionLevels.isNotEmpty()) {
+                    val localizedCongestions = congestionLevels.map {
+                        context.getCongestionLabel(it.code, it.label)
+                    }
                     FilterChipItem(
                         text = stringResource(id = R.string.wishlist_filter_congestion),
-                        options = congestionLevels.map { it.label }
+                        options = localizedCongestions
                     )
                 }
                 

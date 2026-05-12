@@ -1,6 +1,7 @@
 package com.project.seoulmate.data.repository
 
 import com.project.seoulmate.data.model.BlockRequest
+import com.project.seoulmate.data.model.BlockResponse
 import com.project.seoulmate.data.model.ReportRequest
 import com.project.seoulmate.data.remote.UserActionApi
 import javax.inject.Inject
@@ -41,6 +42,24 @@ class UserActionRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "Exception during block")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getBlocks(token: String): Result<List<BlockResponse>> {
+        return try {
+            val response = userActionApi.getBlocks("Bearer $token")
+            if (response.isSuccessful && response.body()?.success == true) {
+                val blocks = response.body()?.data ?: emptyList()
+                Timber.d("Blocked users fetched: ${blocks.size} users")
+                Result.success(blocks)
+            } else {
+                val message = response.body()?.message ?: "차단 목록 조회 실패"
+                Timber.e("Get blocks failed: $message")
+                Result.failure(Exception(message))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Exception during get blocks")
             Result.failure(e)
         }
     }

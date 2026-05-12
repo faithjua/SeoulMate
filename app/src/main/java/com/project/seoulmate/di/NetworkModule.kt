@@ -164,4 +164,16 @@ object NetworkModule {
     fun provideCommentApi(retrofit: Retrofit): com.project.seoulmate.data.remote.CommentApi {
         return retrofit.create(com.project.seoulmate.data.remote.CommentApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(retrofit: Retrofit): com.project.seoulmate.data.remote.UserApi {
+        return retrofit.create(com.project.seoulmate.data.remote.UserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchApi(retrofit: Retrofit): com.project.seoulmate.data.remote.SearchApi {
+        return retrofit.create(com.project.seoulmate.data.remote.SearchApi::class.java)
+    }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.Category
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.CongestionLevelOption
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.repository.CatalogRepository
@@ -29,7 +30,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val repository: MeetingRepository,
     private val favoriteRepository: FavoriteRepository,
-    private val catalogRepository: CatalogRepository
+    private val catalogRepository: CatalogRepository,
+    private val userActionRepository: com.project.seoulmate.data.repository.UserActionRepository
 ) : ViewModel() {
 
     // StateFlow: 현재 상태를 저장하고, 상태가 바뀌면 수집자(Composable)에게 알림
@@ -51,21 +53,26 @@ class HomeViewModel @Inject constructor(
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
     // 카탈로그 데이터
-    private val _filterCategories = MutableStateFlow<List<String>>(emptyList())
-    val filterCategories: StateFlow<List<String>> = _filterCategories.asStateFlow()
+    private val _filterCategories = MutableStateFlow<List<CategoryItem>>(emptyList())
+    val filterCategories: StateFlow<List<CategoryItem>> = _filterCategories.asStateFlow()
 
     private val _congestionLevels = MutableStateFlow<List<CongestionLevelOption>>(emptyList())
     val congestionLevels: StateFlow<List<CongestionLevelOption>> = _congestionLevels.asStateFlow()
 
-    // 필터 상태
+    // 필터 상태 (code 값 저장)
     private val _selectedFilterCategory = MutableStateFlow<String?>(null)
     val selectedFilterCategory: StateFlow<String?> = _selectedFilterCategory.asStateFlow()
 
     private val _selectedCongestion = MutableStateFlow<String?>(null)
     val selectedCongestion: StateFlow<String?> = _selectedCongestion.asStateFlow()
 
+    // 차단된 사용자 ID 목록
+    private val _blockedUserIds = MutableStateFlow<Set<Long>>(emptySet())
+    private val blockedUserIds: StateFlow<Set<Long>> = _blockedUserIds.asStateFlow()
+
     // ViewModel이 생성될 때 자동으로 데이터 로드
     init {
+        loadBlockedUsers()
         loadData()
         loadCatalogData()
     }
@@ -78,6 +85,29 @@ class HomeViewModel @Inject constructor(
         _selectedCategory.value = defaultCategory
         
         loadHomeData(defaultCategory)
+    }
+
+    /**
+     * 차단된 사용자 목록 로드
+     */
+    private fun loadBlockedUsers() {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token != null) {
+                    userActionRepository.getBlocks(token).onSuccess { blocks ->
+                        _blockedUserIds.value = blocks.map { it.blockedUserId }.toSet()
+                        Timber.d("Blocked users loaded: ${blocks.size} users")
+                    }.onFailure { error ->
+                        Timber.e(error, "Failed to load blocked users")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error loading blocked users")
+            }
+        }
     }
 
     private fun loadCatalogData() {
@@ -110,6 +140,9 @@ class HomeViewModel @Inject constructor(
                 filterCategory = _selectedFilterCategory.value,
                 congestion = _selectedCongestion.value
             ).onSuccess { meetings ->
+                // 차단된 사용자의 만남 필터링
+                // NOTE: 현재 API 응답에 hostId가 없으므로 필터링 불가
+                // 서버에서 차단된 사용자의 만남을 자동으로 제외하고 반환해야 함
                 _recentMeetings.value = meetings
 
                 // 오늘 날짜의 만남 필터링 (API 24+ 호환)
@@ -148,9 +181,11 @@ class HomeViewModel @Inject constructor(
 
     /**
      * 필터 카테고리 선택
+     * @param categoryCode 카테고리 코드 (영어, 예: "TOURISM", "KPOP")
+     *                     단, "TODAY"는 예외로 today=true 파라미터로 변환됨
      */
-    fun onFilterCategorySelected(categoryName: String?) {
-        _selectedFilterCategory.value = categoryName
+    fun onFilterCategorySelected(categoryCode: String?) {
+        _selectedFilterCategory.value = categoryCode
         loadHomeData(_selectedCategory.value)
     }
 
@@ -208,5 +243,30 @@ class HomeViewModel @Inject constructor(
                 Timber.e(e, "Error toggling favorite")
             }
         }
+    }
+
+    /**
+     * 사용자 차단 후 호출
+     * 차단된 사용자 목록을 업데이트하고 홈 데이터를 다시 로드합니다.
+     *
+     * @param blockedUserId 차단된 사용자 ID
+     */
+    fun onUserBlocked(blockedUserId: Long) {
+        viewModelScope.launch {
+            // 차단된 사용자 목록에 추가
+            _blockedUserIds.update { it + blockedUserId }
+            Timber.d("User blocked: $blockedUserId, refreshing home data")
+
+            // 홈 데이터 다시 로드 (서버에서 차단된 사용자의 만남을 제외하고 반환)
+            loadHomeData(_selectedCategory.value)
+        }
+    }
+
+    /**
+     * 차단 목록 새로고침
+     * 서버로부터 최신 차단 목록을 가져옵니다.
+     */
+    fun refreshBlockedUsers() {
+        loadBlockedUsers()
     }
 }

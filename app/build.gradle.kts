@@ -171,6 +171,13 @@ dependencies {
     // 이미지 로딩 Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    // CameraX
+    val camerax_version = "1.3.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+
     // ML Kit 온디바이스 번역 (한국어 ↔ 영어)
     implementation("com.google.mlkit:translate:17.0.3")
 
