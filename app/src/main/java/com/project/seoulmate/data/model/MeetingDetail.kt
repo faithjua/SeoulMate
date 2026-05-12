@@ -24,8 +24,8 @@ data class CoursePoint(
     val name: String,
     val isStart: Boolean = false,
     val isEnd: Boolean = false,
-    val lat: Double,
-    val lng: Double
+    val lat: Double? = null,
+    val lng: Double? = null
 )
 
 data class MateInfo(

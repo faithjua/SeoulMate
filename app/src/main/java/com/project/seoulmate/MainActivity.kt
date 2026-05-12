@@ -3,6 +3,7 @@ package com.project.seoulmate
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,9 +15,13 @@ import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * 앱의 진입점.
+ *
+ * AppCompatActivity 를 상속해야 AppCompatDelegate.setApplicationLocales 가
+ * API 32 이하에서도 자동으로 액티비티를 재생성한다.
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+//class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

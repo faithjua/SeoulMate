@@ -1,10 +1,12 @@
 package com.project.seoulmate.ui.screens.addcourse
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.BuildConfig
+import com.project.seoulmate.R
 import com.project.seoulmate.data.model.AiCourseRequest
 import com.project.seoulmate.data.model.CourseCreateRequest
 import com.project.seoulmate.data.model.NaverSearchItem
@@ -13,6 +15,7 @@ import com.project.seoulmate.data.repository.CourseRepository
 import com.project.seoulmate.data.model.CourseLocation
 import com.project.seoulmate.data.model.CoursePlaceItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +30,7 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class AddCourseViewModel @Inject constructor(
-    // Hilt의 NetworkModule이 알아서 이 규격에 맞는 API 객체를 넣어줌
+    @ApplicationContext private val context: Context,
     private val courseRepository: CourseRepository,
     private val naverSearchApi: NaverSearchApi
 ) : ViewModel() {
@@ -119,18 +122,18 @@ class AddCourseViewModel @Inject constructor(
                         Timber.tag("AiCourse").d("AI 생성 성공: ${aiResult.description}")
                     } else {
                         // 통신은 성공했지만 서버 내부 로직이 실패한 경우 (예: 프롬프트 불량, 횟수 초과 등)
-                        val errorMsg = apiResponse.message ?: "생성 실패"
+                        val errorMsg = apiResponse.message ?: context.getString(R.string.toast_ai_generate_failed)
                         Timber.tag("AiCourse").e("AI 생성 실패: $errorMsg")
                         _errorMessage.value = errorMsg
                     }
                 } else {
                     // 서버 통신 자체가 실패한 경우 (403, 404, 500 에러 등)
-                    val errorMsg = response.body()?.message ?: "서버 통신 에러"
+                    val errorMsg = response.body()?.message ?: context.getString(R.string.toast_server_communication_error)
                     Timber.tag("AiCourse").e("서버 통신 에러: ${response.code()} - $errorMsg")
                     _errorMessage.value = errorMsg
                 }
             } catch (e: Exception) {
-                val errorMsg = e.message ?: "네트워크 에러"
+                val errorMsg = e.message ?: context.getString(R.string.toast_network_error)
                 Timber.tag("AiCourse").e("네트워크 에러: $errorMsg")
                 _errorMessage.value = errorMsg
             } finally {

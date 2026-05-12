@@ -63,7 +63,7 @@ fun WishlistScreen(
                         0 -> navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
-                        2 -> navController.navigate(Screen.AddMeeting.route)
+                        2 -> navController.navigate(Screen.AddMeeting.createRoute())
                         // TODO: Handle other tabs when implemented
                     }
                 }
