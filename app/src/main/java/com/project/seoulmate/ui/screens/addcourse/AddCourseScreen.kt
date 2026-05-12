@@ -224,7 +224,17 @@ fun AddCourseScreen(
                         NaverMap(
                             modifier = Modifier.fillMaxSize(),
                             cameraPositionState = cameraPositionState
-                        )
+                        ) {
+                            //  courseList에 있는 장소 중 좌표가 유효한 항목만 마커로 표시
+                            courseList.forEach { location ->
+                                if (location.lat != null && location.lng != null) {
+                                    Marker(
+                                        state = MarkerState(position = LatLng(location.lat, location.lng)),
+                                        captionText = location.name
+                                    )
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = searchTextFieldValue,
@@ -360,14 +370,23 @@ fun AddCourseScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween // 양끝 정렬
                 ) {
-                    // 왼쪽: 순번과 장소 이름 (글자가 길어질 것을 대비해 weight(1f) 부여)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(location.name, fontSize = 14.sp)
+                    // 왼쪽: 순번과 장소 이름 + (좌표 없으면) 위치 미지원 안내
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(location.name, fontSize = 14.sp)
+                        }
+
+                        // 좌표가 없으면 작게 안내 문구
+                        if (location.lat == null || location.lng == null) {
+                            Text(
+                                text = stringResource(id = R.string.meeting_course_no_location),
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 20.dp, top = 2.dp)
+                            )
+                        }
                     }
 
                     // 오른쪽: 위/아래 이동 및 삭제 버튼 묶음
@@ -468,12 +487,12 @@ fun AddCourseScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(70.dp)
                         .background(color = Color(0xFFF4F5F6), shape = RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_logo),
+                        painter = painterResource(id = R.drawable.ic_seoul_mate_logo),
                         contentDescription = stringResource(id = R.string.addcourse_logo),
                         contentScale = ContentScale.None
                     )
@@ -482,9 +501,17 @@ fun AddCourseScreen(
 
                 Text(
                     text = stringResource(id = R.string.addcourse_prompt_title),
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = textColor
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(id = R.string.addcourse_ai_retry_hint),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 

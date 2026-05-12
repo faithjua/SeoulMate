@@ -243,6 +243,7 @@
     <string name="addcourse_prompt_placeholder">예: 외국인 친구랑 갈 종로 3시간 맛집 투어</string>
     <string name="addcourse_ai_loading">AI가 코스를 짜는 중...</string>
     <string name="addcourse_button_complete">코스 완성하기</string>
+    <string name="addcourse_ai_retry_hint">(시간이 오래걸리면 잠시후 다시 시도해주세요)</string>
 
 
     <!-- Toast / Error messages (공통) -->
