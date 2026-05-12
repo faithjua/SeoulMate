@@ -57,9 +57,10 @@ fun BottomNavigationBar(
         add(BottomNavItem.Home)     // index 0
         add(BottomNavItem.Favorite) // index 1
         add(BottomNavItem.Add)      // index 2
+        add(BottomNavItem.Profile)  // index 4
         if (!AppConfig.IS_PRODUCTION) {
-            add(BottomNavItem.Message)  // index 3 (개발 모드만)
-            add(BottomNavItem.Profile)  // index 4 (개발 모드만)
+            //add(BottomNavItem.Message)  // index 3 (개발 모드만)
+
         }
     }
 
