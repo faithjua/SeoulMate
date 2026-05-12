@@ -17,11 +17,20 @@ interface MeetingApi {
     /**
      * 홈 화면 데이터 조회 (최근 만남 + 카테고리 필터)
      * GET /api/home
+     *
+     * @param category 기존 탭 파라미터 (전체메뉴, 당일만남, 카테고리12종)
+     * @param filterCategory 드롭다운 카테고리 필터 (12종 중 단일 선택)
+     * @param congestion 드롭다운 혼잡도 필터 (RELAXED, NORMAL, SLIGHTLY_BUSY, BUSY)
+     *
+     * 세 파라미터는 AND 조건으로 결합됩니다.
+     * 파라미터가 하나라도 있으면 meetups만 반환되고 나머지 섹션은 null입니다.
      */
     @GET("/api/home")
     suspend fun getHomeData(
         @Header("Authorization") token: String? = null,
-        @Query("category") category: String? = null
+        @Query("category") category: String? = null,
+        @Query("filterCategory") filterCategory: String? = null,
+        @Query("congestion") congestion: String? = null
     ): Response<ApiResponse<HomeResponseData>>
 
     /**

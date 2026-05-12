@@ -48,6 +48,9 @@ fun WishlistScreen(
 ) {
     val meetings by viewModel.uiState.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val filterCategories by viewModel.filterCategories.collectAsStateWithLifecycle()
+    val congestionLevels by viewModel.congestionLevels.collectAsStateWithLifecycle()
+
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
 
@@ -151,9 +154,21 @@ fun WishlistScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChipItem(text = "카테고리", options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통 가이드", "숙소/지역", "클래스", "커뮤니티", "전시/공연", "안전/생활"))
+                // 카테고리 필터 (카탈로그 API 데이터 사용)
+                if (filterCategories.isNotEmpty()) {
+                    FilterChipItem(
+                        text = "카테고리",
+                        options = listOf("전체") + filterCategories
+                    )
+                }
 
-                FilterChipItem(text = stringResource(id = R.string.wishlist_filter_congestion), options = listOf(stringResource(id = R.string.wishlist_filter_all), stringResource(id = R.string.wishlist_congestion_free), stringResource(id = R.string.wishlist_congestion_normal), stringResource(id = R.string.wishlist_congestion_crowded)))
+                // 혼잡도 필터 (카탈로그 API 데이터 사용)
+                if (congestionLevels.isNotEmpty()) {
+                    FilterChipItem(
+                        text = stringResource(id = R.string.wishlist_filter_congestion),
+                        options = congestionLevels.map { it.label }
+                    )
+                }
                 
                 Spacer(modifier = Modifier.weight(1f))
                 

@@ -134,6 +134,12 @@ object NetworkModule {
         return retrofit.create(com.project.seoulmate.data.remote.NotificationApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideCatalogApi(retrofit: Retrofit): com.project.seoulmate.data.remote.CatalogApi {
+        return retrofit.create(com.project.seoulmate.data.remote.CatalogApi::class.java)
+    }
+
     // --- 네이버 API용 Retrofit (별도 Base URL) ---
 
     @Provides

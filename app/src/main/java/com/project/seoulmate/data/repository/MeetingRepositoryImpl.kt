@@ -36,7 +36,11 @@ class MeetingRepositoryImpl @Inject constructor(
         Category(id = "safety", name = "안전/생활", iconRes = R.drawable.ic_safety)
     )
 
-    override suspend fun getHomeData(category: String?): Result<List<Meeting>> {
+    override suspend fun getHomeData(
+        category: String?,
+        filterCategory: String?,
+        congestion: String?
+    ): Result<List<Meeting>> {
         return try {
             val user = FirebaseAuth.getInstance().currentUser
             val token = user?.let {
@@ -49,11 +53,13 @@ class MeetingRepositoryImpl @Inject constructor(
             }
 
             // "전체메뉴"인 경우 카테고리 필터 제외
-            val filterCategory = if (category == "전체메뉴") null else category
+            val categoryParam = if (category == "전체메뉴") null else category
 
             val response = meetingApi.getHomeData(
                 token = token?.let { "Bearer $it" },
-                category = filterCategory
+                category = categoryParam,
+                filterCategory = filterCategory,
+                congestion = congestion
             )
 
             if (response.isSuccessful && response.body()?.success == true) {

@@ -257,7 +257,7 @@ fun SearchScreen(
                                 ) {
                                     FilterChipItem(
                                         text = "카테고리",
-                                        options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통 가이드", "숙소/지역", "클래스", "커뮤니티", "전시/공연", "안전/생활"),
+                                        options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통가이드", "숙소/지역", "클래스", "커뮤니티", "전시·스타일", "안전·생활"),
                                         selectedOption = if (selectedCategory == "전체") "카테고리" else selectedCategory,
                                         onOptionSelected = { selectedCategory = it }
                                     )
