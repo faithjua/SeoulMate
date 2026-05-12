@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,10 +38,9 @@ import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.project.seoulmate.R
 import coil.compose.AsyncImage
+import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
-
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
