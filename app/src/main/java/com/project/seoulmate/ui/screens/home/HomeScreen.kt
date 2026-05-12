@@ -33,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -56,8 +58,6 @@ fun HomeScreen(
     navController: NavHostController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    // StateFlow를 Compose State로 수집
-    // collectAsStateWithLifecycle: 화면이 보이지 않을 때(백그라운드) 수집 중단 → 배터리 절약
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val recentMeetings by viewModel.recentMeetings.collectAsStateWithLifecycle()
     val todayMeetings by viewModel.todayMeetings.collectAsStateWithLifecycle()
@@ -70,8 +70,16 @@ fun HomeScreen(
     val selectedFilterCategory by viewModel.selectedFilterCategory.collectAsStateWithLifecycle()
     val selectedCongestion by viewModel.selectedCongestion.collectAsStateWithLifecycle()
 
-    // 하단 네비게이션 선택 상태 (네비게이션 바 전용 UI 상태, 간단하므로 여기서 관리)
+    // 하단 네비게이션 선택 상태
     var selectedBottomItem by remember { mutableStateOf(0) }
+
+    // 다국어 지원을 위한 stringResource
+    val categoryFilterLabel = stringResource(id = R.string.home_filter_category)
+    val congestionFilterLabel = stringResource(id = R.string.home_filter_congestion)
+    val filterSettingDesc = stringResource(id = R.string.wishlist_filter_setting)
+    val recentTitle = stringResource(id = R.string.home_section_recent)
+    val todayTitle = stringResource(id = R.string.home_section_today)
+    val lowCongestionTitle = stringResource(id = R.string.home_section_low_congestion)
 
     Scaffold(
         bottomBar = {
@@ -111,7 +119,15 @@ fun HomeScreen(
             // 1. 상단 바 (로고 + 번역 버튼 + 알림 버튼)
             item(span = { GridItemSpan(2) }) {
                 TopBar(
-                    onTranslateClick = { /* TODO: 번역 기능 */ },
+                    onTranslateClick = {
+                        // 앱 로케일 토글 (ko ↔ en). Activity가 자동 재생성됨.
+                        val current = AppCompatDelegate.getApplicationLocales()
+                        val isEnglish = current.toLanguageTags().startsWith("en")
+                        val newTag = if (isEnglish) "ko" else "en"
+                        AppCompatDelegate.setApplicationLocales(
+                            LocaleListCompat.forLanguageTags(newTag)
+                        )
+                    },
                     onNotificationClick = {
                         navController.navigate(Screen.Notifications.route)
                     }
@@ -152,7 +168,7 @@ fun HomeScreen(
                 // "전체메뉴" 인 경우 기존 가로 스크롤 섹션 노출
                 item(span = { GridItemSpan(2) }) {
                     RecommendationSection(
-                        title = "최근 올라온 만남",
+                        title = recentTitle,
                         modifier = Modifier.fillMaxWidth(),
                         meetings = recentMeetings,
                         onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ },
@@ -167,7 +183,7 @@ fun HomeScreen(
 
                 item(span = { GridItemSpan(2) }) {
                     RecommendationSection(
-                        title = "당일 만남",
+                        title = todayTitle,
                         modifier = Modifier.fillMaxWidth(),
                         meetings = todayMeetings,
                         onSeeAllClick = { /* TODO */ },
@@ -182,7 +198,7 @@ fun HomeScreen(
 
                 item(span = { GridItemSpan(2) }) {
                     RecommendationSection(
-                        title = "혼잡도 낮은 만남",
+                        title = lowCongestionTitle,
                         modifier = Modifier.fillMaxWidth(),
                         meetings = lowCongestionMeetings,
                         onSeeAllClick = { /* TODO */ },
@@ -195,7 +211,7 @@ fun HomeScreen(
                     )
                 }
             } else {
-                // 개별 카테고리 선택 시 2열 세로 스크롤리뷰 및 상단 드롭다운 필터바 노출
+                // 개별 카테고리 선택 시 2열 세로 그리드 + 상단 드롭다운 필터바
                 item(span = { GridItemSpan(2) }) {
                     Row(
                         modifier = Modifier
@@ -204,12 +220,12 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 카테고리 드롭다운 필터 (카탈로그 API 데이터 사용)
+                        // 카테고리 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
                         if (filterCategories.isNotEmpty()) {
                             FilterChipItem(
-                                text = "카테고리",
+                                text = categoryFilterLabel,
                                 options = filterCategories,
-                                selectedOption = selectedFilterCategory ?: "카테고리",
+                                selectedOption = selectedFilterCategory ?: categoryFilterLabel,
                                 onOptionSelected = { selectedName ->
                                     // "당일만남" 선택 시 null 전달 (백엔드에서 today=true로 처리)
                                     val categoryParam = if (selectedName == "당일만남") null else selectedName
@@ -218,12 +234,12 @@ fun HomeScreen(
                             )
                         }
 
-                        // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 사용)
+                        // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
                         if (congestionLevels.isNotEmpty()) {
                             FilterChipItem(
-                                text = "혼잡도",
+                                text = congestionFilterLabel,
                                 options = congestionLevels.map { it.label },
-                                selectedOption = congestionLevels.find { it.code == selectedCongestion }?.label ?: "혼잡도",
+                                selectedOption = congestionLevels.find { it.code == selectedCongestion }?.label ?: congestionFilterLabel,
                                 onOptionSelected = { selectedLabel ->
                                     val congestionOption = congestionLevels.find { it.label == selectedLabel }
                                     // "전체" 선택 시 null 전달
@@ -250,7 +266,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Tune,
-                                    contentDescription = "필터 설정",
+                                    contentDescription = filterSettingDesc,
                                     tint = Color.Black,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -262,7 +278,7 @@ fun HomeScreen(
                 // 총 건수 텍스트 노출
                 item(span = { GridItemSpan(2) }) {
                     Text(
-                        text = "만남 ${recentMeetings.size}개",
+                        text = stringResource(id = R.string.home_meeting_count, recentMeetings.size),
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -461,7 +477,7 @@ fun MeetingGridCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "예상 " + (meeting.price ?: ""),
+                        text = stringResource(id = R.string.wishlist_expected_price, meeting.price ?: ""),
                         color = Color(0xFF888888),
                         fontSize = 11.sp
                     )
@@ -485,4 +501,3 @@ fun MeetingGridCard(
         }
     }
 }
-

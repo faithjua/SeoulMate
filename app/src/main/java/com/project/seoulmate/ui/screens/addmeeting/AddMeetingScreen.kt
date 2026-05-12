@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,6 +29,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import com.project.seoulmate.R
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 
@@ -110,11 +112,13 @@ fun AddMeetingScreen(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
+            val uploadSuccessMsg = context.getString(R.string.addmeeting_image_upload_success)
+            val uploadFailMsg = context.getString(R.string.addmeeting_upload_failed)
             viewModel.uploadImages(uris) { success, errorMessage ->
                 if (success) {
-                    Toast.makeText(context, "이미지 업로드 완료", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, uploadSuccessMsg, Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, errorMessage ?: "업로드 실패", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, errorMessage ?: uploadFailMsg, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -150,7 +154,7 @@ fun AddMeetingScreen(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
                 ) {
-                    Text("취소", fontSize = 16.sp, color = Color.Gray)
+                    Text(stringResource(id = R.string.dialog_cancel), fontSize = 16.sp, color = Color.Gray)
                 }
                 Button(
                     onClick = {
@@ -175,7 +179,10 @@ fun AddMeetingScreen(
                         )
                     } else {
                         Text(
-                            text = if (isEditMode) "수정하기" else "등록하기",
+                            text = stringResource(
+                                id = if (isEditMode) R.string.addmeeting_update
+                                else R.string.addmeeting_submit
+                            ),
                             fontSize = 16.sp,
                             color = Color.White
                         )
@@ -202,14 +209,20 @@ fun AddMeetingScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (isEditMode) "만남 수정" else "만남정보",
+                            text = stringResource(
+                                id = if (isEditMode) R.string.addmeeting_title_edit
+                                else R.string.addmeeting_title_new
+                            ),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     actions = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "닫기")
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(id = R.string.addmeeting_close)
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -230,135 +243,137 @@ fun AddMeetingScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 // 만남명
-            FormSection(title = "만남명", required = true) {
-                OutlinedTextField(
-                    value = formState.name,
-                    onValueChange = { viewModel.updateMeetingName(it) },
-                    placeholder = { Text("(최대 10자)") },
-                    modifier = Modifier.width(368.dp).height(59.dp),
-                    singleLine = true,
-                    colors = customTextFieldColors,
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-
-            // 카테고리/태그 섹션
-            FormSection(title = "카테고리/태그", required = true) {
-                CategoryTagSection(
-                    selectedCategories = formState.selectedCategories,
-                    onCategoryToggle = { viewModel.toggleCategory(it) }
-                )
-            }
-
-            //  [수정] 2. 코스 섹션: 버튼 누를 때 날짜와 카테고리를 바구니에 담아 출발!
-            FormSection(title = "코스", required = true) {
-                CourseSection(
-                    courses = formState.courses,
-                    onAddClick = {
-                        // timeSlots에서 첫 번째 값을 날짜로, 선택된 카테고리들을 쉼표로 연결
-                        val dateToPass = formState.timeSlots.firstOrNull() ?: "날짜 미정"
-                        val categoriesToPass = formState.selectedCategories.joinToString(", ")
-                        //  [추가된 부분] 인원과 예산 데이터 다듬기 (비어있을 경우 예외 처리)
-                        val minMem = formState.minMembers.ifBlank { "제한 없음" }
-                        val maxMem = formState.maxMembers.ifBlank { "제한 없음" }
-                        val cost = formState.expectedCost.ifBlank { "제한 없음" }
-
-                        //  [추가된 부분] 바구니에 통째로 담기
-                        navController.currentBackStackEntry?.savedStateHandle?.apply {
-                            set("ai_date", dateToPass)
-                            set("ai_categories", categoriesToPass)
-                            set("ai_members", "${minMem}명 ~ ${maxMem}명")
-                            set("ai_cost", cost)
-                        }
-
-                        navController.navigate("add_course")
-                    },
-                    onRemoveCourse = { viewModel.removeCourse(it) }
-                )
-            }
-
-            // 요일/시간 섹션
-            FormSection(title = "요일/시간", required = true) {
-                TimeSlotSection(
-                    timeSlots = formState.timeSlots,
-                    onAddClick = { showDatePicker = true },
-                    onRemoveClick = { index -> viewModel.removeTimeSlot(index) }
-                )
-            }
-
-            // 만남 소개
-            FormSection(title = "만남 소개", required = false) {
-                OutlinedTextField(
-                    value = formState.description,
-                    onValueChange = { viewModel.updateDescription(it) },
-                    placeholder = { Text("무엇을 할 것인가요?") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-                    colors = customTextFieldColors,
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-
-            // 예상 지출
-            FormSection(title = "예상 지출", required = true) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                FormSection(title = stringResource(id = R.string.addmeeting_label_name), required = true) {
                     OutlinedTextField(
-                        value = formState.expectedCost,
-                        onValueChange = { viewModel.updateExpectedCost(it) },
-                        placeholder = { Text("예상 금액") },
-                        modifier = Modifier.weight(1f).height(59.dp),
-                        trailingIcon = { Text("₩", color = Color(0xFFDBDBDB)) },
+                        value = formState.name,
+                        onValueChange = { viewModel.updateMeetingName(it) },
+                        placeholder = { Text(stringResource(id = R.string.addmeeting_name_placeholder)) },
+                        modifier = Modifier.width(368.dp).height(59.dp),
                         singleLine = true,
                         colors = customTextFieldColors,
                         shape = RoundedCornerShape(8.dp)
                     )
-                    /*
-                    Button(
-                        onClick = { viewModel.clearExpectedCost() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6C60FD)
-                        ),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(59.dp)
-                    ) {
-                        Text("없음", color = Color.White)
-                    }
-                    */
                 }
-            }
 
-            // 모집 인원
-            FormSection(title = "모집 인원", required = true) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = formState.minMembers,
-                            onValueChange = { viewModel.updateMinMembers(it) },
-                            placeholder = { Text("최소 인원") },
-                            modifier = Modifier.weight(1f).height(59.dp),
-                            singleLine = true,
-                            colors = customTextFieldColors,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = formState.maxMembers,
-                            onValueChange = { viewModel.updateMaxMembers(it) },
-                            placeholder = { Text("최대 인원") },
-                            modifier = Modifier.weight(1f).height(59.dp),
-                            singleLine = true,
-                            colors = customTextFieldColors,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                    Text(
-                        text = "최대 인원 모집 시 해당 포스팅이 자동으로 숨겨집니다.",
-                        fontSize = 12.sp,
-                        color = Color.Gray
+                // 카테고리/태그 섹션
+                FormSection(title = stringResource(id = R.string.addmeeting_label_category), required = true) {
+                    CategoryTagSection(
+                        selectedCategories = formState.selectedCategories,
+                        onCategoryToggle = { viewModel.toggleCategory(it) }
                     )
                 }
-            }
+
+                //  [수정] 2. 코스 섹션: 버튼 누를 때 날짜와 카테고리를 바구니에 담아 출발!
+                val dateUndecidedFallback = stringResource(id = R.string.addmeeting_date_undecided)
+                val noLimitFallback = stringResource(id = R.string.addmeeting_no_limit)
+                FormSection(title = stringResource(id = R.string.addmeeting_label_course), required = true) {
+                    CourseSection(
+                        courses = formState.courses,
+                        onAddClick = {
+                            // timeSlots에서 첫 번째 값을 날짜로, 선택된 카테고리들을 쉼표로 연결
+                            val dateToPass = formState.timeSlots.firstOrNull() ?: dateUndecidedFallback
+                            val categoriesToPass = formState.selectedCategories.joinToString(", ")
+                            //  [추가된 부분] 인원과 예산 데이터 다듬기 (비어있을 경우 예외 처리)
+                            val minMem = formState.minMembers.ifBlank { noLimitFallback }
+                            val maxMem = formState.maxMembers.ifBlank { noLimitFallback }
+                            val cost = formState.expectedCost.ifBlank { noLimitFallback }
+
+                            //  [추가된 부분] 바구니에 통째로 담기
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("ai_date", dateToPass)
+                                set("ai_categories", categoriesToPass)
+                                set("ai_members", "${minMem}명 ~ ${maxMem}명")
+                                set("ai_cost", cost)
+                            }
+
+                            navController.navigate("add_course")
+                        },
+                        onRemoveCourse = { viewModel.removeCourse(it) }
+                    )
+                }
+
+                // 요일/시간 섹션
+                FormSection(title = stringResource(id = R.string.addmeeting_label_time), required = true) {
+                    TimeSlotSection(
+                        timeSlots = formState.timeSlots,
+                        onAddClick = { showDatePicker = true },
+                        onRemoveClick = { index -> viewModel.removeTimeSlot(index) }
+                    )
+                }
+
+                // 만남 소개
+                FormSection(title = stringResource(id = R.string.addmeeting_label_description), required = false) {
+                    OutlinedTextField(
+                        value = formState.description,
+                        onValueChange = { viewModel.updateDescription(it) },
+                        placeholder = { Text(stringResource(id = R.string.addmeeting_description_placeholder)) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                        colors = customTextFieldColors,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+
+                // 예상 지출
+                FormSection(title = stringResource(id = R.string.addmeeting_label_cost), required = true) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = formState.expectedCost,
+                            onValueChange = { viewModel.updateExpectedCost(it) },
+                            placeholder = { Text(stringResource(id = R.string.addmeeting_cost_placeholder)) },
+                            modifier = Modifier.weight(1f).height(59.dp),
+                            trailingIcon = { Text("₩", color = Color(0xFFDBDBDB)) },
+                            singleLine = true,
+                            colors = customTextFieldColors,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        /*
+                        Button(
+                            onClick = { viewModel.clearExpectedCost() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF6C60FD)
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(59.dp)
+                        ) {
+                            Text("없음", color = Color.White)
+                        }
+                        */
+                    }
+                }
+
+                // 모집 인원
+                FormSection(title = stringResource(id = R.string.addmeeting_label_members), required = true) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = formState.minMembers,
+                                onValueChange = { viewModel.updateMinMembers(it) },
+                                placeholder = { Text(stringResource(id = R.string.addmeeting_min_members_placeholder)) },
+                                modifier = Modifier.weight(1f).height(59.dp),
+                                singleLine = true,
+                                colors = customTextFieldColors,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            OutlinedTextField(
+                                value = formState.maxMembers,
+                                onValueChange = { viewModel.updateMaxMembers(it) },
+                                placeholder = { Text(stringResource(id = R.string.addmeeting_max_members_placeholder)) },
+                                modifier = Modifier.weight(1f).height(59.dp),
+                                singleLine = true,
+                                colors = customTextFieldColors,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                        Text(
+                            text = stringResource(id = R.string.addmeeting_members_hint),
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
         }
     }
@@ -374,12 +389,12 @@ fun AddMeetingScreen(
                         showTimePicker = true
                     }
                 }) {
-                    Text("날짜 선정 완료")
+                    Text(stringResource(id = R.string.addmeeting_date_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("취소")
+                    Text(stringResource(id = R.string.dialog_cancel))
                 }
             }
         ) {
@@ -429,12 +444,12 @@ fun AddMeetingScreen(
                     }
                     showTimePicker = false
                 }) {
-                    Text("확인")
+                    Text(stringResource(id = R.string.dialog_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("취소")
+                    Text(stringResource(id = R.string.dialog_cancel))
                 }
             },
             text = {

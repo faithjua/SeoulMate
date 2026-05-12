@@ -158,4 +158,10 @@ object NetworkModule {
     fun provideNaverSearchApi(@NaverRetrofit retrofit: Retrofit): NaverSearchApi {
         return retrofit.create(NaverSearchApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideCommentApi(retrofit: Retrofit): com.project.seoulmate.data.remote.CommentApi {
+        return retrofit.create(com.project.seoulmate.data.remote.CommentApi::class.java)
+    }
 }

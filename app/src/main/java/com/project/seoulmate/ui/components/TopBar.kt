@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +39,7 @@ fun TopBar(
     ) {
         Image(
             painter = painterResource(id = R.drawable.logo_seoul_mate),
-            contentDescription = "Seoul Mate 로고",
+            contentDescription = stringResource(id = R.string.topbar_logo),
             modifier = Modifier
                 .width(106.dp)
                 .height(20.dp)
@@ -48,20 +49,21 @@ fun TopBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!AppConfig.IS_PRODUCTION) {
-                IconButton(onClick = onTranslateClick) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_translate),
-                        contentDescription = "번역",
-                        contentScale = ContentScale.None
-                    )
-                }
+            // 번역 아이콘은 항상 노출 (앱 로케일 토글)
+            IconButton(onClick = onTranslateClick) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_translate),
+                    contentDescription = stringResource(id = R.string.wishlist_translate),
+                    contentScale = ContentScale.None
+                )
+            }
 
+            if (!AppConfig.IS_PRODUCTION){
                 Box(contentAlignment = Alignment.TopEnd) {
                     IconButton(onClick = onNotificationClick) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "알림",
+                            contentDescription = stringResource(id = R.string.wishlist_notification),
                             modifier = Modifier.size(28.dp),
                             tint = Color.Black
                         )
