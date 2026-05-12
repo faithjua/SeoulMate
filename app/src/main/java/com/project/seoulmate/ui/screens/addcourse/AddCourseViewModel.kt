@@ -272,18 +272,18 @@ class AddCourseViewModel @Inject constructor(
                                 address = firstItem.getBestAddress()
                             )
                         } else {
-                            // 💡 [수정됨] null을 반환해서 버리지 말고, 원래 장소(좌표 없는 상태)를 그대로 반환합니다!
+                            // null을 반환해서 버리지 말고, 원래 장소(좌표 없는 상태)를 그대로 반환
                             Timber.tag("Geocoding").w("네이버 검색 실패, 마커 없이 리스트만 유지: ${place.name}")
                             place
                         }
                     } catch (e: Exception) {
                         Timber.tag("Geocoding").e(e, "지오코딩 통신 에러")
-                        // 💡 [수정됨] 에러가 나도 리스트에서는 살려둡니다.
+                        // 에러가 나도 리스트에서는 살려둠
                         place
                     }
                 }
             }.awaitAll()
-            // .filterNotNull() 삭제!! (이제 null이 반환되지 않으므로 필요 없습니다)
+            // .filterNotNull() 삭제!! (이제 null이 반환되지 않으므로 필요 없음)
         }
     }
     // 네이버 지도 검색 관련 함수들

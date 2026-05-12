@@ -169,5 +169,8 @@ dependencies {
 
     // ML Kit 온디바이스 번역 (한국어 ↔ 영어)
     implementation("com.google.mlkit:translate:17.0.3")
+
+    // 인앱 로케일 전환 (AppCompatDelegate.setApplicationLocales)
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
 

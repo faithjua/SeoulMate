@@ -11,12 +11,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.project.seoulmate.R
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
@@ -85,7 +89,15 @@ fun HomeScreen(
             ) {
                 // 1. 상단 바 (로고 + 번역 버튼 + 알림 버튼)
                 TopBar(
-                    onTranslateClick = { /* TODO: 번역 기능 */ },
+                    onTranslateClick = {
+                        // 앱 로케일 토글 (ko ↔ en). Activity가 자동 재생성됨.
+                        val current = AppCompatDelegate.getApplicationLocales()
+                        val isEnglish = current.toLanguageTags().startsWith("en")
+                        val newTag = if (isEnglish) "ko" else "en"
+                        AppCompatDelegate.setApplicationLocales(
+                            LocaleListCompat.forLanguageTags(newTag)
+                        )
+                    },
                     onNotificationClick = {
                         navController.navigate(Screen.Notifications.route)
                     }
@@ -114,7 +126,7 @@ fun HomeScreen(
 
                 // 4. 최근 (올라온)본 만남 섹션
                 RecommendationSection(
-                    title = "최근 올라온 만남",
+                    title = stringResource(id = R.string.home_section_recent),
                     modifier = Modifier.fillMaxWidth(),
                     meetings = recentMeetings,
                     onSeeAllClick = { /* TODO: 전체보기 페이지 이동 */ },
@@ -128,7 +140,7 @@ fun HomeScreen(
 
                 // 5. 당일 만남 섹션
                 RecommendationSection(
-                    title = "당일 만남",
+                    title = stringResource(id = R.string.home_section_today),
                     modifier = Modifier.fillMaxWidth(),
                     meetings = todayMeetings, // 오늘 날짜의 만남만 표시
                     onSeeAllClick = { /* TODO */ },
@@ -142,7 +154,7 @@ fun HomeScreen(
 
                 // 6. 혼잡도 관련 만남 섹션
                 RecommendationSection(
-                    title = "혼잡도 낮은 만남",
+                    title = stringResource(id = R.string.home_section_low_congestion),
                     modifier = Modifier.fillMaxWidth(),
                     meetings = lowCongestionMeetings, // 혼잡도 낮은 만남만 표시
                     onSeeAllClick = { /* TODO */ },
@@ -153,21 +165,21 @@ fun HomeScreen(
                         viewModel.toggleFavorite(meetingId, isFavorited)
                     }
                 )
-/*
-                // 7. 지금 인기있는 만남 섹션
-                RecommendationSection(
-                    title = "지금 인기있는 만남",
-                    modifier = Modifier.fillMaxWidth(),
-                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
-                    onSeeAllClick = { /* TODO */ },
-                    onMeetingClick = { meetingId ->
-                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
-                    },
-                    onFavoriteClick = { meetingId, isFavorited ->
-                        viewModel.toggleFavorite(meetingId, isFavorited)
-                    }
-                )
-*/
+                /*
+                                // 7. 지금 인기있는 만남 섹션
+                                RecommendationSection(
+                                    title = "지금 인기있는 만남",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    meetings = recentMeetings, // 임시로 같은 더미 데이터 사용
+                                    onSeeAllClick = { /* TODO */ },
+                                    onMeetingClick = { meetingId ->
+                                        navController.navigate(Screen.MeetingDetail.createRoute(meetingId))
+                                    },
+                                    onFavoriteClick = { meetingId, isFavorited ->
+                                        viewModel.toggleFavorite(meetingId, isFavorited)
+                                    }
+                                )
+                */
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
