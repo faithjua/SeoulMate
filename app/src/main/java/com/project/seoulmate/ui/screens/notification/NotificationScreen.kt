@@ -372,6 +372,24 @@ fun StatusNotificationItem(
             statusText = "거절됨"
             statusColor = Color.Gray
         }
+        "MEETUP_CLOSED" -> {
+            icon = R.drawable.ic_notification
+            iconColor = Color(0xFFFF6B6B)
+            statusText = "마감됨"
+            statusColor = Color(0xFFFF6B6B)
+        }
+        "MEETUP_COMPLETED" -> {
+            icon = R.drawable.ic_check_circle
+            iconColor = Color(0xFF4CAF50)
+            statusText = "완료됨"
+            statusColor = Color(0xFF4CAF50)
+        }
+        "MEETUP_REOPENED" -> {
+            icon = R.drawable.ic_notification
+            iconColor = Color(0xFF6C60FD)
+            statusText = "재개됨"
+            statusColor = Color(0xFF6C60FD)
+        }
         else -> {
             icon = R.drawable.ic_notification
             iconColor = Color(0xFF6C60FD)

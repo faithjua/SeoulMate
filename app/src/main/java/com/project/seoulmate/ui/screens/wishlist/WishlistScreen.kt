@@ -152,7 +152,7 @@ fun WishlistScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChipItem(text = "카테고리", options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통 가이드", "숙소/지역", "클래스", "커뮤니티", "전시/공연", "안전/생활"))
-                FilterChipItem(text = stringResource(id = R.string.wishlist_filter_mate), options = listOf(stringResource(id = R.string.wishlist_filter_all), stringResource(id = R.string.wishlist_mate_same), stringResource(id = R.string.wishlist_mate_opposite), stringResource(id = R.string.wishlist_mate_any)))
+
                 FilterChipItem(text = stringResource(id = R.string.wishlist_filter_congestion), options = listOf(stringResource(id = R.string.wishlist_filter_all), stringResource(id = R.string.wishlist_congestion_free), stringResource(id = R.string.wishlist_congestion_normal), stringResource(id = R.string.wishlist_congestion_crowded)))
                 
                 Spacer(modifier = Modifier.weight(1f))
