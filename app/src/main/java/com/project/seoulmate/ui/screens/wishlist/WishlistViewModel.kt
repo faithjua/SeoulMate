@@ -4,7 +4,9 @@ import com.project.seoulmate.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.project.seoulmate.data.model.CongestionLevelOption
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.FavoriteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class WishlistViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository,
-    private val meetingRepository: com.project.seoulmate.data.repository.MeetingRepository
+    private val meetingRepository: com.project.seoulmate.data.repository.MeetingRepository,
+    private val catalogRepository: CatalogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<List<Meeting>>(emptyList())
@@ -27,8 +30,36 @@ class WishlistViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // 카탈로그 데이터
+    private val _filterCategories = MutableStateFlow<List<String>>(emptyList())
+    val filterCategories: StateFlow<List<String>> = _filterCategories.asStateFlow()
+
+    private val _congestionLevels = MutableStateFlow<List<CongestionLevelOption>>(emptyList())
+    val congestionLevels: StateFlow<List<CongestionLevelOption>> = _congestionLevels.asStateFlow()
+
     init {
         loadFavorites()
+        loadCatalogData()
+    }
+
+    private fun loadCatalogData() {
+        viewModelScope.launch {
+            // 카테고리 로드
+            catalogRepository.getCategories().onSuccess { categories ->
+                _filterCategories.value = categories
+                Timber.d("Wishlist - Filter categories loaded: ${categories.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Wishlist - Failed to load filter categories")
+            }
+
+            // 혼잡도 옵션 로드
+            catalogRepository.getCongestionLevels().onSuccess { levels ->
+                _congestionLevels.value = levels
+                Timber.d("Wishlist - Congestion levels loaded: ${levels.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Wishlist - Failed to load congestion levels")
+            }
+        }
     }
 
     private fun loadFavorites() {

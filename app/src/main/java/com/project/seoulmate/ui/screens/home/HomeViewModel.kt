@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.Category
+import com.project.seoulmate.data.model.CongestionLevelOption
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MeetingRepository,
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    private val catalogRepository: CatalogRepository
 ) : ViewModel() {
 
     // StateFlow: 현재 상태를 저장하고, 상태가 바뀌면 수집자(Composable)에게 알림
@@ -47,9 +50,24 @@ class HomeViewModel @Inject constructor(
     private val _selectedCategory = MutableStateFlow<Category?>(null)
     val selectedCategory: StateFlow<Category?> = _selectedCategory.asStateFlow()
 
+    // 카탈로그 데이터
+    private val _filterCategories = MutableStateFlow<List<String>>(emptyList())
+    val filterCategories: StateFlow<List<String>> = _filterCategories.asStateFlow()
+
+    private val _congestionLevels = MutableStateFlow<List<CongestionLevelOption>>(emptyList())
+    val congestionLevels: StateFlow<List<CongestionLevelOption>> = _congestionLevels.asStateFlow()
+
+    // 필터 상태
+    private val _selectedFilterCategory = MutableStateFlow<String?>(null)
+    val selectedFilterCategory: StateFlow<String?> = _selectedFilterCategory.asStateFlow()
+
+    private val _selectedCongestion = MutableStateFlow<String?>(null)
+    val selectedCongestion: StateFlow<String?> = _selectedCongestion.asStateFlow()
+
     // ViewModel이 생성될 때 자동으로 데이터 로드
     init {
         loadData()
+        loadCatalogData()
     }
 
     private fun loadData() {
@@ -62,11 +80,36 @@ class HomeViewModel @Inject constructor(
         loadHomeData(defaultCategory)
     }
 
+    private fun loadCatalogData() {
+        viewModelScope.launch {
+            // 카테고리 로드
+            catalogRepository.getCategories().onSuccess { categories ->
+                _filterCategories.value = categories
+                Timber.d("Filter categories loaded: ${categories.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load filter categories")
+            }
+
+            // 혼잡도 옵션 로드
+            catalogRepository.getCongestionLevels().onSuccess { levels ->
+                _congestionLevels.value = levels
+                Timber.d("Congestion levels loaded: ${levels.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load congestion levels")
+            }
+        }
+    }
+
     private fun loadHomeData(category: Category?) {
         viewModelScope.launch {
             // "전체메뉴"이면 null 전달, 다른 카테고리면 name 전달
             val categoryParam = if (category?.isAllMenu == true) null else category?.name
-            repository.getHomeData(categoryParam).onSuccess { meetings ->
+
+            repository.getHomeData(
+                category = categoryParam,
+                filterCategory = _selectedFilterCategory.value,
+                congestion = _selectedCongestion.value
+            ).onSuccess { meetings ->
                 _recentMeetings.value = meetings
 
                 // 오늘 날짜의 만남 필터링 (API 24+ 호환)
@@ -97,7 +140,26 @@ class HomeViewModel @Inject constructor(
      */
     fun onCategorySelected(category: Category) {
         _selectedCategory.update { category }
+        // 카테고리 탭 선택 시 드롭다운 필터 초기화
+        _selectedFilterCategory.value = null
+        _selectedCongestion.value = null
         loadHomeData(category)
+    }
+
+    /**
+     * 필터 카테고리 선택
+     */
+    fun onFilterCategorySelected(categoryName: String?) {
+        _selectedFilterCategory.value = categoryName
+        loadHomeData(_selectedCategory.value)
+    }
+
+    /**
+     * 혼잡도 필터 선택
+     */
+    fun onCongestionSelected(congestionCode: String?) {
+        _selectedCongestion.value = congestionCode
+        loadHomeData(_selectedCategory.value)
     }
 
     /**

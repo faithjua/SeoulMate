@@ -14,6 +14,8 @@ import com.project.seoulmate.data.repository.ApplicationRepository
 import com.project.seoulmate.data.repository.ApplicationRepositoryImpl
 import com.project.seoulmate.data.repository.NotificationRepository
 import com.project.seoulmate.data.repository.NotificationRepositoryImpl
+import com.project.seoulmate.data.repository.CatalogRepository
+import com.project.seoulmate.data.repository.CatalogRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -81,5 +83,11 @@ abstract class AppModule {
     abstract fun bindNotificationRepository(
         impl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCatalogRepository(
+        impl: CatalogRepositoryImpl
+    ): CatalogRepository
 
 }
