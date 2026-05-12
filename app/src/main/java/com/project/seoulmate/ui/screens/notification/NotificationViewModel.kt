@@ -1,8 +1,10 @@
 package com.project.seoulmate.ui.screens.notification
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.project.seoulmate.R
 import com.project.seoulmate.data.repository.ApplicationRepository
 import com.project.seoulmate.data.repository.NotificationRepository
 import com.project.seoulmate.data.repository.MeetingRepository
@@ -31,9 +33,16 @@ class NotificationViewModel @Inject constructor(
     private val _actionResult = MutableStateFlow<ActionResult?>(null)
     val actionResult: StateFlow<ActionResult?> = _actionResult.asStateFlow()
 
+    /**
+     * UI에 전달할 액션 결과. messageRes(필수)로 stringResource 변환하며,
+     * 백엔드가 내려준 동적 메시지가 있으면 dynamicMessage에 담아 fallback으로 표시.
+     */
     sealed class ActionResult {
-        data class Success(val message: String) : ActionResult()
-        data class Error(val message: String) : ActionResult()
+        data class Success(@StringRes val messageRes: Int) : ActionResult()
+        data class Error(
+            @StringRes val messageRes: Int,
+            val dynamicMessage: String? = null
+        ) : ActionResult()
     }
 
     init {
@@ -131,7 +140,7 @@ class NotificationViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _actionResult.value = ActionResult.Error("로그인이 필요합니다")
+                    _actionResult.value = ActionResult.Error(R.string.toast_login_required)
                     return@launch
                 }
 
@@ -146,16 +155,19 @@ class NotificationViewModel @Inject constructor(
                     // 백엔드에서 정원 체크 및 자동 마감을 처리하므로 클라이언트 체크는 불필요
                     // checkAndCloseMeetingIfFull(idToken, response.meetupId)
 
-                    _actionResult.value = ActionResult.Success("메이트 신청을 승인했습니다")
+                    _actionResult.value = ActionResult.Success(R.string.toast_apply_approved)
                     // 목록 새로고침
                     loadAllNotifications()
                 }.onFailure { error ->
                     Timber.e(error, "NotificationVM - Failed to approve application")
-                    _actionResult.value = ActionResult.Error(error.message ?: "승인 실패")
+                    _actionResult.value = ActionResult.Error(
+                        messageRes = R.string.toast_apply_approve_failed,
+                        dynamicMessage = error.message
+                    )
                 }
             } catch (e: Exception) {
                 Timber.e(e, "NotificationVM - Exception during approve")
-                _actionResult.value = ActionResult.Error("승인 중 오류가 발생했습니다")
+                _actionResult.value = ActionResult.Error(R.string.toast_approve_generic_error)
             } finally {
                 _isLoading.value = false
             }
@@ -192,7 +204,7 @@ class NotificationViewModel @Inject constructor(
                     updateMeetingStatus(token, meetupId, "CLOSED")
 
                     _actionResult.value = ActionResult.Success(
-                        "메이트 신청을 승인했습니다. 정원이 마감되었습니다."
+                        R.string.toast_apply_approved_meeting_full
                     )
                 }
             }.onFailure { error ->
@@ -242,7 +254,7 @@ class NotificationViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _actionResult.value = ActionResult.Error("로그인이 필요합니다")
+                    _actionResult.value = ActionResult.Error(R.string.toast_login_required)
                     return@launch
                 }
 
@@ -253,16 +265,19 @@ class NotificationViewModel @Inject constructor(
 
                 result.onSuccess { response ->
                     Timber.d("NotificationVM - Application rejected: ${response.id}, status=${response.status}")
-                    _actionResult.value = ActionResult.Success("메이트 신청을 거절했습니다")
+                    _actionResult.value = ActionResult.Success(R.string.toast_apply_rejected)
                     // 목록 새로고침
                     loadAllNotifications()
                 }.onFailure { error ->
                     Timber.e(error, "NotificationVM - Failed to reject application")
-                    _actionResult.value = ActionResult.Error(error.message ?: "거절 실패")
+                    _actionResult.value = ActionResult.Error(
+                        messageRes = R.string.toast_apply_reject_failed,
+                        dynamicMessage = error.message
+                    )
                 }
             } catch (e: Exception) {
                 Timber.e(e, "NotificationVM - Exception during reject")
-                _actionResult.value = ActionResult.Error("거절 중 오류가 발생했습니다")
+                _actionResult.value = ActionResult.Error(R.string.toast_reject_generic_error)
             } finally {
                 _isLoading.value = false
             }

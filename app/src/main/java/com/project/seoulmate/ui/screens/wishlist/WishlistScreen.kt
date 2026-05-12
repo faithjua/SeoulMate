@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.ui.text.style.TextAlign
@@ -34,9 +35,14 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.project.seoulmate.R
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
+import com.project.seoulmate.ui.util.displayCategoryName
+import com.project.seoulmate.ui.util.displayCongestionLabel
+import com.project.seoulmate.ui.util.displayMeetingTag
+import com.project.seoulmate.ui.util.tagColor
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -62,12 +68,20 @@ fun WishlistScreen(
             BottomNavigationBar(
                 selectedItem = selectedBottomItem,
                 onItemSelected = { index ->
+                    // BottomNavigationBar의 실제 렌더 순서: Home(0), Favorite(1), Add(2), Profile(3).
+                    // (Message는 주석 처리되어 렌더되지 않음 — 코드의 "// index 4" 주석은 오기재.)
                     when (index) {
                         0 -> navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        // TODO: Handle other tabs when implemented
+                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     }
                 }
             )
@@ -155,10 +169,15 @@ fun WishlistScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 카테고리 필터 (카탈로그 API 데이터 사용)
+                // options/selection의 raw 값은 한글(백엔드 type)을 유지하고, 화면에는 localized 표시.
                 if (filterCategories.isNotEmpty()) {
                     FilterChipItem(
-                        text = "카테고리",
-                        options = listOf("전체") + filterCategories
+                        text = stringResource(id = R.string.home_filter_category),
+                        options = listOf("전체") + filterCategories,
+                        labelFor = { raw ->
+                            if (raw == "전체") stringResource(id = R.string.wishlist_filter_all)
+                            else displayCategoryName(raw)
+                        }
                     )
                 }
 
@@ -166,12 +185,13 @@ fun WishlistScreen(
                 if (congestionLevels.isNotEmpty()) {
                     FilterChipItem(
                         text = stringResource(id = R.string.wishlist_filter_congestion),
-                        options = congestionLevels.map { it.label }
+                        options = congestionLevels.map { it.label },
+                        labelFor = { displayCongestionLabel(it) }
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.weight(1f))
-                
+
                 // Settings Icon Button
                 Surface(
                     modifier = Modifier.size(36.dp),
@@ -237,12 +257,14 @@ fun WishlistScreen(
 @Composable
 fun FilterChipItem(
     text: String,
-    options: List<String> = emptyList() // 드롭다운에 보여줄 항목들
+    options: List<String> = emptyList(), // raw 옵션 값 (백엔드 type, 한글)
+    labelFor: @Composable (String) -> String = { it } // 화면 표시용 변환
 ) {
     // 드롭다운 메뉴가 열려있는지 여부를 저장하는 상태
     var expanded by remember { mutableStateOf(false) }
-    // 현재 선택된 텍스트를 저장하는 상태 (기본값은 처음에 전달받은 text)
-    var selectedText by remember { mutableStateOf(text) }
+    // 현재 선택된 raw 값 (null이면 미선택 → text 라벨 표시)
+    var selectedRaw by remember { mutableStateOf<String?>(null) }
+    val displayText = selectedRaw?.let { labelFor(it) } ?: text
 
     Box {
         Surface(
@@ -259,7 +281,7 @@ fun FilterChipItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = selectedText, // 변경되는 텍스트 적용
+                    text = displayText,
                     fontSize = 13.sp,
                     color = Color.Black,
                     fontWeight = FontWeight.Medium
@@ -273,19 +295,18 @@ fun FilterChipItem(
                 )
             }
         }
-        
-        // 드롭다운 메뉴 레고 조립!
+
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }, // 바깥을 누르면 닫힘
+            onDismissRequest = { expanded = false },
             modifier = Modifier.background(Color.White)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(labelFor(option)) },
                     onClick = {
-                        selectedText = option // 선택한 항목으로 글자 변경
-                        expanded = false // 선택 후 메뉴 닫기
+                        selectedRaw = option
+                        expanded = false
                     }
                 )
             }
@@ -293,6 +314,7 @@ fun FilterChipItem(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WishlistCard(
     meeting: Meeting,
@@ -345,33 +367,30 @@ fun WishlistCard(
                 )
             }
 
-            // Tags (Bottom Left)
-            Row(
+            // Tags (Bottom Left). 영문 라벨이 길어지면 chip이 줄바꿈되지 않도록
+            // 각 Text는 단일 라인으로 고정하고, 여러 태그는 FlowRow로 자연스럽게 줄바꿈.
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                maxItemsInEachRow = Int.MAX_VALUE,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(8.dp)
+                    .fillMaxWidth(0.85f)
             ) {
-                meeting.tags.forEach { tag ->
-                    val congestionColor = when (tag) {
-                        "여유" -> Color(0xFF6CF0A0)         // 초록 (RELAXED)
-                        "보통" -> Color(0xFF4A90E2)         // 파랑 (NORMAL)
-                        "약간 붐빔" -> Color(0xFFFF9500)   // 주황 (SLIGHTLY_BUSY)
-                        "붐빔" -> Color(0xFFFF6B6B)         // 빨강 (BUSY)
-                        "혼잡" -> Color(0xFFFF6B6B)         // 빨강 (BUSY - 하위 호환)
-                        "정보 없음" -> Color(0xFF9E9E9E)   // 회색 (UNKNOWN)
-                        else -> Color(0xFF6C60FD)            // 보라색 (카테고리 태그)
-                    }
-
+                meeting.tags.take(3).forEach { tag ->
                     Surface(
-                        color = congestionColor,
+                        color = tagColor(tag),
                         shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
-                            text = tag,
+                            text = displayMeetingTag(tag),
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }

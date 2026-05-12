@@ -40,6 +40,10 @@ import com.project.seoulmate.R
 import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.RecommendationCard
 import com.project.seoulmate.ui.navigation.Screen
+import com.project.seoulmate.ui.util.displayCategoryName
+import com.project.seoulmate.ui.util.displayCongestionLabel
+import com.project.seoulmate.ui.util.displayMeetingTag
+import com.project.seoulmate.ui.util.tagColor
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -101,7 +105,7 @@ fun SearchScreen(
                 // Back Button
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(id = R.string.meeting_back),
                     tint = Color.Gray,
                     modifier = Modifier
                         .size(24.dp)
@@ -154,7 +158,7 @@ fun SearchScreen(
                                 if (textFieldValue.text.isNotEmpty()) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear",
+                                        contentDescription = stringResource(id = R.string.addcourse_clear),
                                         tint = Color.Gray,
                                         modifier = Modifier
                                             .size(16.dp)
@@ -169,7 +173,7 @@ fun SearchScreen(
                 // Home Button
                 Icon(
                     painter = painterResource(id = R.drawable.ic_home),
-                    contentDescription = "Home",
+                    contentDescription = stringResource(id = R.string.common_home),
                     tint = Color.Gray,
                     modifier = Modifier
                         .size(24.dp)
@@ -200,7 +204,7 @@ fun SearchScreen(
                 is SearchUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = state.message,
+                            text = stringResource(id = state.messageRes),
                             color = Color.Red,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
@@ -255,17 +259,27 @@ fun SearchScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // options는 backend type(한글) 그대로 유지하고, 표시만 localize.
+                                    val categoryLabel = stringResource(id = R.string.home_filter_category)
+                                    val congestionLabel = stringResource(id = R.string.home_filter_congestion)
+                                    val allLabel = stringResource(id = R.string.wishlist_filter_all)
                                     FilterChipItem(
-                                        text = "카테고리",
+                                        text = categoryLabel,
                                         options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통가이드", "숙소/지역", "클래스", "커뮤니티", "전시·스타일", "안전·생활"),
-                                        selectedOption = if (selectedCategory == "전체") "카테고리" else selectedCategory,
+                                        selectedOption = if (selectedCategory == "전체") categoryLabel
+                                        else displayCategoryName(selectedCategory),
+                                        labelFor = { raw ->
+                                            if (raw == "전체") allLabel else displayCategoryName(raw)
+                                        },
                                         onOptionSelected = { selectedCategory = it }
                                     )
 
                                     FilterChipItem(
-                                        text = "혼잡도",
+                                        text = congestionLabel,
                                         options = listOf("전체", "여유", "보통", "약간 붐빔", "붐빔"),
-                                        selectedOption = if (selectedCongestion == "전체") "혼잡도" else selectedCongestion,
+                                        selectedOption = if (selectedCongestion == "전체") congestionLabel
+                                        else displayCongestionLabel(selectedCongestion),
+                                        labelFor = { displayCongestionLabel(it) },
                                         onOptionSelected = { selectedCongestion = it }
                                     )
 
@@ -285,7 +299,7 @@ fun SearchScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Outlined.Tune,
-                                                contentDescription = "필터 설정",
+                                                contentDescription = stringResource(id = R.string.wishlist_filter_setting),
                                                 tint = Color.Black,
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -297,7 +311,7 @@ fun SearchScreen(
                             // Count Text
                             item(span = { GridItemSpan(2) }) {
                                 Text(
-                                    text = "만남 ${filteredMeetings.size}개",
+                                    text = stringResource(id = R.string.home_meeting_count, filteredMeetings.size),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black,
@@ -504,6 +518,7 @@ fun FilterChipItem(
     text: String,
     options: List<String>,
     selectedOption: String,
+    labelFor: @Composable (String) -> String = { it },
     onOptionSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -544,7 +559,7 @@ fun FilterChipItem(
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(labelFor(option)) },
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
@@ -555,6 +570,7 @@ fun FilterChipItem(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MeetingGridCard(
     meeting: Meeting,
@@ -609,33 +625,28 @@ fun MeetingGridCard(
                     )
                 }
 
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    maxItemsInEachRow = Int.MAX_VALUE,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
+                        .fillMaxWidth(0.85f)
                 ) {
-                    meeting.tags.forEach { tag ->
-                        val cleanTag = if (tag.startsWith("#")) tag.removePrefix("#") else tag
-                        val isCongestion = cleanTag == "여유" || cleanTag == "보통" || cleanTag == "약간 붐빔" || cleanTag == "붐빔" || cleanTag == "혼잡" || cleanTag == "정보 없음"
-                        val tagColor = when (cleanTag) {
-                            "여유" -> Color(0xFF6CF0A0)
-                            "보통" -> Color(0xFF4A90E2)
-                            "약간 붐빔" -> Color(0xFFFF9500)
-                            "붐빔", "혼잡" -> Color(0xFFFF6B6B)
-                            "정보 없음" -> Color(0xFF9E9E9E)
-                            else -> Color(0xFF6C60FD)
-                        }
-
+                    meeting.tags.take(3).forEach { tag ->
                         Surface(
-                            color = tagColor,
+                            color = tagColor(tag),
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                text = if (isCongestion) cleanTag else "#$cleanTag",
+                                text = displayMeetingTag(tag),
                                 color = Color.White,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                         }
@@ -673,7 +684,7 @@ fun MeetingGridCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "예상 " + (meeting.price ?: ""),
+                        text = stringResource(id = R.string.wishlist_expected_price, meeting.price ?: ""),
                         color = Color(0xFF888888),
                         fontSize = 11.sp
                     )
@@ -722,7 +733,7 @@ fun SearchChip(
         Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Default.Close,
-            contentDescription = "Remove",
+            contentDescription = stringResource(id = R.string.common_remove),
             tint = Color.Gray,
             modifier = Modifier
                 .size(14.dp)

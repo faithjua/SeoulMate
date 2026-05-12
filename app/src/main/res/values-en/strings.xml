@@ -47,6 +47,11 @@
     <string name="meeting_course">Course</string>
     <string name="meeting_start">Start</string>
     <string name="meeting_end">End</string>
+    <string name="meeting_capacity_format">%1$d/%2$d</string>
+    <string name="meeting_status_open">Recruiting</string>
+    <string name="meeting_status_closed">Closed</string>
+    <string name="meeting_status_completed">Completed</string>
+    <string name="meeting_status_full">Full</string>
     <string name="meeting_mate_info">Mate Info</string>
     <string name="meeting_block">Block</string>
     <string name="meeting_report">Report</string>
@@ -80,38 +85,38 @@
     <string name="notification_approve">Approve</string>
     <string name="notification_ignore">Ignore</string>
 
-<!-- Login -->
-<string name="app_tagline">K-Beauty, fandom, tours, classes\nAll with your local Seoul Mate</string>
-<string name="login_get_started">Get Started</string>
-<string name="login_checking_status">Checking login status…</string>
-<string name="login_selecting_account">Selecting Google account…</string>
-<string name="login_signing_in">Signing in…</string>
-<string name="login_error_status_unknown">Unable to verify Google sign-in status.</string>
-<string name="login_error_token_failed">Failed to issue token.</string>
-<string name="login_error_firebase_failed">Firebase authentication failed.</string>
-<string name="login_error_cancelled">Google sign-in was cancelled or no account was selected.</string>
-<string name="login_error_generic">An error occurred during sign-in.</string>
-<string name="logo_description">Logo</string>
+    <!-- Login -->
+    <string name="app_tagline">Sledding is fun with two!\nFind your Seoulmate to share Seoul together.</string>
+    <string name="login_get_started">Get Started</string>
+    <string name="login_checking_status">Checking login status…</string>
+    <string name="login_selecting_account">Selecting Google account…</string>
+    <string name="login_signing_in">Signing in…</string>
+    <string name="login_error_status_unknown">Unable to verify Google sign-in status.</string>
+    <string name="login_error_token_failed">Failed to issue token.</string>
+    <string name="login_error_firebase_failed">Firebase authentication failed.</string>
+    <string name="login_error_cancelled">Google sign-in was cancelled or no account was selected.</string>
+    <string name="login_error_generic">An error occurred during sign-in.</string>
+    <string name="logo_description">Logo</string>
 
-<!-- Signup -->
-<string name="signup_title">Sign Up</string>
-<string name="signup_label_email">Email</string>
-<string name="signup_label_nickname">Nickname</string>
-<string name="signup_label_role">Role</string>
-<string name="signup_label_nationality">Nationality</string>
-<string name="signup_button_cancel">Cancel</string>
-<string name="signup_button_submit">Complete</string>
+    <!-- Signup -->
+    <string name="signup_title">Sign Up</string>
+    <string name="signup_label_email">Email</string>
+    <string name="signup_label_nickname">Nickname</string>
+    <string name="signup_label_role">Role</string>
+    <string name="signup_label_nationality">Nationality</string>
+    <string name="signup_button_cancel">Cancel</string>
+    <string name="signup_button_submit">Complete</string>
 
-<!-- Nationality Bottom Sheet -->
-<string name="nationality_search_title">Select Nationality</string>
-<string name="nationality_search_placeholder">Search country</string>
-<string name="nationality_search_icon_desc">Search</string>
+    <!-- Nationality Bottom Sheet -->
+    <string name="nationality_search_title">Select Nationality</string>
+    <string name="nationality_search_placeholder">Search country</string>
+    <string name="nationality_search_icon_desc">Search</string>
 
-<!-- Cancel Confirmation Dialog -->
-<string name="signup_cancel_dialog_title">Cancel sign up?</string>
-<string name="signup_cancel_dialog_message">The information you entered will not be saved.</string>
-<string name="signup_cancel_dialog_confirm">Cancel sign up</string>
-<string name="signup_cancel_dialog_dismiss">Continue</string>
+    <!-- Cancel Confirmation Dialog -->
+    <string name="signup_cancel_dialog_title">Cancel sign up?</string>
+    <string name="signup_cancel_dialog_message">The information you entered will not be saved.</string>
+    <string name="signup_cancel_dialog_confirm">Cancel sign up</string>
+    <string name="signup_cancel_dialog_dismiss">Continue</string>
 
     <!-- CommentSection.kt -->
     <string name="comment_count">Comments %d</string>
@@ -298,4 +303,54 @@
     <string name="toast_token_issue_failed">Failed to issue token</string>
     <string name="toast_firebase_auth_failed">Firebase authentication failed.</string>
     <string name="toast_login_generic_error">An error occurred during sign-in.</string>
+
+    <!-- Common (added for i18n pass) -->
+    <string name="common_more">More</string>
+    <string name="common_home">Home</string>
+    <string name="common_remove">Remove</string>
+    <string name="common_meeting_thumbnail">Meetup thumbnail</string>
+
+    <!-- Category display names. Backend always receives the Korean type; this is for display only. -->
+    <string name="category_all_menu">All</string>
+    <string name="category_daily">Same-day</string>
+    <string name="category_tourism">Tourism</string>
+    <string name="category_kpop">K-Pop</string>
+    <string name="category_kbeauty">K-Beauty</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_food">Korean Food</string>
+    <string name="category_cafe">Café</string>
+    <string name="category_transport_guide">Transit Guide</string>
+    <string name="category_class">Class</string>
+    <string name="category_community">Community</string>
+    <string name="category_exhibition">Exhibition · Style</string>
+    <string name="category_safety_life">Safety · Living</string>
+    <string name="category_accommodation">Stay / Region</string>
+
+    <!-- Congestion display labels -->
+    <string name="congestion_unknown">No info</string>
+
+    <!-- RecommendationSection -->
+    <string name="recommendation_view_meeting">View meetup</string>
+
+    <!-- NotificationScreen -->
+    <string name="notification_empty">No notifications yet</string>
+    <string name="notification_status_accepted">Accepted</string>
+    <string name="notification_status_rejected">Rejected</string>
+    <string name="notification_status_closed">Closed</string>
+    <string name="notification_status_completed">Completed</string>
+    <string name="notification_status_reopened">Reopened</string>
+    <string name="notification_status_default">Notification</string>
+    <string name="notification_meeting_label">Meetup: %s</string>
+    <string name="notification_time_recent">Recently</string>
+
+    <!-- NotificationViewModel toasts -->
+    <string name="toast_apply_approved">Mate application approved</string>
+    <string name="toast_apply_rejected">Mate application rejected</string>
+    <string name="toast_apply_approve_failed">Failed to approve</string>
+    <string name="toast_apply_reject_failed">Failed to reject</string>
+    <string name="toast_approve_generic_error">An error occurred while approving</string>
+    <string name="toast_reject_generic_error">An error occurred while rejecting</string>
+    <string name="toast_apply_approved_meeting_full">Mate application approved. The meetup is now full.</string>
+    <!-- SearchBar -->
+    <string name="searchbar_placeholder">Search 10,000+ Seoul meetups</string>
 </resources>

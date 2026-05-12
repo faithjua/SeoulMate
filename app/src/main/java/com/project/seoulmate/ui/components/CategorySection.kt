@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.project.seoulmate.data.model.Category
+import com.project.seoulmate.ui.util.displayCategoryName
 
 /**
  * 카테고리 가로 스크롤 섹션.
@@ -102,6 +103,7 @@ fun CategoryIconItem(
     val backgroundColor = if (isSelected) Color(0xFF6C60FD) else Color(0xFFF6F6F6)
     val iconTint = if (isSelected) Color.White else Color(0xFF6C60FD)
     val textColor = if (isSelected) Color.Black else Color(0xFF888888)
+    val displayName = displayCategoryName(category.name)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -117,14 +119,14 @@ fun CategoryIconItem(
                 if (category.isAllMenu) {
                     Icon(
                         imageVector = Icons.Rounded.GridView,
-                        contentDescription = category.name,
+                        contentDescription = displayName,
                         tint = iconTint,
                         modifier = Modifier.size(28.dp)
                     )
                 } else if (category.iconRes != null) {
                     Icon(
                         painter = painterResource(id = category.iconRes),
-                        contentDescription = category.name,
+                        contentDescription = displayName,
                         tint = iconTint,
                         modifier = Modifier.size(28.dp)
                     )
@@ -135,7 +137,7 @@ fun CategoryIconItem(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = category.name,
+            text = displayName,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = textColor,

@@ -19,6 +19,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.project.seoulmate.R
+import androidx.compose.ui.res.stringResource
+
 
 @Composable
 fun SearchBar(
@@ -54,7 +56,7 @@ fun SearchBar(
 
             // 2. Placeholder Text
             Text(
-                text = "10,000개 이상의 서울 만남 검색",
+                text = stringResource(id = R.string.searchbar_placeholder),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 15.sp,
                     color = Color(0xFFD3D3D3) // Light grey text color

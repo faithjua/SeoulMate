@@ -92,15 +92,23 @@ fun AddMeetingScreen(
     //여기까지 추가
 
 
-    // uiEvent 처리: NavigateBack 이벤트 발생 시 이전 화면(홈)으로 이동
+    val context = LocalContext.current
+
+    // uiEvent 처리: NavigateBack은 뒤로가기, Error는 Toast 노출.
+    // (이전엔 Error 분기가 없어 검증 실패 시 아무 표시도 안 됐음.)
     LaunchedEffect(uiEvent) {
-        if (uiEvent is AddMeetingUiEvent.NavigateBack) {
-            navController.popBackStack()
-            viewModel.onEventConsumed()
+        when (val event = uiEvent) {
+            is AddMeetingUiEvent.NavigateBack -> {
+                navController.popBackStack()
+                viewModel.onEventConsumed()
+            }
+            is AddMeetingUiEvent.Error -> {
+                Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                viewModel.onEventConsumed()
+            }
+            null -> { /* 초기 상태 */ }
         }
     }
-
-    val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }

@@ -45,6 +45,10 @@ import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
 import com.project.seoulmate.config.AppConfig
+import com.project.seoulmate.ui.util.displayCategoryName
+import com.project.seoulmate.ui.util.displayCongestionLabel
+import com.project.seoulmate.ui.util.displayMeetingTag
+import com.project.seoulmate.ui.util.tagColor
 
 /**
  * 홈 화면 Composable
@@ -222,11 +226,21 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 카테고리 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
+                        // 통신 type은 한글 그대로 유지하고, 화면 라벨만 displayCategoryName으로 변환.
                         if (filterCategories.isNotEmpty()) {
+                            // ?.let { displayCategoryName(...) } 는 inline 람다 안에서
+                            // @Composable 호출 컨텍스트가 끊겨 컴파일 에러가 나므로 if/else로 분기.
+                            val categorySelected = selectedFilterCategory
+                            val categoryDisplay = if (categorySelected != null) {
+                                displayCategoryName(categorySelected)
+                            } else {
+                                categoryFilterLabel
+                            }
                             FilterChipItem(
                                 text = categoryFilterLabel,
                                 options = filterCategories,
-                                selectedOption = selectedFilterCategory ?: categoryFilterLabel,
+                                selectedOption = categoryDisplay,
+                                labelFor = { displayCategoryName(it) },
                                 onOptionSelected = { selectedName ->
                                     // "당일만남" 선택 시 null 전달 (백엔드에서 today=true로 처리)
                                     val categoryParam = if (selectedName == "당일만남") null else selectedName
@@ -237,10 +251,19 @@ fun HomeScreen(
 
                         // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
                         if (congestionLevels.isNotEmpty()) {
+                            val congestionRawLabel = congestionLevels
+                                .find { it.code == selectedCongestion }
+                                ?.label
+                            val congestionDisplay = if (congestionRawLabel != null) {
+                                displayCongestionLabel(congestionRawLabel)
+                            } else {
+                                congestionFilterLabel
+                            }
                             FilterChipItem(
                                 text = congestionFilterLabel,
                                 options = congestionLevels.map { it.label },
-                                selectedOption = congestionLevels.find { it.code == selectedCongestion }?.label ?: congestionFilterLabel,
+                                selectedOption = congestionDisplay,
+                                labelFor = { displayCongestionLabel(it) },
                                 onOptionSelected = { selectedLabel ->
                                     val congestionOption = congestionLevels.find { it.label == selectedLabel }
                                     // "전체" 선택 시 null 전달
@@ -309,6 +332,7 @@ fun FilterChipItem(
     text: String,
     options: List<String>,
     selectedOption: String,
+    labelFor: @Composable (String) -> String = { it },
     onOptionSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -349,7 +373,7 @@ fun FilterChipItem(
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(labelFor(option)) },
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
@@ -360,6 +384,7 @@ fun FilterChipItem(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MeetingGridCard(
     meeting: Meeting,
@@ -414,33 +439,28 @@ fun MeetingGridCard(
                     )
                 }
 
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    maxItemsInEachRow = Int.MAX_VALUE,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
+                        .fillMaxWidth(0.85f)
                 ) {
-                    meeting.tags.forEach { tag ->
-                        val cleanTag = if (tag.startsWith("#")) tag.removePrefix("#") else tag
-                        val isCongestion = cleanTag == "여유" || cleanTag == "보통" || cleanTag == "약간 붐빔" || cleanTag == "붐빔" || cleanTag == "혼잡" || cleanTag == "정보 없음"
-                        val tagColor = when (cleanTag) {
-                            "여유" -> Color(0xFF6CF0A0)
-                            "보통" -> Color(0xFF4A90E2)
-                            "약간 붐빔" -> Color(0xFFFF9500)
-                            "붐빔", "혼잡" -> Color(0xFFFF6B6B)
-                            "정보 없음" -> Color(0xFF9E9E9E)
-                            else -> Color(0xFF6C60FD)
-                        }
-
+                    meeting.tags.take(3).forEach { tag ->
                         Surface(
-                            color = tagColor,
+                            color = tagColor(tag),
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                text = if (isCongestion) cleanTag else "#$cleanTag",
+                                text = displayMeetingTag(tag),
                                 color = Color.White,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                         }

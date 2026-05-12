@@ -1,123 +1,123 @@
 <resources>
     <string name="app_name">SeoulMate</string>
 
-<!-- WishlistScreen.kt -->
-<string name="wishlist_title">찜</string>
-<string name="wishlist_translate">번역</string>
-<string name="wishlist_notification">알림</string>
-<string name="wishlist_filter_region">지역·명소</string>
-<string name="wishlist_filter_mate">메이트 선호</string>
-<string name="wishlist_filter_congestion">혼잡도</string>
-<string name="wishlist_filter_all">전체</string>
-<string name="wishlist_region_seoul">서울</string>
-<string name="wishlist_region_busan">부산</string>
-<string name="wishlist_region_jeju">제주</string>
-<string name="wishlist_mate_same">동성</string>
-<string name="wishlist_mate_opposite">이성</string>
-<string name="wishlist_mate_any">무관</string>
-<string name="wishlist_congestion_free">여유</string>
-<string name="wishlist_congestion_normal">보통</string>
-<string name="wishlist_congestion_crowded">혼잡</string>
-<string name="wishlist_filter_setting">필터 설정</string>
-<string name="wishlist_total_count">총 %d개</string>
-<string name="wishlist_cancel">찜 취소</string>
-<string name="wishlist_expected_price">예상 %s</string>
-<string name="wishlist_rating">평점</string>
+    <!-- WishlistScreen.kt -->
+    <string name="wishlist_title">찜</string>
+    <string name="wishlist_translate">번역</string>
+    <string name="wishlist_notification">알림</string>
+    <string name="wishlist_filter_region">지역·명소</string>
+    <string name="wishlist_filter_mate">메이트 선호</string>
+    <string name="wishlist_filter_congestion">혼잡도</string>
+    <string name="wishlist_filter_all">전체</string>
+    <string name="wishlist_region_seoul">서울</string>
+    <string name="wishlist_region_busan">부산</string>
+    <string name="wishlist_region_jeju">제주</string>
+    <string name="wishlist_mate_same">동성</string>
+    <string name="wishlist_mate_opposite">이성</string>
+    <string name="wishlist_mate_any">무관</string>
+    <string name="wishlist_congestion_free">여유</string>
+    <string name="wishlist_congestion_normal">보통</string>
+    <string name="wishlist_congestion_crowded">혼잡</string>
+    <string name="wishlist_filter_setting">필터 설정</string>
+    <string name="wishlist_total_count">총 %d개</string>
+    <string name="wishlist_cancel">찜 취소</string>
+    <string name="wishlist_expected_price">예상 %s</string>
+    <string name="wishlist_rating">평점</string>
 
-<!-- SearchScreen.kt & SearchViewModel.kt -->
-<string name="search_hint">만남을 검색해보세요!</string>
-<string name="search_no_result">검색 결과가 없습니다.</string>
-<string name="search_recent">최근 검색어</string>
-<string name="search_clear_all">모두 지우기</string>
-<string name="search_ad_label">AD</string>
-<string name="search_ad_title">광고 문의 받습니다</string>
-<string name="search_trending">주간 급상승 검색어</string>
+    <!-- SearchScreen.kt & SearchViewModel.kt -->
+    <string name="search_hint">만남을 검색해보세요!</string>
+    <string name="search_no_result">검색 결과가 없습니다.</string>
+    <string name="search_recent">최근 검색어</string>
+    <string name="search_clear_all">모두 지우기</string>
+    <string name="search_ad_label">AD</string>
+    <string name="search_ad_title">광고 문의 받습니다</string>
+    <string name="search_trending">주간 급상승 검색어</string>
 
-<!-- Search Network Errors -->
-<string name="error_timeout">서버 응답 시간이 초과되었습니다. 다시 시도해주세요.</string>
-<string name="error_network">네트워크 문제가 발생했습니다. 연결 상태를 확인해주세요.</string>
-<string name="error_server">서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</string>
-<string name="error_unknown">알 수 없는 에러가 발생했습니다.</string>
-<string name="error_load_data">데이터를 불러오는 중 오류가 발생했습니다.</string>
-
-
-<!-- Meeting / MeetingDetail -->
-<string name="meeting_search">만남 검색</string>
-<string name="meeting_favorite">찜하기</string>
-<string name="meeting_course">코스</string>
-<string name="meeting_start">시작</string>
-<string name="meeting_end">종료</string>
-<string name="meeting_capacity_format">%1$d/%2$d명</string>
-<string name="meeting_status_open">모집중</string>
-<string name="meeting_status_closed">마감</string>
-<string name="meeting_status_completed">완료</string>
-<string name="meeting_status_full">정원마감</string>
-<string name="meeting_mate_info">메이트 정보</string>
-<string name="meeting_block">차단하기</string>
-<string name="meeting_report">신고하기</string>
-<string name="meeting_profile_image">프로필 이미지</string>
-<string name="meeting_report_post_inappropriate">게시글 부적절</string>
-<string name="meeting_report_user_inappropriate">사용자 부적절</string>
-
-<!-- ProfileScreen.kt -->
-<string name="profile_tab_meeting">만남</string>
-<string name="profile_tab_review">리뷰</string>
-<string name="profile_tab_badge">배지</string>
-<string name="profile_back">뒤로가기</string>
-<string name="profile_menu">메뉴</string>
-<string name="profile_edit">수정</string>
-<string name="profile_verified">인증됨</string>
-<string name="profile_rating">별점</string>
-<string name="profile_view_briefly">간략히 보기</string>
-<string name="profile_edit_button">수정하기</string>
-<string name="profile_recent_activity">최근 3일 이내 활동함</string>
-<string name="profile_join_date">가입한 날짜</string>
-<string name="profile_verification_history">인증 내역</string>
-<string name="profile_email_verified">이메일 인증 완료</string>
-<string name="profile_previous_username">이전 사용자 이름</string>
-<string name="profile_username_changed_count">%1$s님은 사용자 이름을 %2$d회 변경했습니다.</string>
-<string name="profile_faq_contact">FAQ · 문의하기</string>
-
-<!-- NotificationScreen.kt -->
-<string name="notification_title">알림</string>
-<string name="notification_reservation_request">예약 신청을 보내왔습니다.</string>
-<string name="notification_meeting_image">만남 이미지</string>
-<string name="notification_approve">승인</string>
-<string name="notification_ignore">무시</string>
+    <!-- Search Network Errors -->
+    <string name="error_timeout">서버 응답 시간이 초과되었습니다. 다시 시도해주세요.</string>
+    <string name="error_network">네트워크 문제가 발생했습니다. 연결 상태를 확인해주세요.</string>
+    <string name="error_server">서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</string>
+    <string name="error_unknown">알 수 없는 에러가 발생했습니다.</string>
+    <string name="error_load_data">데이터를 불러오는 중 오류가 발생했습니다.</string>
 
 
-<!-- 로그인 화면 -->
-<string name="app_tagline">K-뷰티·덕질·탐방·클래스\n모두 동네의 서울 메이트와 함께</string>
-<string name="login_get_started">시작하기</string>
-<string name="login_checking_status">로그인 정보 확인 중...</string>
-<string name="login_selecting_account">Google 계정 선택 중...</string>
-<string name="login_signing_in">로그인 중...</string>
-<string name="login_error_status_unknown">구글 로그인 상태를 확인할 수 없습니다.</string>
-<string name="login_error_token_failed">토큰 발급 실패</string>
-<string name="login_error_firebase_failed">Firebase 인증에 실패했습니다.</string>
-<string name="login_error_cancelled">구글 로그인이 취소되었거나 계정이 없습니다.</string>
-<string name="login_error_generic">로그인 중 에러가 발생했습니다.</string>
-<string name="logo_description">로고</string>
+    <!-- Meeting / MeetingDetail -->
+    <string name="meeting_search">만남 검색</string>
+    <string name="meeting_favorite">찜하기</string>
+    <string name="meeting_course">코스</string>
+    <string name="meeting_start">시작</string>
+    <string name="meeting_end">종료</string>
+    <string name="meeting_capacity_format">%1$d/%2$d명</string>
+    <string name="meeting_status_open">모집중</string>
+    <string name="meeting_status_closed">마감</string>
+    <string name="meeting_status_completed">완료</string>
+    <string name="meeting_status_full">정원마감</string>
+    <string name="meeting_mate_info">메이트 정보</string>
+    <string name="meeting_block">차단하기</string>
+    <string name="meeting_report">신고하기</string>
+    <string name="meeting_profile_image">프로필 이미지</string>
+    <string name="meeting_report_post_inappropriate">게시글 부적절</string>
+    <string name="meeting_report_user_inappropriate">사용자 부적절</string>
 
-<!-- 회원가입 화면 -->
-<string name="signup_title">회원가입</string>
-<string name="signup_label_email">이메일</string>
-<string name="signup_label_nickname">닉네임</string>
-<string name="signup_label_role">역할 (Role)</string>
-<string name="signup_label_nationality">국적</string>
-<string name="signup_button_cancel">취소</string>
-<string name="signup_button_submit">이대로 완료</string>
+    <!-- ProfileScreen.kt -->
+    <string name="profile_tab_meeting">만남</string>
+    <string name="profile_tab_review">리뷰</string>
+    <string name="profile_tab_badge">배지</string>
+    <string name="profile_back">뒤로가기</string>
+    <string name="profile_menu">메뉴</string>
+    <string name="profile_edit">수정</string>
+    <string name="profile_verified">인증됨</string>
+    <string name="profile_rating">별점</string>
+    <string name="profile_view_briefly">간략히 보기</string>
+    <string name="profile_edit_button">수정하기</string>
+    <string name="profile_recent_activity">최근 3일 이내 활동함</string>
+    <string name="profile_join_date">가입한 날짜</string>
+    <string name="profile_verification_history">인증 내역</string>
+    <string name="profile_email_verified">이메일 인증 완료</string>
+    <string name="profile_previous_username">이전 사용자 이름</string>
+    <string name="profile_username_changed_count">%1$s님은 사용자 이름을 %2$d회 변경했습니다.</string>
+    <string name="profile_faq_contact">FAQ · 문의하기</string>
 
-<!-- 국적 선택 바텀시트 -->
-<string name="nationality_search_title">국적 검색</string>
-<string name="nationality_search_placeholder">국가를 검색하세요</string>
-<string name="nationality_search_icon_desc">검색</string>
+    <!-- NotificationScreen.kt -->
+    <string name="notification_title">알림</string>
+    <string name="notification_reservation_request">예약 신청을 보내왔습니다.</string>
+    <string name="notification_meeting_image">만남 이미지</string>
+    <string name="notification_approve">승인</string>
+    <string name="notification_ignore">무시</string>
 
-<!-- 가입 취소 다이얼로그 -->
-<string name="signup_cancel_dialog_title">가입을 취소하시겠습니까?</string>
-<string name="signup_cancel_dialog_message">지금까지 입력한 정보가 저장되지 않습니다.</string>
-<string name="signup_cancel_dialog_confirm">가입 취소</string>
-<string name="signup_cancel_dialog_dismiss">계속 가입</string>
+
+    <!-- 로그인 화면 -->
+    <string name="app_tagline">썰매는 둘이 타야 재밌다!\n서울을 함께할 서울메이트 찾기</string>
+    <string name="login_get_started">시작하기</string>
+    <string name="login_checking_status">로그인 정보 확인 중...</string>
+    <string name="login_selecting_account">Google 계정 선택 중...</string>
+    <string name="login_signing_in">로그인 중...</string>
+    <string name="login_error_status_unknown">구글 로그인 상태를 확인할 수 없습니다.</string>
+    <string name="login_error_token_failed">토큰 발급 실패</string>
+    <string name="login_error_firebase_failed">Firebase 인증에 실패했습니다.</string>
+    <string name="login_error_cancelled">구글 로그인이 취소되었거나 계정이 없습니다.</string>
+    <string name="login_error_generic">로그인 중 에러가 발생했습니다.</string>
+    <string name="logo_description">로고</string>
+
+    <!-- 회원가입 화면 -->
+    <string name="signup_title">회원가입</string>
+    <string name="signup_label_email">이메일</string>
+    <string name="signup_label_nickname">닉네임</string>
+    <string name="signup_label_role">역할 (Role)</string>
+    <string name="signup_label_nationality">국적</string>
+    <string name="signup_button_cancel">취소</string>
+    <string name="signup_button_submit">이대로 완료</string>
+
+    <!-- 국적 선택 바텀시트 -->
+    <string name="nationality_search_title">국적 검색</string>
+    <string name="nationality_search_placeholder">국가를 검색하세요</string>
+    <string name="nationality_search_icon_desc">검색</string>
+
+    <!-- 가입 취소 다이얼로그 -->
+    <string name="signup_cancel_dialog_title">가입을 취소하시겠습니까?</string>
+    <string name="signup_cancel_dialog_message">지금까지 입력한 정보가 저장되지 않습니다.</string>
+    <string name="signup_cancel_dialog_confirm">가입 취소</string>
+    <string name="signup_cancel_dialog_dismiss">계속 가입</string>
 
     <!-- CommentSection.kt -->
     <string name="comment_count">댓글 %d</string>
@@ -306,4 +306,56 @@
     <string name="toast_firebase_auth_failed">Firebase 인증에 실패했습니다.</string>
     <string name="toast_login_generic_error">로그인 중 에러가 발생했습니다.</string>
 
+    <!-- Common (added for i18n pass) -->
+    <string name="common_more">더보기</string>
+    <string name="common_home">홈</string>
+    <string name="common_remove">삭제</string>
+    <string name="common_meeting_thumbnail">만남 썸네일</string>
+
+    <!-- Category display names. Backend의 type(한글) 그대로 보내되, 화면에는 이 리소스를 통해 다국어 표시. -->
+    <string name="category_all_menu">전체메뉴</string>
+    <string name="category_daily">당일만남</string>
+    <string name="category_tourism">관광</string>
+    <string name="category_kpop">K-팝</string>
+    <string name="category_kbeauty">K-뷰티</string>
+    <string name="category_shopping">쇼핑</string>
+    <string name="category_food">한식</string>
+    <string name="category_cafe">카페</string>
+    <string name="category_transport_guide">교통가이드</string>
+    <string name="category_class">클래스</string>
+    <string name="category_community">커뮤니티</string>
+    <string name="category_exhibition">전시·스타일</string>
+    <string name="category_safety_life">안전·생활</string>
+    <string name="category_accommodation">숙소/지역</string>
+
+    <!-- Congestion display labels -->
+    <string name="congestion_unknown">정보 없음</string>
+
+    <!-- RecommendationSection -->
+    <string name="recommendation_view_meeting">만남 보기</string>
+
+    <!-- SearchScreen filter dropdown labels (reuse home_filter_*) -->
+    <!-- existing: home_filter_category, home_filter_congestion, wishlist_filter_all -->
+
+    <!-- NotificationScreen -->
+    <string name="notification_empty">알림이 없습니다</string>
+    <string name="notification_status_accepted">승인됨</string>
+    <string name="notification_status_rejected">거절됨</string>
+    <string name="notification_status_closed">마감됨</string>
+    <string name="notification_status_completed">완료됨</string>
+    <string name="notification_status_reopened">재개됨</string>
+    <string name="notification_status_default">알림</string>
+    <string name="notification_meeting_label">만남: %s</string>
+    <string name="notification_time_recent">최근</string>
+
+    <!-- NotificationViewModel toasts -->
+    <string name="toast_apply_approved">메이트 신청을 승인했습니다</string>
+    <string name="toast_apply_rejected">메이트 신청을 거절했습니다</string>
+    <string name="toast_apply_approve_failed">승인 실패</string>
+    <string name="toast_apply_reject_failed">거절 실패</string>
+    <string name="toast_approve_generic_error">승인 중 오류가 발생했습니다</string>
+    <string name="toast_reject_generic_error">거절 중 오류가 발생했습니다</string>
+    <string name="toast_apply_approved_meeting_full">메이트 신청을 승인했습니다. 정원이 마감되었습니다.</string>
+    <!-- SearchBar -->
+    <string name="searchbar_placeholder">10,000개 이상의 서울 만남 검색</string>
 </resources>

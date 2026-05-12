@@ -23,14 +23,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.ui.util.displayMeetingTag
+import com.project.seoulmate.ui.util.tagColor
 
 /**
  * 최근 본 만남 가로 스크롤 섹션.
@@ -40,7 +44,7 @@ import com.project.seoulmate.data.model.Meeting
  */
 @Composable
 fun RecommendationSection(
-    title: String = "최근 본 만남",
+    title: String = stringResource(id = R.string.home_section_recent),
     modifier: Modifier = Modifier,
     meetings: List<Meeting> = emptyList(),
     onSeeAllClick: () -> Unit = {},
@@ -69,7 +73,7 @@ fun RecommendationSection(
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowRight,
-                contentDescription = "더보기",
+                contentDescription = stringResource(id = R.string.common_more),
                 tint = Color.Black,
                 modifier = Modifier.size(24.dp)
             )
@@ -96,6 +100,7 @@ fun RecommendationSection(
 /**
  * 만남 카드 하나. Meeting 데이터 클래스를 받아 UI를 그립니다.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RecommendationCard(
     meeting: Meeting,
@@ -148,31 +153,30 @@ fun RecommendationCard(
                         )
                 )
 
-                // 태그 (하단 좌측)
-                Row(
+                // 태그 (하단 좌측). 영문 라벨이 길어도 chip 내부에서 줄바꿈되지 않도록
+                // Text는 단일 라인, chip 자체는 FlowRow로 자연스럽게 줄바꿈.
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    maxItemsInEachRow = Int.MAX_VALUE,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
+                        .fillMaxWidth(0.85f)
                 ) {
-                    meeting.tags.forEach { tag ->
+                    meeting.tags.take(3).forEach { tag ->
                         Surface(
-                            color = when (tag) {
-                                "여유" -> Color(0xFF6CF0A0)         // 초록 (RELAXED)
-                                "보통" -> Color(0xFF4A90E2)         // 파랑 (NORMAL)
-                                "약간 붐빔" -> Color(0xFFFF9500)   // 주황 (SLIGHTLY_BUSY)
-                                "붐빔" -> Color(0xFFFF6B6B)         // 빨강 (BUSY)
-                                "혼잡" -> Color(0xFFFF6B6B)         // 빨강 (BUSY - 하위 호환)
-                                "정보 없음" -> Color(0xFF9E9E9E)   // 회색 (UNKNOWN)
-                                else -> Color(0xFF8B80FF)            // 보라색 (카테고리 태그)
-                            },
+                            color = tagColor(tag),
                             shape = RoundedCornerShape(8.dp),
                         ) {
                             Text(
-                                text = tag,
+                                text = displayMeetingTag(tag),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -182,7 +186,9 @@ fun RecommendationCard(
                 // 좋아요 아이콘 (우측 상단)
                 Icon(
                     imageVector = if (meeting.isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (meeting.isFavorited) "찜 취소" else "찜하기",
+                    contentDescription = stringResource(
+                        id = if (meeting.isFavorited) R.string.wishlist_cancel else R.string.meeting_favorite
+                    ),
                     tint = if (meeting.isFavorited) Color(0xFFFF6B6B) else Color.White,
                     modifier = Modifier
                         .padding(16.dp)
@@ -220,7 +226,7 @@ fun RecommendationCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Star,
-                                contentDescription = "평점",
+                                contentDescription = stringResource(id = R.string.wishlist_rating),
                                 tint = Color.White,
                                 modifier = Modifier.size(12.dp)
                             )
@@ -235,32 +241,32 @@ fun RecommendationCard(
                         }
 
                         //Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${meeting.time} 예상 ${meeting.price}",
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontSize = 12.sp,
-                                style = NoPaddingTextStyle
-                            )
-                            // Spacer(modifier = Modifier.width(4.dp))
-                            
+                        Text(
+                            text = "${meeting.time} " + stringResource(id = R.string.wishlist_expected_price, meeting.price ?: ""),
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 12.sp,
+                            style = NoPaddingTextStyle
+                        )
+                        // Spacer(modifier = Modifier.width(4.dp))
+
                         //}
                     }
 
-                        Button(
-                            onClick = { /* TODO */ },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Text(
-                                // 원래는 메이트 신청 버튼
-                                text = "만남 보기",
-                                color = Color.Black,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                    Button(
+                        onClick = { /* TODO */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text(
+                            // 원래는 메이트 신청 버튼
+                            text = stringResource(id = R.string.recommendation_view_meeting),
+                            color = Color.Black,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

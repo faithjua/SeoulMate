@@ -1,7 +1,9 @@
 package com.project.seoulmate.ui.screens.search
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +21,11 @@ sealed interface SearchUiState {
     object Idle : SearchUiState
     object Loading : SearchUiState
     data class Success(val meetings: List<Meeting>) : SearchUiState
-    data class Error(val message: String) : SearchUiState
+    /**
+     * 에러 상태. UI에서 stringResource(messageRes)로 변환.
+     * messageRes만 사용해 locale 변경에 즉시 반응하도록 한다.
+     */
+    data class Error(@StringRes val messageRes: Int) : SearchUiState
 }
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -75,17 +81,15 @@ class SearchViewModel @Inject constructor(
 
     private fun handleError(error: Throwable) {
         Timber.e(error, "Search fetch failed")
-        val message = when (error) {
-            is SocketTimeoutException -> "서버 응답 시간이 초과되었습니다. 다시 시도해주세요."
-            is IOException -> "네트워크 문제가 발생했습니다. 연결 상태를 확인해주세요."
+        val messageRes = when (error) {
+            is SocketTimeoutException -> R.string.error_timeout
+            is IOException -> R.string.error_network
             is HttpException -> {
-                when (error.code()) {
-                    in 500..599 -> "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
-                    else -> "알 수 없는 에러가 발생했습니다. (Code: ${error.code()})"
-                }
+                if (error.code() in 500..599) R.string.error_server
+                else R.string.error_unknown
             }
-            else -> error.message ?: "데이터를 불러오는 중 오류가 발생했습니다."
+            else -> R.string.error_load_data
         }
-        _uiState.update { SearchUiState.Error(message) }
+        _uiState.update { SearchUiState.Error(messageRes) }
     }
 }
