@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.meeting
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,16 +10,21 @@ import com.project.seoulmate.data.model.CoursePoint
 import com.project.seoulmate.data.model.MateInfo
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.data.model.MeetingDetail
+import com.project.seoulmate.data.model.CommentResponse
+import com.project.seoulmate.data.repository.CommentRepository
 import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import com.project.seoulmate.data.repository.ApplicationRepository
+import com.project.seoulmate.util.TranslationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -26,11 +32,15 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MeetingDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle,
     private val meetingRepository: MeetingRepository,
     private val favoriteRepository: FavoriteRepository,
-    private val applicationRepository: ApplicationRepository
+    private val applicationRepository: ApplicationRepository,
+    private val commentRepository: CommentRepository
 ) : ViewModel() {
+
+    private fun str(resId: Int): String = appContext.getString(resId)
 
     private val meetingId: String = checkNotNull(savedStateHandle["meetingId"])
 
@@ -46,6 +56,38 @@ class MeetingDetailViewModel @Inject constructor(
     private val _userActionEvent = MutableSharedFlow<UserActionResult>()
     val userActionEvent: SharedFlow<UserActionResult> = _userActionEvent.asSharedFlow()
 
+    // --- 댓글 상태 ---
+    private val _comments = MutableStateFlow<List<CommentResponse>>(emptyList())
+    val comments: StateFlow<List<CommentResponse>> = _comments.asStateFlow()
+
+    private val _commentsLoading = MutableStateFlow(false)
+    val commentsLoading: StateFlow<Boolean> = _commentsLoading.asStateFlow()
+
+    // commentId → 영어 번역 결과 (캐시)
+    private val _translatedById = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val translatedById: StateFlow<Map<Long, String>> = _translatedById.asStateFlow()
+
+    // 번역 진행 중인 commentId 집합
+    private val _translatingIds = MutableStateFlow<Set<Long>>(emptySet())
+    val translatingIds: StateFlow<Set<Long>> = _translatingIds.asStateFlow()
+
+    // --- 만남 본문 번역 (제목/소개) ---
+    private val _translatedTitle = MutableStateFlow<String?>(null)
+    val translatedTitle: StateFlow<String?> = _translatedTitle.asStateFlow()
+
+    private val _translatedDescription = MutableStateFlow<String?>(null)
+    val translatedDescription: StateFlow<String?> = _translatedDescription.asStateFlow()
+
+    private val _isTranslatingTitle = MutableStateFlow(false)
+    val isTranslatingTitle: StateFlow<Boolean> = _isTranslatingTitle.asStateFlow()
+
+    private val _isTranslatingDescription = MutableStateFlow(false)
+    val isTranslatingDescription: StateFlow<Boolean> = _isTranslatingDescription.asStateFlow()
+
+    /** 디바이스가 한국어가 아니면 번역 UI 노출 */
+    val translationEnabled: Boolean get() = TranslationService.isEnabled
+    val translationLabel: String get() = TranslationService.targetLabel()
+
     sealed class UserActionResult {
         data class Success(val message: String) : UserActionResult()
         data class Error(val message: String) : UserActionResult()
@@ -53,6 +95,13 @@ class MeetingDetailViewModel @Inject constructor(
 
     init {
         loadMeetingDetail()
+        loadComments()
+        // 앱 첫 사용 시 한국어→영어 번역 모델 선다운로드 (Wi-Fi 필요)
+        viewModelScope.launch {
+            TranslationService.ensureModelDownloaded().onFailure {
+                Timber.w(it, "Translation model preload failed (will retry on click)")
+            }
+        }
     }
 
     private fun loadMeetingDetail() {
@@ -91,7 +140,7 @@ class MeetingDetailViewModel @Inject constructor(
                 val tokenResult = user?.getIdToken(false)?.await()
                 val idToken = tokenResult?.token ?: return@launch
 
-                // 찜 목록 조회 
+                // 찜 목록 조회
                 // TODO: 백엔드 API 개선 필요 - MeetingDetailResponse에 isFavorite 필드 추가하거나
                 //       GET /api/favorites/exists?targetId=X 엔드포인트 추가 권장
                 val result = favoriteRepository.getFavorites(idToken, targetType = "MEETUP", page = 0, size = 100)
@@ -228,10 +277,10 @@ class MeetingDetailViewModel @Inject constructor(
                 // TODO: 실제 API 호출 구현 필요
                 // val result = reportRepository.reportUser(userId, reason, description)
                 Timber.d("Report user - reason: $reason, description: $description")
-                _userActionEvent.emit(UserActionResult.Success("신고가 접수되었습니다"))
+                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_report_received)))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to report user")
-                _userActionEvent.emit(UserActionResult.Error("신고 처리 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_report_error)))
             }
         }
     }
@@ -245,10 +294,10 @@ class MeetingDetailViewModel @Inject constructor(
                 // TODO: 실제 API 호출 구현 필요
                 // val result = blockRepository.blockUser(userId)
                 Timber.d("Block user")
-                _userActionEvent.emit(UserActionResult.Success("사용자를 차단했습니다"))
+                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_user_blocked)))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to block user")
-                _userActionEvent.emit(UserActionResult.Error("차단 처리 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_block_error)))
             }
         }
     }
@@ -265,13 +314,13 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
                 val meetingIdLong = meetingId.toLongOrNull()
                 if (meetingIdLong == null) {
-                    _userActionEvent.emit(UserActionResult.Error("잘못된 만남 ID입니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_invalid_meeting_id)))
                     return@launch
                 }
 
@@ -281,16 +330,16 @@ class MeetingDetailViewModel @Inject constructor(
 
                 result.onSuccess { applicationResponse ->
                     Timber.d("Application created: id=${applicationResponse.id}, status=${applicationResponse.status}")
-                    _userActionEvent.emit(UserActionResult.Success("메이트 신청이 완료되었습니다. 호스트의 승인을 기다려주세요!"))
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_apply_success)))
                     // 상세 화면 새로고침 (신청 상태 반영)
                     loadMeetingDetail()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to create application")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "메이트 신청 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_apply_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during apply for meeting")
-                _userActionEvent.emit(UserActionResult.Error("메이트 신청 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_apply_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -308,7 +357,7 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
@@ -317,15 +366,15 @@ class MeetingDetailViewModel @Inject constructor(
 
                 result.onSuccess {
                     Timber.d("Meeting deleted successfully")
-                    _userActionEvent.emit(UserActionResult.Success("만남이 삭제되었습니다"))
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_meeting_deleted)))
                     onSuccess()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to delete meeting")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "만남 삭제 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_meeting_delete_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during delete meeting")
-                _userActionEvent.emit(UserActionResult.Error("만남 삭제 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_meeting_delete_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -346,7 +395,7 @@ class MeetingDetailViewModel @Inject constructor(
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
-                    _userActionEvent.emit(UserActionResult.Error("로그인이 필요합니다"))
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
                     return@launch
                 }
 
@@ -359,10 +408,10 @@ class MeetingDetailViewModel @Inject constructor(
                     Timber.d("Meeting status updated successfully to $status")
 
                     val message = when (status) {
-                        "CLOSED" -> "만남이 마감되었습니다. 참여자들에게 알림이 전송됩니다."
-                        "COMPLETED" -> "만남이 완료 처리되었습니다. 참여자들에게 알림이 전송됩니다."
-                        "OPEN" -> "만남이 다시 열렸습니다. 참여자들에게 알림이 전송됩니다."
-                        else -> "만남 상태가 변경되었습니다."
+                        "CLOSED" -> str(R.string.toast_status_closed_message)
+                        "COMPLETED" -> str(R.string.toast_status_completed_message)
+                        "OPEN" -> str(R.string.toast_status_open_message)
+                        else -> str(R.string.toast_status_changed_generic)
                     }
 
                     _userActionEvent.emit(UserActionResult.Success(message))
@@ -371,11 +420,11 @@ class MeetingDetailViewModel @Inject constructor(
                     loadMeetingDetail()
                 }.onFailure { error ->
                     Timber.e(error, "Failed to update meeting status")
-                    _userActionEvent.emit(UserActionResult.Error(error.message ?: "상태 변경 실패"))
+                    _userActionEvent.emit(UserActionResult.Error(error.message ?: str(R.string.toast_status_change_failed)))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during update meeting status")
-                _userActionEvent.emit(UserActionResult.Error("상태 변경 중 오류가 발생했습니다"))
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_status_change_generic_error)))
             } finally {
                 _isLoading.value = false
             }
@@ -404,5 +453,160 @@ class MeetingDetailViewModel @Inject constructor(
      */
     fun reopenMeeting() {
         updateMeetingStatus("OPEN")
+    }
+
+    // --------------------------- 댓글 ---------------------------
+
+    /** 현재 Firebase 사용자의 idToken (없으면 null) */
+    private suspend fun currentToken(): String? {
+        val user = FirebaseAuth.getInstance().currentUser ?: return null
+        return runCatching { user.getIdToken(false).await()?.token }.getOrNull()
+    }
+
+    fun loadComments() {
+        viewModelScope.launch {
+            val id = meetingId.toLongOrNull() ?: return@launch
+            _commentsLoading.value = true
+            try {
+                val token = currentToken()
+                commentRepository.getComments(token, id, page = 0, size = 50)
+                    .onSuccess { page -> _comments.value = page.content }
+                    .onFailure { Timber.e(it, "Failed to load comments") }
+            } finally {
+                _commentsLoading.value = false
+            }
+        }
+    }
+
+    fun submitComment(content: String, isPrivate: Boolean) {
+        viewModelScope.launch {
+            val token = currentToken()
+            if (token == null) {
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
+                return@launch
+            }
+            val id = meetingId.toLongOrNull() ?: return@launch
+            commentRepository.createComment(token, id, content, isPrivate)
+                .onSuccess { created ->
+                    _comments.update { it + created }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "createComment failed")
+                    _userActionEvent.emit(
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_create_failed))
+                    )
+                }
+        }
+    }
+
+    fun editComment(commentId: Long, newContent: String) {
+        viewModelScope.launch {
+            val token = currentToken() ?: run {
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
+                return@launch
+            }
+            val id = meetingId.toLongOrNull() ?: return@launch
+            commentRepository.updateComment(token, id, commentId, newContent)
+                .onSuccess { updated ->
+                    _comments.update { list ->
+                        list.map { if (it.id == commentId) updated else it }
+                    }
+                    // 수정되면 기존 번역 캐시 제거
+                    _translatedById.update { it - commentId }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "updateComment failed")
+                    _userActionEvent.emit(
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_update_failed))
+                    )
+                }
+        }
+    }
+
+    fun deleteComment(commentId: Long) {
+        viewModelScope.launch {
+            val token = currentToken() ?: run {
+                _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
+                return@launch
+            }
+            val id = meetingId.toLongOrNull() ?: return@launch
+            commentRepository.deleteComment(token, id, commentId)
+                .onSuccess {
+                    _comments.update { list -> list.filterNot { it.id == commentId } }
+                    _translatedById.update { it - commentId }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "deleteComment failed")
+                    _userActionEvent.emit(
+                        UserActionResult.Error(e.message ?: str(R.string.toast_comment_delete_failed))
+                    )
+                }
+        }
+    }
+
+    /**
+     * 댓글 번역 아이콘 클릭. 이미 번역된 상태면 토글로 원문 복귀.
+     */
+    fun toggleTranslate(commentId: Long, text: String) {
+        if (_translatedById.value.containsKey(commentId)) {
+            _translatedById.update { it - commentId }
+            return
+        }
+        if (commentId in _translatingIds.value) return
+
+        viewModelScope.launch {
+            _translatingIds.update { it + commentId }
+            TranslationService.translate(text)
+                .onSuccess { translated ->
+                    _translatedById.update { it + (commentId to translated) }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "translate failed")
+                    _userActionEvent.emit(
+                        UserActionResult.Error(str(R.string.toast_translate_failed))
+                    )
+                }
+            _translatingIds.update { it - commentId }
+        }
+    }
+
+    /** 만남 제목 번역 토글. */
+    fun toggleTranslateTitle() {
+        if (_translatedTitle.value != null) {
+            _translatedTitle.value = null
+            return
+        }
+        val text = _uiState.value?.meeting?.title ?: return
+        if (_isTranslatingTitle.value) return
+        viewModelScope.launch {
+            _isTranslatingTitle.value = true
+            TranslationService.translate(text)
+                .onSuccess { _translatedTitle.value = it }
+                .onFailure { e ->
+                    Timber.e(e, "translate title failed")
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_translate_failed)))
+                }
+            _isTranslatingTitle.value = false
+        }
+    }
+
+    /** 만남 소개 번역 토글. */
+    fun toggleTranslateDescription() {
+        if (_translatedDescription.value != null) {
+            _translatedDescription.value = null
+            return
+        }
+        val text = _uiState.value?.description ?: return
+        if (_isTranslatingDescription.value) return
+        viewModelScope.launch {
+            _isTranslatingDescription.value = true
+            TranslationService.translate(text)
+                .onSuccess { _translatedDescription.value = it }
+                .onFailure { e ->
+                    Timber.e(e, "translate description failed")
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_translate_failed)))
+                }
+            _isTranslatingDescription.value = false
+        }
     }
 }

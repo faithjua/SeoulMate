@@ -51,8 +51,13 @@ import com.naver.maps.map.compose.MarkerState
 import com.naver.maps.map.compose.NaverMap
 import com.naver.maps.map.compose.PathOverlay
 import com.naver.maps.map.compose.rememberCameraPositionState
+import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.*
+import com.project.seoulmate.ui.components.CommentSection
 import com.project.seoulmate.ui.components.RecommendationCard
+import com.project.seoulmate.ui.components.TranslateInlineButton
+import com.project.seoulmate.ui.components.TranslatedBlock
+import com.project.seoulmate.util.TranslationService
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -62,6 +67,14 @@ fun MeetingDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+    val comments by viewModel.comments.collectAsStateWithLifecycle()
+    val commentsLoading by viewModel.commentsLoading.collectAsStateWithLifecycle()
+    val translatedById by viewModel.translatedById.collectAsStateWithLifecycle()
+    val translatingIds by viewModel.translatingIds.collectAsStateWithLifecycle()
+    val translatedTitle by viewModel.translatedTitle.collectAsStateWithLifecycle()
+    val translatedDescription by viewModel.translatedDescription.collectAsStateWithLifecycle()
+    val isTranslatingTitle by viewModel.isTranslatingTitle.collectAsStateWithLifecycle()
+    val isTranslatingDescription by viewModel.isTranslatingDescription.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // 메이트 신청 다이얼로그 상태
@@ -126,6 +139,9 @@ fun MeetingDetailScreen(
                 // 기본 정보 섹션
                 InfoSection(
                     detail = detail,
+                    translatedTitle = translatedTitle,
+                    isTranslatingTitle = isTranslatingTitle,
+                    onTranslateTitle = { viewModel.toggleTranslateTitle() },
                     onEditClick = if (detail.isHost) {
                         { /* TODO: 수정 화면으로 이동 */ }
                     } else null,
@@ -142,6 +158,9 @@ fun MeetingDetailScreen(
                 // 설명 섹션
                 DescriptionSection(
                     detail = detail,
+                    translatedDescription = translatedDescription,
+                    isTranslatingDescription = isTranslatingDescription,
+                    onTranslateDescription = { viewModel.toggleTranslateDescription() },
                     onReportMeeting = {
                         // 게시글 신고 (임시로 '게시글 문제' 사유 사용)
                         viewModel.reportUser(reason = "POST_CONTENT", description = reportPostDesc)
@@ -169,7 +188,28 @@ fun MeetingDetailScreen(
                         navController.navigate("meeting_detail/$meetingId")
                     }
                 )
-                
+
+                Divider(color = Color(0xFFF0F0F0), thickness = 8.dp)
+
+                // 댓글 영역
+                CommentSection(
+                    comments = comments,
+                    isLoading = commentsLoading,
+                    isLoggedIn = FirebaseAuth.getInstance().currentUser != null,
+                    onSubmit = { content, isPrivate ->
+                        viewModel.submitComment(content, isPrivate)
+                    },
+                    onDelete = { commentId -> viewModel.deleteComment(commentId) },
+                    onEdit = { commentId, newContent ->
+                        viewModel.editComment(commentId, newContent)
+                    },
+                    onTranslate = { commentId, text ->
+                        viewModel.toggleTranslate(commentId, text)
+                    },
+                    translatedById = translatedById,
+                    translatingIds = translatingIds
+                )
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
@@ -206,7 +246,7 @@ fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -
                 // 서버 이미지 (S3 URL)
                 AsyncImage(
                     model = imageUrl,
-                    contentDescription = "만남 이미지 ${page + 1}",
+                    contentDescription = stringResource(id = R.string.meeting_image_indexed, page + 1),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                     error = painterResource(id = R.drawable.img_recommend_1)
@@ -216,7 +256,7 @@ fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -
                 val resId = imageUrl.removePrefix("drawable://").toIntOrNull() ?: R.drawable.img_recommend_1
                 Image(
                     painter = painterResource(id = resId),
-                    contentDescription = "만남 이미지 ${page + 1}",
+                    contentDescription = stringResource(id = R.string.meeting_image_indexed, page + 1),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -233,14 +273,14 @@ fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "뒤로가기",
+                    contentDescription = stringResource(id = R.string.meeting_back),
                     tint = Color.White
                 )
             }
             IconButton(onClick = onSearchClick) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "검색",
+                    contentDescription = stringResource(id = R.string.meeting_search),
                     tint = Color.White
                 )
             }
@@ -272,6 +312,9 @@ fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -
 @Composable
 fun InfoSection(
     detail: MeetingDetail,
+    translatedTitle: String? = null,
+    isTranslatingTitle: Boolean = false,
+    onTranslateTitle: () -> Unit = {},
     onEditClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null,
     onStatusChange: ((String) -> Unit)? = null
@@ -293,6 +336,22 @@ fun InfoSection(
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
+                if (TranslationService.isEnabled) {
+                    TranslateInlineButton(
+                        isTranslating = isTranslatingTitle,
+                        isTranslated = translatedTitle != null,
+                        onClick = onTranslateTitle,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                if (translatedTitle != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TranslatedBlock(
+                        translated = translatedTitle,
+                        targetLabel = TranslationService.targetLabel(),
+                        contentFontSize = 16.sp
+                    )
+                }
                 Text(
                     text = detail.location,
                     fontSize = 12.sp,
@@ -329,7 +388,7 @@ fun InfoSection(
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                         border = BorderStroke(1.dp, Color(0xFFFF9800))
                                     ) {
-                                        Text("마감", fontSize = 11.sp, color = Color(0xFFFF9800))
+                                        Text(stringResource(id = R.string.meeting_action_close), fontSize = 11.sp, color = Color(0xFFFF9800))
                                     }
                                     OutlinedButton(
                                         onClick = { onStatusChange("COMPLETED") },
@@ -337,7 +396,7 @@ fun InfoSection(
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                         border = BorderStroke(1.dp, Color(0xFF4CAF50))
                                     ) {
-                                        Text("완료", fontSize = 11.sp, color = Color(0xFF4CAF50))
+                                        Text(stringResource(id = R.string.meeting_action_complete), fontSize = 11.sp, color = Color(0xFF4CAF50))
                                     }
                                 }
                                 "CLOSED" -> {
@@ -347,7 +406,7 @@ fun InfoSection(
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                         border = BorderStroke(1.dp, Color(0xFF6C60FD))
                                     ) {
-                                        Text("재개", fontSize = 11.sp, color = Color(0xFF6C60FD))
+                                        Text(stringResource(id = R.string.meeting_action_reopen), fontSize = 11.sp, color = Color(0xFF6C60FD))
                                     }
                                     OutlinedButton(
                                         onClick = { onStatusChange("COMPLETED") },
@@ -355,12 +414,12 @@ fun InfoSection(
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                         border = BorderStroke(1.dp, Color(0xFF4CAF50))
                                     ) {
-                                        Text("완료", fontSize = 11.sp, color = Color(0xFF4CAF50))
+                                        Text(stringResource(id = R.string.meeting_action_complete), fontSize = 11.sp, color = Color(0xFF4CAF50))
                                     }
                                 }
                                 "COMPLETED" -> {
                                     Text(
-                                        text = "완료됨",
+                                        text = stringResource(id = R.string.meeting_completed_label),
                                         fontSize = 11.sp,
                                         color = Color(0xFF4CAF50),
                                         fontWeight = FontWeight.Bold
@@ -379,7 +438,7 @@ fun InfoSection(
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                 border = BorderStroke(1.dp, Color(0xFF6C60FD))
                             ) {
-                                Text("수정", fontSize = 11.sp, color = Color(0xFF6C60FD))
+                                Text(stringResource(id = R.string.meeting_action_edit), fontSize = 11.sp, color = Color(0xFF6C60FD))
                             }
                         }
                         if (onDeleteClick != null) {
@@ -389,7 +448,7 @@ fun InfoSection(
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                 border = BorderStroke(1.dp, Color.Red)
                             ) {
-                                Text("삭제", fontSize = 11.sp, color = Color.Red)
+                                Text(stringResource(id = R.string.meeting_action_delete), fontSize = 11.sp, color = Color.Red)
                             }
                         }
                     }
@@ -444,7 +503,7 @@ fun InfoSection(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "좋아요",
+                    contentDescription = stringResource(id = R.string.meeting_like),
                     tint = Color.Gray,
                     modifier = Modifier.size(20.dp)
                 )
@@ -460,14 +519,20 @@ fun InfoSection(
 }
 
 @Composable
-fun DescriptionSection(detail: MeetingDetail, onReportMeeting: () -> Unit) {
+fun DescriptionSection(
+    detail: MeetingDetail,
+    translatedDescription: String? = null,
+    isTranslatingDescription: Boolean = false,
+    onTranslateDescription: () -> Unit = {},
+    onReportMeeting: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(24.dp)
     ) {
         Text(
-            text = "일시/시간 : ${detail.dateAndTime}",
+            text = stringResource(id = R.string.meeting_datetime_label, detail.dateAndTime),
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -476,16 +541,32 @@ fun DescriptionSection(detail: MeetingDetail, onReportMeeting: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "만남 소개 : ${detail.description}",
+            text = stringResource(id = R.string.meeting_introduction_label, detail.description),
             fontSize = 14.sp,
             color = Color(0xFF4A4A4A),
             lineHeight = 22.sp
         )
 
+        if (TranslationService.isEnabled) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TranslateInlineButton(
+                isTranslating = isTranslatingDescription,
+                isTranslated = translatedDescription != null,
+                onClick = onTranslateDescription
+            )
+        }
+        if (translatedDescription != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TranslatedBlock(
+                translated = translatedDescription,
+                targetLabel = TranslationService.targetLabel()
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "이 게시글 신고하기",
+            text = stringResource(id = R.string.meeting_report_post),
             fontSize = 12.sp,
             color = Color.Gray,
             textDecoration = TextDecoration.Underline,
@@ -513,7 +594,7 @@ fun CourseSection(courses: List<CoursePoint>) {
 
         if (courses.isEmpty()) {
             Text(
-                text = "등록된 코스가 없습니다",
+                text = stringResource(id = R.string.meeting_course_empty),
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(vertical = 16.dp)
@@ -585,7 +666,7 @@ fun CourseSection(courses: List<CoursePoint>) {
                     val isInvalidLocation = course.lat == null || course.lat == 0.0 || course.lng == null || course.lng == 0.0
                     if (isInvalidLocation) {
                         Text(
-                            text = "지도 위치 미지원 장소",
+                            text = stringResource(id = R.string.meeting_course_no_location),
                             fontSize = 11.sp,
                             color = Color.Gray,
                             modifier = Modifier.padding(top = 2.dp)
@@ -642,7 +723,7 @@ fun CourseSection(courses: List<CoursePoint>) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "표시할 수 있는 지도 위치가 없습니다.",
+                    text = stringResource(id = R.string.meeting_map_empty),
                     color = Color.Gray,
                     fontSize = 13.sp
                 )
@@ -670,7 +751,7 @@ fun CourseSection(courses: List<CoursePoint>) {
 
         if (courses.isEmpty()) {
             Text(
-                text = "등록된 코스가 없습니다",
+                text = stringResource(id = R.string.meeting_course_empty),
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(vertical = 16.dp)
@@ -744,7 +825,7 @@ fun CourseSection(courses: List<CoursePoint>) {
         if (courses.isNotEmpty()) {
             val centerLat = courses.map { it.lat }.average()
             val centerLng = courses.map { it.lng }.average()
-            
+
             val cameraPositionState = rememberCameraPositionState {
                 position = CameraPosition(LatLng(centerLat, centerLng), 13.0)
             }
@@ -766,7 +847,7 @@ fun CourseSection(courses: List<CoursePoint>) {
                             captionText = course.name
                         )
                     }
-                    
+
                     // PathOverlay 가능 여부는 naver-map-compose API 확인 필요
                     // 간단히 마커만 표시
                 }
@@ -779,8 +860,8 @@ fun CourseSection(courses: List<CoursePoint>) {
 
 @Composable
 fun MateInfoSection(
-    mateInfo: MateInfo, 
-    otherMeetings: List<Meeting>, 
+    mateInfo: MateInfo,
+    otherMeetings: List<Meeting>,
     onReportUser: () -> Unit,
     onBlockUser: () -> Unit,
     onMeetingClick: (String) -> Unit
@@ -803,7 +884,7 @@ fun MateInfoSection(
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-            
+
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     text = stringResource(id = R.string.meeting_block),
@@ -854,7 +935,7 @@ fun MateInfoSection(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "인증됨",
+                            contentDescription = stringResource(id = R.string.meeting_mate_verified),
                             tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
@@ -862,7 +943,7 @@ fun MateInfoSection(
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.Favorite,
-                        contentDescription = "평점",
+                        contentDescription = stringResource(id = R.string.meeting_mate_rating_desc),
                         tint = Color(0xFF6C60FD),
                         modifier = Modifier.size(14.dp)
                     )
@@ -941,7 +1022,12 @@ fun DetailBottomBar(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C60FD)),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = "메이트 신청", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                text = stringResource(id = R.string.meeting_apply),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
 
     }
@@ -963,7 +1049,7 @@ fun ApplicationMessageDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "메이트 신청",
+                text = stringResource(id = R.string.meeting_apply),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -971,7 +1057,7 @@ fun ApplicationMessageDialog(
         text = {
             Column {
                 Text(
-                    "호스트에게 전달할 메시지를 입력해주세요",
+                    text = stringResource(id = R.string.meeting_apply_dialog_message),
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -988,14 +1074,14 @@ fun ApplicationMessageDialog(
                         .height(120.dp),
                     placeholder = {
                         Text(
-                            "예: 안녕하세요! 함께 가고 싶어서 신청합니다 :)",
+                            text = stringResource(id = R.string.meeting_apply_dialog_placeholder),
                             fontSize = 14.sp,
                             color = Color.LightGray
                         )
                     },
                     supportingText = {
                         Text(
-                            "${message.length} / $maxLength",
+                            text = stringResource(id = R.string.comment_char_count, message.length, maxLength),
                             fontSize = 12.sp,
                             color = Color.Gray,
                             modifier = Modifier.fillMaxWidth(),
@@ -1020,7 +1106,7 @@ fun ApplicationMessageDialog(
                 enabled = message.isNotBlank()
             ) {
                 Text(
-                    "신청하기",
+                    text = stringResource(id = R.string.meeting_apply_confirm),
                     color = if (message.isNotBlank()) Color(0xFF6C60FD) else Color.Gray,
                     fontWeight = FontWeight.Bold
                 )
@@ -1028,7 +1114,10 @@ fun ApplicationMessageDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("취소", color = Color.Gray)
+                Text(
+                    text = stringResource(id = R.string.meeting_apply_cancel),
+                    color = Color.Gray
+                )
             }
         }
     )
