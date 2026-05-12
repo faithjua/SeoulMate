@@ -29,10 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -108,7 +111,7 @@ fun ProfileScreen(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                         1 -> navController.navigate(Screen.Wishlist.route)
-                        2 -> navController.navigate(Screen.AddMeeting.route)
+                        2 -> navController.navigate(Screen.AddMeeting.createRoute())
                         else -> selectedBottomItem = index
                     }
                 }
@@ -350,26 +353,28 @@ fun ProfileHeader() {
 
 @Composable
 fun BadgeTabContent(navController: NavController) {
-    // 12개 배지 정의 (이름, 아이콘 리소스, 배경 톤 컬러)
+    // 12개 배지 정의 (이름, 아이콘 리소스)
     val badgeList = remember {
         listOf(
-            BadgeData("관광", R.drawable.ic_tourism, Color(0xFFE2F9F3)),
-            BadgeData("K-팝", R.drawable.ic_kpop, Color(0xFFE8EAF6)),
-            BadgeData("K-뷰티", R.drawable.ic_kbeauty, Color(0xFFFFFDE7)),
-            BadgeData("쇼핑", R.drawable.ic_shopping, Color(0xFFE1F5FE)),
-            BadgeData("한식", R.drawable.ic_kfood, Color(0xFFFFF3E0)),
-            BadgeData("카페", R.drawable.ic_cafe, Color(0xFFE8F5E9)),
-            BadgeData("교통 가이드", R.drawable.ic_subway, Color(0xFFF3E5F5)),
-            BadgeData("클래스", R.drawable.ic_class, Color(0xFFE0F2F1)),
-            BadgeData("스타일", R.drawable.ic_shopping, Color(0xFFEDE7F6)), // 스타일 대용으로 ic_shopping 활용
-            BadgeData("커뮤니티", R.drawable.ic_community, Color(0xFFFFEBEE)),
-            BadgeData("전시/공연", R.drawable.ic_exhibition, Color(0xFFF1F8E9)),
-            BadgeData("안전/생활", R.drawable.ic_safety, Color(0xFFFFF9C4))
+            BadgeData("관광", R.drawable.badge_tour),
+            BadgeData("K-팝", R.drawable.badge_kpop),
+            BadgeData("K-뷰티", R.drawable.badge_kbeauty),
+            BadgeData("쇼핑", R.drawable.badge_shopping),
+            BadgeData("한식", R.drawable.badge_kfood),
+            BadgeData("카페", R.drawable.badge_cafe),
+            BadgeData("교통가이드", R.drawable.badge_transport),
+            BadgeData("클래스", R.drawable.badge_class),
+            BadgeData("전시·스타일", R.drawable.badge_style),
+            BadgeData("커뮤니티", R.drawable.badge_community),
+            BadgeData("숙소·지역", R.drawable.badge_region),
+            BadgeData("안전", R.drawable.badge_safety)
         )
     }
 
-    // 선택된 배지 ID/이름을 저장하는 State (토글 가능)
-    var selectedBadges by remember { mutableStateOf(setOf<String>()) }
+    // 첨부 이미지와 완벽히 매칭하기 위해 기본 활성화 상태(K-팝, 한식, 교통가이드, 전시·스타일, 안전) 지정
+    var selectedBadges by remember { 
+        mutableStateOf(setOf("K-팝", "한식", "교통가이드", "전시·스타일", "안전")) 
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -400,8 +405,7 @@ fun BadgeTabContent(navController: NavController) {
 
 data class BadgeData(
     val name: String,
-    val iconRes: Int,
-    val bgColor: Color
+    val iconRes: Int
 )
 
 @Composable
@@ -413,55 +417,31 @@ fun BadgeGridItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 아이콘을 담는 둥근 Squircle 박스
-        Box(
+        Image(
+            painter = painterResource(id = badge.iconRes),
+            contentDescription = badge.name,
             modifier = Modifier
                 .aspectRatio(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(badge.bgColor)
-                .border(
-                    width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) Color(0xFF6C60FD) else Color(0x1F000000),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = badge.iconRes),
-                contentDescription = badge.name,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
-            
-            // 선택되었을 경우 우측 상단에 작은 체크 서클 또는 효과 표시
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.TopEnd
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF6C60FD),
-                        modifier = Modifier.size(16.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "✓",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
+                .fillMaxWidth(0.9f),
+            contentScale = ContentScale.Fit,
+            // 비활성화 상태일 경우 채도를 0으로 바꾸어 흑백 처리 + 투명도 조정
+            colorFilter = if (isSelected) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
+            alpha = if (isSelected) 1f else 0.45f
+        )
+        
+        Text(
+            text = badge.name,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = SuitFontFamily,
+            color = if (isSelected) Color(0xFF424242) else Color(0xFF9E9E9E),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

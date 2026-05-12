@@ -64,23 +64,14 @@ fun HomeScreen(
     val lowCongestionMeetings by viewModel.lowCongestionMeetings.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
 
+    // 카탈로그 데이터
+    val filterCategories by viewModel.filterCategories.collectAsStateWithLifecycle()
+    val congestionLevels by viewModel.congestionLevels.collectAsStateWithLifecycle()
+    val selectedFilterCategory by viewModel.selectedFilterCategory.collectAsStateWithLifecycle()
+    val selectedCongestion by viewModel.selectedCongestion.collectAsStateWithLifecycle()
+
     // 하단 네비게이션 선택 상태 (네비게이션 바 전용 UI 상태, 간단하므로 여기서 관리)
     var selectedBottomItem by remember { mutableStateOf(0) }
-    var selectedCongestion by remember { mutableStateOf("전체") }
-
-    LaunchedEffect(selectedCategory) {
-        selectedCongestion = "전체"
-    }
-
-    val filteredMeetings = remember(recentMeetings, selectedCongestion) {
-        if (selectedCongestion == "전체") {
-            recentMeetings
-        } else {
-            recentMeetings.filter { meeting ->
-                meeting.tags.any { tag -> tag.contains(selectedCongestion) }
-            }
-        }
-    }
 
     Scaffold(
         bottomBar = {
@@ -93,7 +84,7 @@ fun HomeScreen(
                             launchSingleTop = true
                             restoreState = true
                         }
-                        2 -> navController.navigate(Screen.AddMeeting.route)
+                        2 -> navController.navigate(Screen.AddMeeting.createRoute())
                         // 개발 모드에서만 쪽지(3)/프로필(4) 탭 노출
                         3 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
                         4 -> if (!AppConfig.IS_PRODUCTION) {
@@ -213,26 +204,34 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 카테고리 드롭다운 필터
-                        FilterChipItem(
-                            text = "카테고리",
-                            options = categories.map { it.name },
-                            selectedOption = selectedCategory?.name ?: "카테고리",
-                            onOptionSelected = { selectedName ->
-                                val targetCategory = categories.find { it.name == selectedName }
-                                if (targetCategory != null) {
-                                    viewModel.onCategorySelected(targetCategory)
+                        // 카테고리 드롭다운 필터 (카탈로그 API 데이터 사용)
+                        if (filterCategories.isNotEmpty()) {
+                            FilterChipItem(
+                                text = "카테고리",
+                                options = filterCategories,
+                                selectedOption = selectedFilterCategory ?: "카테고리",
+                                onOptionSelected = { selectedName ->
+                                    // "당일만남" 선택 시 null 전달 (백엔드에서 today=true로 처리)
+                                    val categoryParam = if (selectedName == "당일만남") null else selectedName
+                                    viewModel.onFilterCategorySelected(categoryParam)
                                 }
-                            }
-                        )
+                            )
+                        }
 
-                        // 혼잡도 드롭다운 필터
-                        FilterChipItem(
-                            text = "혼잡도",
-                            options = listOf("전체", "여유", "보통", "약간 붐빔", "붐빔"),
-                            selectedOption = if (selectedCongestion == "전체") "혼잡도" else selectedCongestion,
-                            onOptionSelected = { selectedCongestion = it }
-                        )
+                        // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 사용)
+                        if (congestionLevels.isNotEmpty()) {
+                            FilterChipItem(
+                                text = "혼잡도",
+                                options = congestionLevels.map { it.label },
+                                selectedOption = congestionLevels.find { it.code == selectedCongestion }?.label ?: "혼잡도",
+                                onOptionSelected = { selectedLabel ->
+                                    val congestionOption = congestionLevels.find { it.label == selectedLabel }
+                                    // "전체" 선택 시 null 전달
+                                    val congestionParam = if (congestionOption?.code == "ALL") null else congestionOption?.code
+                                    viewModel.onCongestionSelected(congestionParam)
+                                }
+                            )
+                        }
 
                         Spacer(modifier = Modifier.weight(1f))
 
@@ -263,7 +262,7 @@ fun HomeScreen(
                 // 총 건수 텍스트 노출
                 item(span = { GridItemSpan(2) }) {
                     Text(
-                        text = "만남 ${filteredMeetings.size}개",
+                        text = "만남 ${recentMeetings.size}개",
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -272,7 +271,7 @@ fun HomeScreen(
                 }
 
                 // 세로형 2열 모임 그리드 카드들 노출
-                items(filteredMeetings) { meeting ->
+                items(recentMeetings) { meeting ->
                     MeetingGridCard(
                         meeting = meeting,
                         onClick = {
