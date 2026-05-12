@@ -573,6 +573,163 @@ fun CourseSection(courses: List<CoursePoint>) {
 
                 Spacer(modifier = Modifier.width(16.dp))
 
+                //  텍스트 영역: 장소 이름과 (위치 미지원) 안내 문구
+                Column {
+                    Text(
+                        text = course.name,
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+
+                    // 좌표가 null이거나 0.0이면 위치 미지원 안내 표시
+                    val isInvalidLocation = course.lat == null || course.lat == 0.0 || course.lng == null || course.lng == 0.0
+                    if (isInvalidLocation) {
+                        Text(
+                            text = "지도 위치 미지원 장소",
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        //  지도 영역 방어 로직 (크래시 방지)
+        // 1. 유효한(정상적인) 좌표만 필터링합니다.
+        val validCourses = courses.filter {
+            it.lat != null && it.lat != 0.0 && it.lng != null && it.lng != 0.0
+        }
+
+        // 2. 유효한 좌표가 있을 때만 지도를 그립니다.
+        if (validCourses.isNotEmpty()) {
+            // 필터링된 애들로만 평균을 구해야 에러(NaN)가 나지 않습니다.
+            val centerLat = validCourses.map { it.lat!! }.average()
+            val centerLng = validCourses.map { it.lng!! }.average()
+
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition(LatLng(centerLat, centerLng), 13.0)
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                NaverMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState
+                ) {
+                    // 유효한 애들만 마커 표시
+                    validCourses.forEach { course ->
+                        Marker(
+                            state = MarkerState(position = LatLng(course.lat!!, course.lng!!)),
+                            captionText = course.name
+                        )
+                    }
+                }
+            }
+        } else {
+            // 모든 장소가 유효한 좌표가 없을 경우 (지도를 아예 숨기거나 안내 박스를 보여줌)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(Color(0xFFF8F8F8), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "표시할 수 있는 지도 위치가 없습니다.",
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+/*
+@OptIn(ExperimentalNaverMapApi::class)
+@Composable
+fun CourseSection(courses: List<CoursePoint>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+    ) {
+        Text(
+            text = "코스",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (courses.isEmpty()) {
+            Text(
+                text = "등록된 코스가 없습니다",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            return@Column
+        }
+
+        // 타임라인 UI
+        courses.forEachIndexed { index, course ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 아이콘 및 선
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(32.dp)
+                ) {
+                    if (course.isStart) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "시작",
+                            tint = Color(0xFF6C60FD),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else if (course.isEnd) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "종료",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(Color(0xFFE0E0E0), CircleShape)
+                                .padding(4.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(Color(0xFF6C60FD), RoundedCornerShape(4.dp))
+                        )
+                    }
+
+                    if (index < courses.size - 1) {
+                        // 세로 선 (점선 대신 실선으로 간단히 구현)
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(32.dp)
+                                .padding(vertical = 4.dp)
+                                .background(Color(0xFF6C60FD))
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
                 Text(
                     text = course.name,
                     fontSize = 14.sp,
@@ -617,6 +774,8 @@ fun CourseSection(courses: List<CoursePoint>) {
         }
     }
 }
+
+ */
 
 @Composable
 fun MateInfoSection(

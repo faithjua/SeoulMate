@@ -202,7 +202,19 @@ fun AddCourseScreen(
                         NaverMap(
                             modifier = Modifier.fillMaxSize(),
                             cameraPositionState = cameraPositionState
-                        )
+                        ){
+                            //TODO 오류나면 여기 없애자!!
+                            //  courseList에 있는 장소들을 돌면서 마커를 찍는 로직 (현재 코드에 없다면 생략 가능)
+                            courseList.forEach { location ->
+                                // 좌표가 null이 아닐 때만 마커 생성!
+                                if (location.lat != null && location.lng != null) {
+                                    Marker(
+                                        state = MarkerState(position = LatLng(location.lat, location.lng)),
+                                        captionText = location.name
+                                    )
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = searchTextFieldValue,
@@ -329,13 +341,24 @@ fun AddCourseScreen(
                     horizontalArrangement = Arrangement.SpaceBetween // 양끝 정렬
                 ) {
                     // 왼쪽: 순번과 장소 이름 (글자가 길어질 것을 대비해 weight(1f) 부여)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    Column( // Row 내부의 텍스트 영역을 Column으로 감싸줌
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(location.name, fontSize = 14.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(location.name, fontSize = 14.sp)
+                        }
+
+                        // TODO 좌표가 없으면 작게 안내 문구를 띄워줌. 좌표 null인 문제는 추후 업데이트로 해결하자
+                        if (location.lat == null || location.lng == null) {
+                            Text(
+                                text = "지도 위치 미지원 장소",
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 20.dp, top = 2.dp)
+                            )
+                        }
                     }
 
                     // 오른쪽: 위/아래 이동 및 삭제 버튼 묶음
@@ -422,19 +445,22 @@ fun AddCourseScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(70.dp)
                         .background(color = Color(0xFFF4F5F6), shape = RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_logo),
+                        painter = painterResource(id = R.drawable.ic_seoul_mate_logo),
                         contentDescription = "로고",
                         contentScale = ContentScale.None
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text("무슨 코스를 완성해드릴까요?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text("무슨 코스를 완성해드릴까요?", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("(시간이 오래걸리면 잠시후 다시 시도해주세요)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("일정: $passedDate | 테마: $passedCategoriesText\n인원: $passedMembers | 예산: $passedCost", color = Color.Gray, fontSize = 13.sp)
