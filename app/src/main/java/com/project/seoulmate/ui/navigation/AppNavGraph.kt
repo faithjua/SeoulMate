@@ -143,7 +143,11 @@ fun AppNavGraph(
                         popUpTo(Screen.Signup.route) { inclusive = true }
                     }
                 },
-                onCancelSignup = {                                          // 가입 취소
+                onCancelSignup = {
+                    // 가입 취소
+                    // Success(isNewMember=true) 상태가 남아있으면 Login 복귀 직후
+                    // LaunchedEffect가 다시 Signup으로 이동시켜 무한 루프가 됨.
+                    loginViewModel.resetState()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Signup.route) { inclusive = true }
                     }
