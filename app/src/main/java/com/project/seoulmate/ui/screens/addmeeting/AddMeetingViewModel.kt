@@ -482,7 +482,7 @@ class AddMeetingViewModel @Inject constructor(
     /**
      * MIME 타입 정규화
      * Android에서 반환하는 비표준 MIME 타입을 표준 형식으로 변환
-     * 백엔드는 image/jpeg, image/png, image/webp만 허용
+     * 백엔드는 image/jpeg, image/jpg, image/png, image/webp 허용
      */
     private fun normalizeMimeType(mimeType: String): String {
         return when (mimeType.lowercase()) {
