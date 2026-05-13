@@ -81,6 +81,21 @@ fun ProfileScreen(
         }
     }
 
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        } else {
+            android.widget.Toast.makeText(
+                context,
+                "이미지 접근 권한이 필요합니다",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     // 자기소개 편집 다이얼로그 상태
     var showBioEditDialog by remember { mutableStateOf(false) }
 
@@ -180,7 +195,26 @@ fun ProfileScreen(
                 uploadingImage = uploadingImage,
                 bio = bio,
                 onEditProfileImageClick = {
-                    imagePickerLauncher.launch("image/*")
+                    // Android 버전에 따라 적절한 권한 요청
+                    val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        android.Manifest.permission.READ_MEDIA_IMAGES
+                    } else {
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE
+                    }
+
+                    when {
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            permission
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
+                            // 권한 있음 - 바로 이미지 선택
+                            imagePickerLauncher.launch("image/*")
+                        }
+                        else -> {
+                            // 권한 없음 - 권한 요청
+                            permissionLauncher.launch(permission)
+                        }
+                    }
                 },
                 onEditBioClick = {
                     showBioEditDialog = true

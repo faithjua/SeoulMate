@@ -153,6 +153,36 @@ fun AddMeetingScreen(
         }
     }
 
+    // 이미지 권한 요청 런처
+    val imagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        } else {
+            Toast.makeText(
+                context,
+                "이미지 접근 권한이 필요합니다",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // 카메라 권한 요청 런처
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            navController.navigate(Screen.Camera.route)
+        } else {
+            Toast.makeText(
+                context,
+                "카메라 접근 권한이 필요합니다",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     val customTextFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
@@ -259,8 +289,44 @@ fun AddMeetingScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     PhotoUploadSection(
                         imageUrls = formState.imageUrls,
-                        onCameraClick = { navController.navigate(Screen.Camera.route) },
-                        onGalleryClick = { imagePickerLauncher.launch("image/*") }
+                        onCameraClick = {
+                            // 카메라 권한 확인
+                            when {
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.CAMERA
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
+                                    // 권한 있음 - 카메라 화면으로 이동
+                                    navController.navigate(Screen.Camera.route)
+                                }
+                                else -> {
+                                    // 권한 없음 - 권한 요청
+                                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        },
+                        onGalleryClick = {
+                            // Android 버전에 따라 적절한 권한 요청
+                            val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            } else {
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            }
+
+                            when {
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    permission
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED -> {
+                                    // 권한 있음 - 바로 이미지 선택
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                                else -> {
+                                    // 권한 없음 - 권한 요청
+                                    imagePermissionLauncher.launch(permission)
+                                }
+                            }
+                        }
                     )
                 }
             }
