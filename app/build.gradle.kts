@@ -38,7 +38,7 @@ android {
         }
     }
     namespace = "com.project.seoulmate"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         buildConfigField(
@@ -130,11 +130,22 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // 3. Firebase & Login
+    //implementation(platform("com.google.firebase:firebase-bom:34.9.0"))
+    //implementation("com.google.firebase:firebase-auth")
+    //implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
+    //implementation("androidx.credentials:credentials:1.2.2")
+    //implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
+    //implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // 3. Firebase & Login
     implementation(platform("com.google.firebase:firebase-bom:34.9.0"))
     implementation("com.google.firebase:firebase-auth")
     //implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
-    implementation("androidx.credentials:credentials:1.2.2")
-    implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
+    // Credential Manager: 1.2.2는 OS 14+에서 CustomCredential 처리/NoCredentialException
+    // throw 안정성 이슈가 있어 1.5.0으로 업.
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    // Google ID Token SDK: 1.1.1 → 1.1.2 (토큰 파싱/Provider 안정화).
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     // 4. Network & Serialization

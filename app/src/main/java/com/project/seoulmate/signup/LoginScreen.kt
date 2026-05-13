@@ -24,11 +24,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.project.seoulmate.R
@@ -207,9 +210,25 @@ fun LoginScreen(
                                     val result = credentialManager.getCredential(context, request)
                                     val credential = result.credential
 
-                                    if (credential is GoogleIdTokenCredential) {
+                                    // Credential Manager + Google Identity Services는 항상
+                                    // CustomCredential로 감싸서 반환한다 (Android 14+에서 명확).
+                                    // 직접 GoogleIdTokenCredential로 캐스팅하지 말고
+                                    // createFrom(data)로 unwrap 해야 한다.
+                                    val isGoogleIdToken = credential is CustomCredential &&
+                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+
+                                    if (isGoogleIdToken) {
+                                        val googleCredential = try {
+                                            GoogleIdTokenCredential.createFrom((credential as CustomCredential).data)
+                                        } catch (e: GoogleIdTokenParsingException) {
+                                            isCredentialLoading = false
+                                            Timber.tag("GoogleLogin").e(e, "Google ID 토큰 파싱 실패")
+                                            Toast.makeText(context, errTokenFailed, Toast.LENGTH_SHORT).show()
+                                            return@launch
+                                        }
+
                                         val firebaseCredential =
-                                            GoogleAuthProvider.getCredential(credential.idToken, null)
+                                            GoogleAuthProvider.getCredential(googleCredential.idToken, null)
 
                                         FirebaseAuth.getInstance()
                                             .signInWithCredential(firebaseCredential)
@@ -221,7 +240,7 @@ fun LoginScreen(
                                                             if (tokenTask.isSuccessful && tokenTask.result?.token != null) {
                                                                 viewModel.loginToServer(
                                                                     tokenTask.result!!.token!!,
-                                                                    credential.id ?: ""
+                                                                    googleCredential.id ?: ""
                                                                 )
                                                                 // ⚠️ 여기서 isCredentialLoading=false 안 함
                                                                 //    loginState=Loading으로 자연스럽게 이어짐
@@ -237,8 +256,18 @@ fun LoginScreen(
                                                 }
                                             }
                                     } else {
+                                        // 미지원 credential 타입. 기존 코드는 토스트 없이 종료해서
+                                        // 사용자가 "왜 안 되는지" 알 수 없었음.
                                         isCredentialLoading = false
+                                        Timber.tag("GoogleLogin")
+                                            .w("알 수 없는 credential 타입: ${credential::class.java.name}")
+                                        Toast.makeText(context, errGeneric, Toast.LENGTH_SHORT).show()
                                     }
+                                } catch (e: NoCredentialException) {
+                                    // 단말에 사용 가능한 Google 계정이 없는 경우 (Android 14+ 흔함).
+                                    isCredentialLoading = false
+                                    Timber.tag("GoogleLogin").w(e, "사용 가능한 credential 없음")
+                                    Toast.makeText(context, errCancelled, Toast.LENGTH_LONG).show()
                                 } catch (e: GetCredentialException) {
                                     isCredentialLoading = false
                                     Timber.tag("GoogleLogin").e(e, "로그인 창 닫힘 또는 에러 발생")
