@@ -104,7 +104,7 @@ fun NotificationScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                        3 -> {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true

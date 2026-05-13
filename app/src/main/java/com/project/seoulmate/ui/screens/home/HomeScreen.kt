@@ -99,15 +99,14 @@ fun HomeScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        // 개발 모드에서만 프로필(3) 탭 노출
-                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                        // 프로필(3) 탭 노출
+                        3 -> {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         }
-                        4 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
                         else -> selectedBottomItem = index
                     }
                 }
