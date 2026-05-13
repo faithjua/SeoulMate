@@ -371,24 +371,22 @@ fun ProfileHeader(
                     )
                 }
 
-                // 연필 버튼 (개발 모드에서만)
-                if (!AppConfig.IS_PRODUCTION) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .align(Alignment.BottomEnd)
-                            .clickable { onEditProfileImageClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = stringResource(id = R.string.profile_edit),
-                            tint = Color(0xFF6C60FD),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                // 연필 버튼 (프로필 이미지 편집)
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                        .clickable { onEditProfileImageClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = stringResource(id = R.string.profile_edit),
+                        tint = Color(0xFF6C60FD),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
