@@ -42,3 +42,4 @@ keystore.properties
 
 /app/release/
 *.dm
+.assets

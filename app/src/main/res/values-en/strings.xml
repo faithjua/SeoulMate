@@ -265,6 +265,7 @@
     <string name="addcourse_prompt_placeholder">e.g. 3-hour Jongno food tour for foreign friends</string>
     <string name="addcourse_ai_loading">AI is generating the course...</string>
     <string name="addcourse_button_complete">Generate Course</string>
+    <string name="addcourse_ai_retry_hint">(If this takes too long, please try again in a moment)</string>
 
     <!-- Toast / Error messages -->
     <string name="toast_login_required">Please sign in</string>

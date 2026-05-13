@@ -20,7 +20,6 @@ import dagger.hilt.android.AndroidEntryPoint
  * API 32 이하에서도 자동으로 액티비티를 재생성한다.
  */
 @AndroidEntryPoint
-//class MainActivity : ComponentActivity() {
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

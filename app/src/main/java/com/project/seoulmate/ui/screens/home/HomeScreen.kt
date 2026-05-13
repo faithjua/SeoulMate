@@ -107,6 +107,7 @@ fun HomeScreen(
                                 restoreState = true
                             }
                         }
+                        4 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
                         else -> selectedBottomItem = index
                     }
                 }
