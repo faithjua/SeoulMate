@@ -216,8 +216,8 @@ class ProfileViewModel @Inject constructor(
                     updateResult.onSuccess {
                         Timber.d("ProfileViewModel - Profile image updated in backend successfully")
                     }.onFailure { error ->
-                        Timber.w(error, "ProfileViewModel - Failed to update profile image in backend (404), but local state updated: ${error.message}")
-                        // TODO: 백엔드 API가 구현되면 제대로 동작할 예정
+                        Timber.e(error, "ProfileViewModel - Failed to update profile image in backend: ${error.message}")
+                        // 백엔드 저장 실패해도 로컬 캐시는 유지됨
                     }
                 }.onFailure { error ->
                     Timber.e(error, "ProfileViewModel - Failed to upload image: ${error.message}")
