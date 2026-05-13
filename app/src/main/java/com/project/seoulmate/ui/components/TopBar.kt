@@ -27,7 +27,8 @@ import com.project.seoulmate.R
 @Composable
 fun TopBar(
     onTranslateClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    hasUnreadNotifications: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -58,7 +59,7 @@ fun TopBar(
                 )
             }
 
-            if (!AppConfig.IS_PRODUCTION){
+            if (!AppConfig.IS_PRODUCTION) {
                 Box(contentAlignment = Alignment.TopEnd) {
                     IconButton(onClick = onNotificationClick) {
                         Icon(
@@ -69,20 +70,13 @@ fun TopBar(
                         )
                     }
 
-                    // Badge
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 6.dp, end = 6.dp)
-                            .size(16.dp)
-                            .background(color = Color(0xFFFF6B6B), shape = CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "2",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
+                    // 읽지 않은 알림이 있을 때만 빨간 배지 표시
+                    if (hasUnreadNotifications) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 6.dp, end = 6.dp)
+                                .size(10.dp)
+                                .background(color = Color(0xFFFF6B6B), shape = CircleShape)
                         )
                     }
                 }

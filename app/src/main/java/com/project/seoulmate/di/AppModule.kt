@@ -18,8 +18,16 @@ import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.CatalogRepositoryImpl
 import com.project.seoulmate.data.repository.CommentRepository
 import com.project.seoulmate.data.repository.CommentRepositoryImpl
+import com.project.seoulmate.data.repository.ImageRepository
+import com.project.seoulmate.data.repository.ImageRepositoryImpl
+import com.project.seoulmate.data.repository.UserRepository
+import com.project.seoulmate.data.repository.UserRepositoryImpl
+import com.project.seoulmate.data.repository.SearchRepository
+import com.project.seoulmate.data.repository.SearchRepositoryImpl
+import com.google.firebase.auth.FirebaseAuth
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -97,4 +105,30 @@ abstract class AppModule {
     abstract fun bindCommentRepository(
         impl: CommentRepositoryImpl
     ): CommentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindImageRepository(
+        impl: ImageRepositoryImpl
+    ): ImageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(
+        impl: UserRepositoryImpl
+    ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSearchRepository(
+        impl: SearchRepositoryImpl
+    ): SearchRepository
+
+    companion object {
+        @Provides
+        @Singleton
+        fun provideFirebaseAuth(): FirebaseAuth {
+            return FirebaseAuth.getInstance()
+        }
+    }
 }

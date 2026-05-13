@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +29,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.project.seoulmate.R
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
+import com.project.seoulmate.util.getCategoryLabel
 
 @Composable
 fun PhotoUploadSection(
@@ -138,22 +141,23 @@ fun PhotoUploadButton(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryTagSection(
+    categories: List<CategoryItem>,
     selectedCategories: Set<String>,
     onCategoryToggle: (String) -> Unit
 ) {
-    val categories = listOf(
-        "#관광", "#K-팝", "#K-뷰티", "#쇼핑",
-        "#한식", "#카페", "#교통가이드", "#숙소/지역",
-        "#클래스", "#커뮤니티", "#전시·스타일", "#안전·생활"
-    )
+    val context = LocalContext.current
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        categories.forEach { category ->
-            val isSelected = selectedCategories.contains(category)
+        categories.forEach { categoryItem ->
+            // 기기 언어에 맞는 라벨 가져오기
+            val displayLabel = context.getCategoryLabel(categoryItem.code, categoryItem.label)
+            val categoryTag = "#$displayLabel"
+
+            val isSelected = selectedCategories.contains(categoryTag)
             Surface(
                 modifier = Modifier
                     .shadow(
@@ -162,14 +166,14 @@ fun CategoryTagSection(
                         spotColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f),
                         ambientColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f)
                     )
-                    .clickable { onCategoryToggle(category) },
+                    .clickable { onCategoryToggle(categoryTag) },
                 shape = RoundedCornerShape(24.dp),
                 color = if (isSelected) SeoulMatePrimary else Color.White,
                 border = null,
                 shadowElevation = 5.dp
             ) {
                 Text(
-                    text = category,
+                    text = categoryTag,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     color = if (isSelected) Color.White else Color.Gray,
                     fontSize = 14.sp

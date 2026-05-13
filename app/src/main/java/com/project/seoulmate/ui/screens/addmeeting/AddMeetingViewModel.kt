@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.R
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.MeetingForm
 import com.project.seoulmate.data.remote.ImageApi
+import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,6 +40,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddMeetingViewModel @Inject constructor(
     private val repository: MeetingRepository,
+    private val catalogRepository: CatalogRepository,
     private val imageApi: ImageApi,
     @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
@@ -60,10 +63,29 @@ class AddMeetingViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // 카탈로그 데이터 (카테고리)
+    private val _categories = MutableStateFlow<List<CategoryItem>>(emptyList())
+    val categories: StateFlow<List<CategoryItem>> = _categories.asStateFlow()
+
     init {
+        // 카탈로그 데이터 로드
+        loadCategories()
+
         // 수정 모드인 경우 기존 만남 데이터 로드
         if (isEditMode && meetingId != null) {
             loadMeetingForEdit(meetingId)
+        }
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            catalogRepository.getCategories().onSuccess { categories ->
+                // TODAY 카테고리 제외 (만남 등록에서는 사용하지 않음)
+                _categories.value = categories.filter { it.code != "TODAY" }
+                Timber.d("Categories loaded: ${_categories.value.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load categories")
+            }
         }
     }
 
@@ -349,9 +371,17 @@ class AddMeetingViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 2. 파일 크기 검증
+                // 2. 파일 크기 검증 및 MIME 타입 추출
                 val files = uris.mapNotNull { uri ->
                     try {
+                        // URI의 MIME 타입 가져오기
+                        val rawMimeType = context.contentResolver.getType(uri)
+                        Timber.d("=== Image Processing ===")
+                        Timber.d("URI: $uri")
+                        Timber.d("Raw MIME type: $rawMimeType")
+                        val mimeType = normalizeMimeType(rawMimeType ?: "image/jpeg")
+                        Timber.d("Normalized MIME type: $mimeType")
+
                         val inputStream = context.contentResolver.openInputStream(uri)
                         val fileSize = inputStream?.available() ?: 0
                         inputStream?.close()
@@ -362,14 +392,24 @@ class AddMeetingViewModel @Inject constructor(
                             return@launch
                         }
 
+                        // MIME 타입에 따라 파일 확장자 결정
+                        val extension = when (mimeType) {
+                            "image/jpeg" -> "jpg"
+                            "image/png" -> "png"
+                            "image/webp" -> "webp"
+                            else -> "jpg"
+                        }
+
                         // 임시 파일로 저장
-                        val tempFile = File.createTempFile("upload_", ".jpg", context.cacheDir)
+                        val tempFile = File.createTempFile("upload_", ".$extension", context.cacheDir)
                         context.contentResolver.openInputStream(uri)?.use { input ->
                             tempFile.outputStream().use { output ->
                                 input.copyTo(output)
                             }
                         }
-                        tempFile to fileSize.toLong()
+                        Timber.d("Temp file created: ${tempFile.name}, size: ${tempFile.length()} bytes")
+                        Timber.d("=== End Image Processing ===")
+                        Triple(tempFile, fileSize.toLong(), mimeType)
                     } catch (e: Exception) {
                         Timber.e(e, "Error processing file")
                         null
@@ -384,9 +424,15 @@ class AddMeetingViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 3. Multipart 생성
-                val fileParts = files.map { (file, _) ->
-                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                // 3. Multipart 생성 (정확한 MIME 타입 사용)
+                val fileParts = files.mapIndexed { index, (file, _, mimeType) ->
+                    Timber.d("=== Preparing upload ${index + 1}/${files.size} ===")
+                    Timber.d("File: ${file.name}")
+                    Timber.d("File extension: ${file.extension}")
+                    Timber.d("MIME type: $mimeType")
+                    Timber.d("File size: ${file.length()} bytes")
+                    val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                    Timber.d("RequestBody Content-Type: ${requestFile.contentType()}")
                     MultipartBody.Part.createFormData("file", file.name, requestFile)
                 }
 
@@ -395,16 +441,22 @@ class AddMeetingViewModel @Inject constructor(
                 // 4. API 호출
                 val imageUrls = mutableListOf<String>()
 
-                for (filePart in fileParts) {
+                for ((index, filePart) in fileParts.withIndex()) {
+                    Timber.d("Uploading image ${index + 1}/${fileParts.size}...")
                     val response = imageApi.uploadImage("Bearer $token", filePart, folderBody)
 
                     if (response.isSuccessful && response.body()?.success == true) {
                         response.body()?.data?.url?.let { url ->
                             imageUrls.add(url)
+                            Timber.d("✓ Image ${index + 1} uploaded successfully: $url")
                         }
                     } else {
                         val errorMsg = response.body()?.message ?: context.getString(R.string.toast_image_upload_failed_default)
-                        Timber.e("Image upload failed: $errorMsg")
+                        val errorBody = response.errorBody()?.string()
+                        Timber.e("✗ Image upload failed")
+                        Timber.e("Response code: ${response.code()}")
+                        Timber.e("Error message: $errorMsg")
+                        Timber.e("Error body: $errorBody")
                         files.forEach { it.first.delete() }
                         onComplete(false, errorMsg)
                         return@launch
@@ -423,6 +475,27 @@ class AddMeetingViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Image upload error")
                 onComplete(false, context.getString(R.string.toast_image_upload_generic_error))
+            }
+        }
+    }
+
+    /**
+     * MIME 타입 정규화
+     * Android에서 반환하는 비표준 MIME 타입을 표준 형식으로 변환
+     * 백엔드는 image/jpeg, image/jpg, image/png, image/webp 허용
+     */
+    private fun normalizeMimeType(mimeType: String): String {
+        return when (mimeType.lowercase()) {
+            "image/jpg", "image/jpeg" -> "image/jpeg"
+            "image/png" -> "image/png"
+            "image/webp" -> "image/webp"
+            // 비표준 형식 처리
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            else -> {
+                Timber.w("Unknown MIME type: $mimeType, defaulting to image/jpeg")
+                "image/jpeg"
             }
         }
     }

@@ -33,89 +33,91 @@ import com.project.seoulmate.R
 import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 
-/**
- * 만남 등록 화면 Composable.
- * @param navController 화면 이동을 위한 NavController
- * @param viewModel Hilt가 자동으로 주입하는 AddMeetingViewModel
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMeetingScreen(
     navController: NavHostController,
     viewModel: AddMeetingViewModel = hiltViewModel()
 ) {
-    // 폼 전체 상태를 하나의 StateFlow로 수집
     val formState by viewModel.formState.collectAsStateWithLifecycle()
-    // 저장/등록 완료 이벤트 수집
     val uiEvent by viewModel.uiEvent.collectAsStateWithLifecycle()
-    // 수정 모드 여부
     val isEditMode = viewModel.isEditMode
-    // 로딩 상태
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-
-    /**
-     * 카테고리, 장소/시간 정보 공유를 위한 추가 코드
-     */
-    //  0. 코스 화면에서 AI가 짠 코스를 들고 돌아왔을 때 받아주는 로직
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val returnedCourses by savedStateHandle?.getStateFlow<List<String>>("generated_courses", emptyList())
-        ?.collectAsStateWithLifecycle(initialValue = emptyList()) ?: remember{mutableStateOf(emptyList())}
-
-    //  1. 돌아온 AI 설명 받는 로직 추가
-    val returnedDescription by savedStateHandle?.getStateFlow<String>("ai_description", "")
-        ?.collectAsStateWithLifecycle(initialValue = "") ?: remember{mutableStateOf("")}
-
-    //  2. 서버에서 저장된 실제 코스 ID 받는 로직 추가
-    val returnedCourseId by savedStateHandle?.getStateFlow<Long?>("course_id", null)
-        ?.collectAsStateWithLifecycle(initialValue = null) ?: remember{mutableStateOf(null)}
-
-    //  3. LaunchedEffect에서 코스, 설명, ID를 모두 처리하도록 수정
-    LaunchedEffect(returnedCourses, returnedDescription, returnedCourseId) {
-        if (returnedCourses.isNotEmpty()) {
-            // UI 표시용 코스 이름들
-            returnedCourses.forEach { viewModel.addCourse(it) }
-            savedStateHandle?.remove<List<String>>("generated_courses")
-        }
-
-        if (returnedDescription.isNotBlank()) {
-            // AI가 써준 설명을 [만남 소개] 폼 상태에 덮어쓰기!
-            viewModel.updateDescription(returnedDescription)
-            savedStateHandle?.remove<String>("ai_description")
-        }
-
-        if (returnedCourseId != null) {
-            // 서버에 실제 저장된 코스 ID를 만남 폼에 저장
-            viewModel.updateCourseId(returnedCourseId!!)
-            savedStateHandle?.remove<Long>("course_id")
-        }
-    }
-    //여기까지 추가
-
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
+    // 권한 거부 Toast 메시지는 비-Composable 람다에서 stringResource를 못 부르므로
+    // 여기서 미리 뽑아둔다.
+    val imagePermissionDeniedMsg = stringResource(id = R.string.addmeeting_image_permission_required)
+    val cameraPermissionDeniedMsg = stringResource(id = R.string.addmeeting_camera_permission_required)
+
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val returnedCourses by savedStateHandle?.getStateFlow<List<String>>("generated_courses", emptyList())
+        ?.collectAsStateWithLifecycle(initialValue = emptyList()) ?: remember { mutableStateOf(emptyList()) }
+
+    val returnedDescription by savedStateHandle?.getStateFlow<String>("ai_description", "")
+        ?.collectAsStateWithLifecycle(initialValue = "") ?: remember { mutableStateOf("") }
+
+    val returnedCourseId by savedStateHandle?.getStateFlow<Long?>("course_id", null)
+        ?.collectAsStateWithLifecycle(initialValue = null) ?: remember { mutableStateOf(null) }
+
+    val returnedImageUri by savedStateHandle?.getStateFlow<String?>("captured_image_uri", null)
+        ?.collectAsStateWithLifecycle(initialValue = null) ?: remember { mutableStateOf(null) }
+
+    LaunchedEffect(returnedCourses, returnedDescription, returnedCourseId, returnedImageUri) {
+        if (returnedCourses.isNotEmpty()) {
+            returnedCourses.forEach { viewModel.addCourse(it) }
+            savedStateHandle?.remove<List<String>>("generated_courses")
+        }
+        if (returnedDescription.isNotBlank()) {
+            viewModel.updateDescription(returnedDescription)
+            savedStateHandle?.remove<String>("ai_description")
+        }
+        if (returnedCourseId != null) {
+            viewModel.updateCourseId(returnedCourseId!!)
+            savedStateHandle?.remove<Long>("course_id")
+        }
+        if (returnedImageUri != null) {
+            val uri = android.net.Uri.parse(returnedImageUri)
+            val uploadSuccessMsg = context.getString(R.string.addmeeting_image_upload_success)
+            val uploadFailMsg = context.getString(R.string.addmeeting_upload_failed)
+            viewModel.uploadImages(listOf(uri)) { success, errorMessage ->
+                if (success) {
+                    Toast.makeText(context, uploadSuccessMsg, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, errorMessage ?: uploadFailMsg, Toast.LENGTH_SHORT).show()
+                }
+            }
+            savedStateHandle?.remove<String>("captured_image_uri")
+        }
+    }
+
     // uiEvent 처리: NavigateBack은 뒤로가기, Error는 Toast 노출.
-    // (이전엔 Error 분기가 없어 검증 실패 시 아무 표시도 안 됐음.)
     LaunchedEffect(uiEvent) {
-        when (val event = uiEvent) {
+        when (uiEvent) {
             is AddMeetingUiEvent.NavigateBack -> {
                 navController.popBackStack()
                 viewModel.onEventConsumed()
             }
             is AddMeetingUiEvent.Error -> {
-                Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    (uiEvent as AddMeetingUiEvent.Error).message,
+                    Toast.LENGTH_SHORT
+                ).show()
                 viewModel.onEventConsumed()
             }
-            null -> { /* 초기 상태 */ }
+            else -> {}
         }
     }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     val datePickerState = rememberDatePickerState()
     val timePickerState = rememberTimePickerState()
 
-    // 이미지 선택기
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
@@ -129,6 +131,26 @@ fun AddMeetingScreen(
                     Toast.makeText(context, errorMessage ?: uploadFailMsg, Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+
+    val imagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        } else {
+            Toast.makeText(context, imagePermissionDeniedMsg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            navController.navigate(Screen.Camera.route)
+        } else {
+            Toast.makeText(context, cameraPermissionDeniedMsg, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -154,30 +176,22 @@ fun AddMeetingScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = { navController.popBackStack() }, // Cancel
+                    onClick = { navController.popBackStack() },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.Gray
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                    shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
                 ) {
                     Text(stringResource(id = R.string.dialog_cancel), fontSize = 16.sp, color = Color.Gray)
                 }
                 Button(
                     onClick = {
-                        if (isEditMode) {
-                            viewModel.updateMeeting()
-                        } else {
-                            viewModel.registerMeeting()
-                        }
+                        if (isEditMode) viewModel.updateMeeting() else viewModel.registerMeeting()
                     },
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6C60FD)
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C60FD)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -206,11 +220,10 @@ fun AddMeetingScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            // 탑 구역 (선 없는 단색 배경색으로 구분 효과)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                     .background(Color(0xFFF7F7F7))
                     .padding(bottom = 24.dp)
             ) {
@@ -238,19 +251,43 @@ fun AddMeetingScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     PhotoUploadSection(
                         imageUrls = formState.imageUrls,
-                        onGalleryClick = { imagePickerLauncher.launch("image/*") }
+                        onCameraClick = {
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.CAMERA
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            ) {
+                                navController.navigate(Screen.Camera.route)
+                            } else {
+                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                            }
+                        },
+                        onGalleryClick = {
+                            val permission =
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    android.Manifest.permission.READ_MEDIA_IMAGES
+                                } else {
+                                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                }
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context, permission
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            ) {
+                                imagePickerLauncher.launch("image/*")
+                            } else {
+                                imagePermissionLauncher.launch(permission)
+                            }
+                        }
                     )
                 }
             }
 
-            // 하단 폼 구역
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // 만남명
                 FormSection(title = stringResource(id = R.string.addmeeting_label_name), required = true) {
                     OutlinedTextField(
                         value = formState.name,
@@ -263,44 +300,38 @@ fun AddMeetingScreen(
                     )
                 }
 
-                // 카테고리/태그 섹션
                 FormSection(title = stringResource(id = R.string.addmeeting_label_category), required = true) {
                     CategoryTagSection(
+                        categories = categories,
                         selectedCategories = formState.selectedCategories,
                         onCategoryToggle = { viewModel.toggleCategory(it) }
                     )
                 }
 
-                //  [수정] 2. 코스 섹션: 버튼 누를 때 날짜와 카테고리를 바구니에 담아 출발!
                 val dateUndecidedFallback = stringResource(id = R.string.addmeeting_date_undecided)
                 val noLimitFallback = stringResource(id = R.string.addmeeting_no_limit)
                 FormSection(title = stringResource(id = R.string.addmeeting_label_course), required = true) {
                     CourseSection(
                         courses = formState.courses,
                         onAddClick = {
-                            // timeSlots에서 첫 번째 값을 날짜로, 선택된 카테고리들을 쉼표로 연결
                             val dateToPass = formState.timeSlots.firstOrNull() ?: dateUndecidedFallback
                             val categoriesToPass = formState.selectedCategories.joinToString(", ")
-                            //  [추가된 부분] 인원과 예산 데이터 다듬기 (비어있을 경우 예외 처리)
                             val minMem = formState.minMembers.ifBlank { noLimitFallback }
                             val maxMem = formState.maxMembers.ifBlank { noLimitFallback }
                             val cost = formState.expectedCost.ifBlank { noLimitFallback }
 
-                            //  [추가된 부분] 바구니에 통째로 담기
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
                                 set("ai_date", dateToPass)
                                 set("ai_categories", categoriesToPass)
                                 set("ai_members", "${minMem}명 ~ ${maxMem}명")
                                 set("ai_cost", cost)
                             }
-
                             navController.navigate("add_course")
                         },
                         onRemoveCourse = { viewModel.removeCourse(it) }
                     )
                 }
 
-                // 요일/시간 섹션
                 FormSection(title = stringResource(id = R.string.addmeeting_label_time), required = true) {
                     TimeSlotSection(
                         timeSlots = formState.timeSlots,
@@ -309,7 +340,6 @@ fun AddMeetingScreen(
                     )
                 }
 
-                // 만남 소개
                 FormSection(title = stringResource(id = R.string.addmeeting_label_description), required = false) {
                     OutlinedTextField(
                         value = formState.description,
@@ -321,7 +351,6 @@ fun AddMeetingScreen(
                     )
                 }
 
-                // 예상 지출
                 FormSection(title = stringResource(id = R.string.addmeeting_label_cost), required = true) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -337,22 +366,9 @@ fun AddMeetingScreen(
                             colors = customTextFieldColors,
                             shape = RoundedCornerShape(8.dp)
                         )
-                        /*
-                        Button(
-                            onClick = { viewModel.clearExpectedCost() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF6C60FD)
-                            ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(59.dp)
-                        ) {
-                            Text("없음", color = Color.White)
-                        }
-                        */
                     }
                 }
 
-                // 모집 인원
                 FormSection(title = stringResource(id = R.string.addmeeting_label_members), required = true) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -393,12 +409,8 @@ fun AddMeetingScreen(
                 TextButton(onClick = {
                     selectedDateMillis = datePickerState.selectedDateMillis
                     showDatePicker = false
-                    if (selectedDateMillis != null) {
-                        showTimePicker = true
-                    }
-                }) {
-                    Text(stringResource(id = R.string.addmeeting_date_confirm))
-                }
+                    if (selectedDateMillis != null) showTimePicker = true
+                }) { Text(stringResource(id = R.string.addmeeting_date_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
@@ -415,29 +427,20 @@ fun AddMeetingScreen(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    // Combine date and time
                     if (selectedDateMillis != null) {
                         val date = Date(selectedDateMillis!!)
-                        // Create formatter for the date part: "8월 18일 (월)"
                         val dateFormatter = SimpleDateFormat("M월 d일 (E)", Locale.KOREA)
-                        dateFormatter.timeZone = TimeZone.getTimeZone("UTC") // Material DatePicker returns UTC millis
+                        dateFormatter.timeZone = TimeZone.getTimeZone("UTC")
                         val dateString = dateFormatter.format(date)
 
-                        // Parse time piece (e.g. 오후 7시)
                         val amPm = if (timePickerState.hour < 12) "오전" else "오후"
                         val hour12 = if (timePickerState.hour % 12 == 0) 12 else timePickerState.hour % 12
                         val minute = timePickerState.minute
-                        val timeString = if (minute == 0) {
-                            "$amPm ${hour12}시"
-                        } else {
-                            // "오후 7시 30분" 형식
-                            "$amPm ${hour12}시 ${minute}분"
-                        }
+                        val timeString = if (minute == 0) "$amPm ${hour12}시"
+                        else "$amPm ${hour12}시 ${minute}분"
 
-                        val finalFormattedString = "$dateString $timeString"
-                        viewModel.addTimeSlot(finalFormattedString)
+                        viewModel.addTimeSlot("$dateString $timeString")
 
-                        // ISO 형식 날짜/시간 생성 (서버 전송용)
                         val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
                         calendar.timeInMillis = selectedDateMillis!!
                         calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
@@ -447,30 +450,21 @@ fun AddMeetingScreen(
 
                         val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
                         isoFormatter.timeZone = TimeZone.getTimeZone("UTC")
-                        val isoDateString = isoFormatter.format(calendar.time)
-                        viewModel.updateMeetDate(isoDateString)
+                        viewModel.updateMeetDate(isoFormatter.format(calendar.time))
                     }
                     showTimePicker = false
-                }) {
-                    Text(stringResource(id = R.string.dialog_confirm))
-                }
+                }) { Text(stringResource(id = R.string.dialog_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
                     Text(stringResource(id = R.string.dialog_cancel))
                 }
             },
-            text = {
-                TimePicker(state = timePickerState)
-            }
+            text = { TimePicker(state = timePickerState) }
         )
     }
 }
 
-/**
- * 폼 섹션 공통 레이아웃 컴포넌트 (변경 없음).
- * 제목 + 필수 * 표시 + 컨텐츠 슬롯
- */
 @Composable
 fun FormSection(
     title: String,
@@ -479,18 +473,9 @@ fun FormSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             if (required) {
-                Text(
-                    text = " *",
-                    color = Color.Red,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = " *", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
         content()

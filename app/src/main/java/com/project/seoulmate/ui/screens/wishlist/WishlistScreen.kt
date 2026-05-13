@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,16 +36,15 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.project.seoulmate.R
-import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.data.model.Meeting
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
-import com.project.seoulmate.ui.util.displayCategoryName
-import com.project.seoulmate.ui.util.displayCongestionLabel
 import com.project.seoulmate.ui.util.displayMeetingTag
 import com.project.seoulmate.ui.util.tagColor
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.project.seoulmate.util.getCategoryLabel
+import com.project.seoulmate.util.getCongestionLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +56,9 @@ fun WishlistScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val filterCategories by viewModel.filterCategories.collectAsStateWithLifecycle()
     val congestionLevels by viewModel.congestionLevels.collectAsStateWithLifecycle()
+
+    // Context for i18n
+    val context = LocalContext.current
 
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
@@ -75,7 +78,7 @@ fun WishlistScreen(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                        3 -> {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
@@ -168,25 +171,36 @@ fun WishlistScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 카테고리 필터 (카탈로그 API 데이터 사용)
-                // options/selection의 raw 값은 한글(백엔드 type)을 유지하고, 화면에는 localized 표시.
+                // 카테고리 필터 (카탈로그 API 데이터 사용 + 다국어 지원).
+                // 통신 코드(it.code)는 그대로 유지하고, 화면 라벨만 현재 locale로 변환.
                 if (filterCategories.isNotEmpty()) {
+                    val allCategoryLabel = stringResource(id = R.string.wishlist_filter_all)
+                    val localizedCategories = listOf(allCategoryLabel) + filterCategories.map {
+                        context.getCategoryLabel(it.code, it.label)
+                    }
                     FilterChipItem(
-                        text = stringResource(id = R.string.home_filter_category),
-                        options = listOf("전체") + filterCategories,
-                        labelFor = { raw ->
-                            if (raw == "전체") stringResource(id = R.string.wishlist_filter_all)
-                            else displayCategoryName(raw)
+                        text = stringResource(id = R.string.wishlist_filter_category),
+                        options = localizedCategories,
+                        onSelected = { index ->
+                            // 첫 번째 항목은 "전체"이므로 null, 나머지는 해당 카테고리 code
+                            val categoryCode = if (index == 0) null else filterCategories[index - 1].code
+                            viewModel.applyCategory(categoryCode)
                         }
                     )
                 }
 
-                // 혼잡도 필터 (카탈로그 API 데이터 사용)
+                // 혼잡도 필터 (카탈로그 API 데이터 사용 + 다국어 지원).
                 if (congestionLevels.isNotEmpty()) {
+                    val localizedCongestions = congestionLevels.map {
+                        context.getCongestionLabel(it.code, it.label)
+                    }
                     FilterChipItem(
                         text = stringResource(id = R.string.wishlist_filter_congestion),
-                        options = congestionLevels.map { it.label },
-                        labelFor = { displayCongestionLabel(it) }
+                        options = localizedCongestions,
+                        onSelected = { index ->
+                            val congestionCode = congestionLevels[index].code
+                            viewModel.applyCongestion(congestionCode)
+                        }
                     )
                 }
 
@@ -217,7 +231,7 @@ fun WishlistScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Count
+            // 3. Count — 필터 적용된 결과 기준
             Text(
                 text = stringResource(id = R.string.wishlist_total_count, meetings.size),
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -228,7 +242,7 @@ fun WishlistScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Grid List
+            // 4. Grid List — 필터 적용된 결과 기준
             if (isLoading && meetings.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF6C60FD))
@@ -254,17 +268,19 @@ fun WishlistScreen(
     }
 }
 
+/**
+ * 필터 chip. 호출자는 이미 localize된 옵션 문자열을 [options]로 넘기고,
+ * 선택 시 [onSelected]로 인덱스를 받아 백엔드에 보낼 code를 매핑한다.
+ */
 @Composable
 fun FilterChipItem(
     text: String,
-    options: List<String> = emptyList(), // raw 옵션 값 (백엔드 type, 한글)
-    labelFor: @Composable (String) -> String = { it } // 화면 표시용 변환
+    options: List<String> = emptyList(),
+    onSelected: (Int) -> Unit = {}
 ) {
-    // 드롭다운 메뉴가 열려있는지 여부를 저장하는 상태
     var expanded by remember { mutableStateOf(false) }
-    // 현재 선택된 raw 값 (null이면 미선택 → text 라벨 표시)
-    var selectedRaw by remember { mutableStateOf<String?>(null) }
-    val displayText = selectedRaw?.let { labelFor(it) } ?: text
+    var selectedDisplay by remember { mutableStateOf<String?>(null) }
+    val displayText = selectedDisplay ?: text
 
     Box {
         Surface(
@@ -274,7 +290,7 @@ fun FilterChipItem(
             border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
             modifier = Modifier
                 .height(36.dp)
-                .clickable { expanded = true } // 버튼을 누르면 드롭다운이 열림
+                .clickable { expanded = true }
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -301,12 +317,13 @@ fun FilterChipItem(
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(Color.White)
         ) {
-            options.forEach { option ->
+            options.forEachIndexed { index, option ->
                 DropdownMenuItem(
-                    text = { Text(labelFor(option)) },
+                    text = { Text(option) },
                     onClick = {
-                        selectedRaw = option
+                        selectedDisplay = option
                         expanded = false
+                        onSelected(index)
                     }
                 )
             }

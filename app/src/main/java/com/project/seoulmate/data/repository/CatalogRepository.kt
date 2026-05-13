@@ -1,5 +1,6 @@
 package com.project.seoulmate.data.repository
 
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.CongestionLevelOption
 
 /**
@@ -12,9 +13,9 @@ interface CatalogRepository {
     /**
      * 카테고리 12종 조회
      *
-     * @return 카테고리 이름 목록
+     * @return 카테고리 항목 목록 (code와 label 포함)
      */
-    suspend fun getCategories(): Result<List<String>>
+    suspend fun getCategories(): Result<List<CategoryItem>>
 
     /**
      * 혼잡도 옵션 조회 (전체 포함 5종)

@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,10 +46,10 @@ import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
 import com.project.seoulmate.config.AppConfig
-import com.project.seoulmate.ui.util.displayCategoryName
-import com.project.seoulmate.ui.util.displayCongestionLabel
 import com.project.seoulmate.ui.util.displayMeetingTag
 import com.project.seoulmate.ui.util.tagColor
+import com.project.seoulmate.util.getCategoryLabel
+import com.project.seoulmate.util.getCongestionLabel
 
 /**
  * 홈 화면 Composable
@@ -77,6 +78,9 @@ fun HomeScreen(
     // 하단 네비게이션 선택 상태
     var selectedBottomItem by remember { mutableStateOf(0) }
 
+    // Context for i18n
+    val context = LocalContext.current
+
     // 다국어 지원을 위한 stringResource
     val categoryFilterLabel = stringResource(id = R.string.home_filter_category)
     val congestionFilterLabel = stringResource(id = R.string.home_filter_congestion)
@@ -97,16 +101,14 @@ fun HomeScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        // 개발 모드에서만 쪽지(3)/프로필(4) 탭 노출
-
-                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                        // 프로필(3) 탭 노출
+                        3 -> {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         }
-                        4 -> if (!AppConfig.IS_PRODUCTION) { /* 쪽지 - TODO */ }
                         else -> selectedBottomItem = index
                     }
                 }
@@ -135,7 +137,8 @@ fun HomeScreen(
                     },
                     onNotificationClick = {
                         navController.navigate(Screen.Notifications.route)
-                    }
+                    },
+                    hasUnreadNotifications = false // TODO: 실제 미읽음 알림 수 API 연결 후 동적으로 변경
                 )
             }
 
@@ -225,47 +228,48 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 카테고리 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
-                        // 통신 type은 한글 그대로 유지하고, 화면 라벨만 displayCategoryName으로 변환.
+                        // 카테고리 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원).
+                        // 통신 코드(it.code)는 그대로 유지하고, 화면 라벨만 현재 locale로 변환.
                         if (filterCategories.isNotEmpty()) {
-                            // ?.let { displayCategoryName(...) } 는 inline 람다 안에서
-                            // @Composable 호출 컨텍스트가 끊겨 컴파일 에러가 나므로 if/else로 분기.
-                            val categorySelected = selectedFilterCategory
-                            val categoryDisplay = if (categorySelected != null) {
-                                displayCategoryName(categorySelected)
-                            } else {
-                                categoryFilterLabel
+                            val localizedCategories = filterCategories.map {
+                                context.getCategoryLabel(it.code, it.label)
                             }
+                            val selectedLabel = filterCategories.find { it.code == selectedFilterCategory }?.let {
+                                context.getCategoryLabel(it.code, it.label)
+                            } ?: categoryFilterLabel
+
                             FilterChipItem(
                                 text = categoryFilterLabel,
-                                options = filterCategories,
-                                selectedOption = categoryDisplay,
-                                labelFor = { displayCategoryName(it) },
-                                onOptionSelected = { selectedName ->
+                                options = localizedCategories,
+                                selectedOption = selectedLabel,
+                                onOptionSelected = { selectedLocalizedLabel ->
+                                    val selectedItem = filterCategories.find {
+                                        context.getCategoryLabel(it.code, it.label) == selectedLocalizedLabel
+                                    }
                                     // "당일만남" 선택 시 null 전달 (백엔드에서 today=true로 처리)
-                                    val categoryParam = if (selectedName == "당일만남") null else selectedName
+                                    val categoryParam = if (selectedItem?.code == "TODAY") null else selectedItem?.code
                                     viewModel.onFilterCategorySelected(categoryParam)
                                 }
                             )
                         }
 
-                        // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
+                        // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원).
                         if (congestionLevels.isNotEmpty()) {
-                            val congestionRawLabel = congestionLevels
-                                .find { it.code == selectedCongestion }
-                                ?.label
-                            val congestionDisplay = if (congestionRawLabel != null) {
-                                displayCongestionLabel(congestionRawLabel)
-                            } else {
-                                congestionFilterLabel
+                            val localizedCongestions = congestionLevels.map {
+                                context.getCongestionLabel(it.code, it.label)
                             }
+                            val selectedCongestionLabel = congestionLevels.find { it.code == selectedCongestion }?.let {
+                                context.getCongestionLabel(it.code, it.label)
+                            } ?: congestionFilterLabel
+
                             FilterChipItem(
                                 text = congestionFilterLabel,
-                                options = congestionLevels.map { it.label },
-                                selectedOption = congestionDisplay,
-                                labelFor = { displayCongestionLabel(it) },
-                                onOptionSelected = { selectedLabel ->
-                                    val congestionOption = congestionLevels.find { it.label == selectedLabel }
+                                options = localizedCongestions,
+                                selectedOption = selectedCongestionLabel,
+                                onOptionSelected = { selectedLocalizedLabel ->
+                                    val congestionOption = congestionLevels.find {
+                                        context.getCongestionLabel(it.code, it.label) == selectedLocalizedLabel
+                                    }
                                     // "전체" 선택 시 null 전달
                                     val congestionParam = if (congestionOption?.code == "ALL") null else congestionOption?.code
                                     viewModel.onCongestionSelected(congestionParam)

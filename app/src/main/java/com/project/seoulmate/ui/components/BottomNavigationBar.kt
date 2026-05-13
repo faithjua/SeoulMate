@@ -44,7 +44,6 @@ sealed class BottomNavItem(
     object Home : BottomNavItem("홈", R.drawable.ic_home)
     object Favorite : BottomNavItem("찜", R.drawable.ic_heart)
     object Add : BottomNavItem("등록", R.drawable.ic_add)
-    object Message : BottomNavItem("쪽지", R.drawable.ic_chat)
     object Profile : BottomNavItem("프로필", R.drawable.ic_profile)
 }
 
@@ -57,11 +56,7 @@ fun BottomNavigationBar(
         add(BottomNavItem.Home)     // index 0
         add(BottomNavItem.Favorite) // index 1
         add(BottomNavItem.Add)      // index 2
-        add(BottomNavItem.Profile)  // index 4
-        if (!AppConfig.IS_PRODUCTION) {
-            //add(BottomNavItem.Message)  // index 3 (개발 모드만)
-
-        }
+        add(BottomNavItem.Profile)  // index 3
     }
 
     Surface(

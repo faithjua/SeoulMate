@@ -41,6 +41,8 @@ interface FavoriteApi {
         @Header("Authorization") token: String,
         @Query("targetType") targetType: String? = null,
         @Query("page") page: Int = 0,
-        @Query("size") size: Int = 10
+        @Query("size") size: Int = 10,
+        @Query("category") category: String? = null,
+        @Query("congestion") congestion: String? = null
     ): Response<ApiResponse<PageResponse<FavoriteItemResponse>>>
 }

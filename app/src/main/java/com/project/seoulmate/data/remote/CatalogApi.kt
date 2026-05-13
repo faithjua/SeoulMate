@@ -1,7 +1,7 @@
 package com.project.seoulmate.data.remote
 
-import com.project.seoulmate.data.model.CategoriesResponseData
-import com.project.seoulmate.data.model.CongestionLevelsResponseData
+import com.project.seoulmate.data.model.CategoryItem
+import com.project.seoulmate.data.model.CongestionLevelOption
 import retrofit2.Response
 import retrofit2.http.GET
 
@@ -17,17 +17,17 @@ interface CatalogApi {
      * 카테고리 12종 조회
      * GET /api/catalog/categories
      *
-     * @return 카테고리 이름 목록
+     * @return ApiResponse<List<CategoryItem>>
      */
     @GET("/api/catalog/categories")
-    suspend fun getCategories(): Response<CategoriesResponseData>
+    suspend fun getCategories(): Response<ApiResponse<List<CategoryItem>>>
 
     /**
      * 혼잡도 옵션 조회 (전체 포함 5종)
      * GET /api/catalog/congestion-levels
      *
-     * @return 혼잡도 옵션 목록 (code와 label 포함)
+     * @return ApiResponse<List<CongestionLevelOption>>
      */
     @GET("/api/catalog/congestion-levels")
-    suspend fun getCongestionLevels(): Response<CongestionLevelsResponseData>
+    suspend fun getCongestionLevels(): Response<ApiResponse<List<CongestionLevelOption>>>
 }

@@ -5,6 +5,7 @@
     <string name="wishlist_title">찜</string>
     <string name="wishlist_translate">번역</string>
     <string name="wishlist_notification">알림</string>
+    <string name="wishlist_filter_category">카테고리</string>
     <string name="wishlist_filter_region">지역·명소</string>
     <string name="wishlist_filter_mate">메이트 선호</string>
     <string name="wishlist_filter_congestion">혼잡도</string>
@@ -174,6 +175,25 @@
     <string name="home_congestion_crowded">붐빔</string>
     <string name="home_meeting_count">만남 %d개</string>
 
+    <!-- Category i18n keys (code → label) -->
+    <string name="category_TODAY">당일만남</string>
+    <string name="category_TOURISM">관광</string>
+    <string name="category_KPOP">K-팝</string>
+    <string name="category_KBEAUTY">K-뷰티</string>
+    <string name="category_SHOPPING">쇼핑</string>
+    <string name="category_KOREAN_FOOD">한식</string>
+    <string name="category_CAFE">카페</string>
+    <string name="category_TRANSPORT_GUIDE">교통가이드</string>
+    <string name="category_CLASS">클래스</string>
+    <string name="category_COMMUNITY">커뮤니티</string>
+    <string name="category_EXHIBITION">전시·스타일</string>
+    <string name="category_SAFETY">안전·생활</string>
+
+    <!-- Congestion Levels (혼잡도) -->
+    <string name="congestion_RELAXED">여유</string>
+    <string name="congestion_MODERATE">보통</string>
+    <string name="congestion_BUSY">붐빔</string>
+
     <!-- TopBar.kt -->
     <string name="topbar_logo">Seoul Mate 로고</string>
 
@@ -219,6 +239,17 @@
     <string name="addmeeting_freq_weekly">매주</string>
     <string name="addmeeting_freq_biweekly">격주</string>
     <string name="addmeeting_freq_monthly">매월</string>
+    <string name="addmeeting_image_permission_required">이미지 접근 권한이 필요합니다</string>
+    <string name="addmeeting_camera_permission_required">카메라 접근 권한이 필요합니다</string>
+
+    <!-- CameraScreen.kt -->
+    <string name="camera_permission_required">카메라 권한이 필요합니다</string>
+    <string name="camera_grant_permission">권한 허용</string>
+    <string name="camera_back">뒤로가기</string>
+    <string name="camera_title">사진 촬영</string>
+    <string name="camera_capture">사진 촬영</string>
+    <string name="camera_capture_success">사진이 촬영되었습니다</string>
+    <string name="camera_capture_failed">사진 촬영에 실패했습니다</string>
 
     <!-- AddCourseScreen.kt -->
     <string name="addcourse_title">코스 추가</string>
@@ -312,6 +343,9 @@
     <string name="common_remove">삭제</string>
     <string name="common_meeting_thumbnail">만남 썸네일</string>
 
+    <!-- SearchBar -->
+    <string name="searchbar_placeholder">10,000개 이상의 서울 만남 검색</string>
+
     <!-- Category display names. Backend의 type(한글) 그대로 보내되, 화면에는 이 리소스를 통해 다국어 표시. -->
     <string name="category_all_menu">전체메뉴</string>
     <string name="category_daily">당일만남</string>
@@ -356,6 +390,5 @@
     <string name="toast_approve_generic_error">승인 중 오류가 발생했습니다</string>
     <string name="toast_reject_generic_error">거절 중 오류가 발생했습니다</string>
     <string name="toast_apply_approved_meeting_full">메이트 신청을 승인했습니다. 정원이 마감되었습니다.</string>
-    <!-- SearchBar -->
-    <string name="searchbar_placeholder">10,000개 이상의 서울 만남 검색</string>
+
 </resources>

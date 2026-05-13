@@ -37,7 +37,8 @@ class MeetingDetailViewModel @Inject constructor(
     private val meetingRepository: MeetingRepository,
     private val favoriteRepository: FavoriteRepository,
     private val applicationRepository: ApplicationRepository,
-    private val commentRepository: CommentRepository
+    private val commentRepository: CommentRepository,
+    private val userActionRepository: com.project.seoulmate.data.repository.UserActionRepository
 ) : ViewModel() {
 
     private fun str(resId: Int): String = appContext.getString(resId)
@@ -269,17 +270,61 @@ class MeetingDetailViewModel @Inject constructor(
     }
 
     /**
-     * 사용자 신고
+     * 신고 (게시글 또는 사용자)
+     * reason이 "POST_CONTENT"면 게시글 신고, "USER_BEHAVIOR"면 사용자 신고
      */
     fun reportUser(reason: String, description: String) {
         viewModelScope.launch {
             try {
-                // TODO: 실제 API 호출 구현 필요
-                // val result = reportRepository.reportUser(userId, reason, description)
-                Timber.d("Report user - reason: $reason, description: $description")
-                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_report_received)))
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token == null) {
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
+                    return@launch
+                }
+
+                val currentDetail = _uiState.value
+                if (currentDetail == null) {
+                    _userActionEvent.emit(UserActionResult.Error("만남 정보를 불러올 수 없습니다"))
+                    return@launch
+                }
+
+                // reason에 따라 targetType 결정
+                val (targetType, targetId) = when (reason) {
+                    "POST_CONTENT" -> "MEETUP" to meetingId.toLongOrNull()
+                    "USER_BEHAVIOR" -> "USER" to currentDetail.mateInfo.id
+                    else -> "MEETUP" to meetingId.toLongOrNull()
+                }
+
+                if (targetId == null) {
+                    _userActionEvent.emit(UserActionResult.Error("잘못된 요청입니다"))
+                    return@launch
+                }
+
+                // 백엔드 API 스펙에 맞게 reason 매핑
+                val apiReason = when (reason) {
+                    "POST_CONTENT" -> "INAPPROPRIATE"
+                    "USER_BEHAVIOR" -> "OTHER"
+                    else -> "OTHER"
+                }
+
+                val request = com.project.seoulmate.data.model.ReportRequest(
+                    targetType = targetType,
+                    targetId = targetId,
+                    reason = apiReason,
+                    description = description
+                )
+
+                val result = userActionRepository.report(token, request)
+                result.onSuccess {
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_report_received)))
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to report")
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_report_error)))
+                }
             } catch (e: Exception) {
-                Timber.e(e, "Failed to report user")
+                Timber.e(e, "Failed to report")
                 _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_report_error)))
             }
         }
@@ -291,10 +336,31 @@ class MeetingDetailViewModel @Inject constructor(
     fun blockUser() {
         viewModelScope.launch {
             try {
-                // TODO: 실제 API 호출 구현 필요
-                // val result = blockRepository.blockUser(userId)
-                Timber.d("Block user")
-                _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_user_blocked)))
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token == null) {
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_login_required)))
+                    return@launch
+                }
+
+                val currentDetail = _uiState.value
+                if (currentDetail == null) {
+                    _userActionEvent.emit(UserActionResult.Error("만남 정보를 불러올 수 없습니다"))
+                    return@launch
+                }
+
+                val request = com.project.seoulmate.data.model.BlockRequest(
+                    blockedUserId = currentDetail.mateInfo.id
+                )
+
+                val result = userActionRepository.block(token, request)
+                result.onSuccess {
+                    _userActionEvent.emit(UserActionResult.Success(str(R.string.toast_user_blocked)))
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to block user")
+                    _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_block_error)))
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to block user")
                 _userActionEvent.emit(UserActionResult.Error(str(R.string.toast_block_error)))

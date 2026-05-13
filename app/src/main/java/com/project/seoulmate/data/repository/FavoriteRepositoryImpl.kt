@@ -63,10 +63,19 @@ class FavoriteRepositoryImpl @Inject constructor(
         token: String,
         targetType: String?,
         page: Int,
-        size: Int
+        size: Int,
+        category: String?,
+        congestion: String?
     ): Result<PageResponse<FavoriteItemResponse>> {
         return try {
-            val response = favoriteApi.getFavorites("Bearer $token", targetType, page, size)
+            val response = favoriteApi.getFavorites(
+                token = "Bearer $token",
+                targetType = targetType,
+                page = page,
+                size = size,
+                category = category,
+                congestion = congestion
+            )
 
             if (response.isSuccessful && response.body()?.success == true) {
                 val pageData = response.body()?.data

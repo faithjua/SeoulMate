@@ -22,3 +22,15 @@ data class ReportRequest(
 data class BlockRequest(
     val blockedUserId: Long
 )
+
+/**
+ * 차단 목록 응답 DTO
+ * GET /api/blocks
+ */
+@Serializable
+data class BlockResponse(
+    val id: Long,
+    val blockedUserId: Long,
+    val blockedUserNickname: String,
+    val createdAt: String
+)
