@@ -174,7 +174,7 @@ fun WishlistScreen(
                         context.getCategoryLabel(it.code, it.label)
                     }
                     FilterChipItem(
-                        text = "카테고리",
+                        text = stringResource(id = R.string.wishlist_filter_category),
                         options = localizedCategories,
                         onSelected = { index ->
                             // 첫 번째 항목은 "전체"이므로 null, 나머지는 해당 카테고리 code

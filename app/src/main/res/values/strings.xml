@@ -5,6 +5,7 @@
 <string name="wishlist_title">찜</string>
 <string name="wishlist_translate">번역</string>
 <string name="wishlist_notification">알림</string>
+<string name="wishlist_filter_category">카테고리</string>
 <string name="wishlist_filter_region">지역·명소</string>
 <string name="wishlist_filter_mate">메이트 선호</string>
 <string name="wishlist_filter_congestion">혼잡도</string>

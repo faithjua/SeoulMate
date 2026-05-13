@@ -6,6 +6,7 @@
     <string name="wishlist_title">Wishlist</string>
     <string name="wishlist_translate">Translate</string>
     <string name="wishlist_notification">Notifications</string>
+    <string name="wishlist_filter_category">Category</string>
     <string name="wishlist_filter_region">Region</string>
     <string name="wishlist_filter_mate">Mate Preference</string>
     <string name="wishlist_filter_congestion">Crowd Level</string>
