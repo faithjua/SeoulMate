@@ -376,7 +376,11 @@ class AddMeetingViewModel @Inject constructor(
                     try {
                         // URI의 MIME 타입 가져오기
                         val rawMimeType = context.contentResolver.getType(uri)
+                        Timber.d("=== Image Processing ===")
+                        Timber.d("URI: $uri")
+                        Timber.d("Raw MIME type: $rawMimeType")
                         val mimeType = normalizeMimeType(rawMimeType ?: "image/jpeg")
+                        Timber.d("Normalized MIME type: $mimeType")
 
                         val inputStream = context.contentResolver.openInputStream(uri)
                         val fileSize = inputStream?.available() ?: 0
@@ -403,6 +407,8 @@ class AddMeetingViewModel @Inject constructor(
                                 input.copyTo(output)
                             }
                         }
+                        Timber.d("Temp file created: ${tempFile.name}, size: ${tempFile.length()} bytes")
+                        Timber.d("=== End Image Processing ===")
                         Triple(tempFile, fileSize.toLong(), mimeType)
                     } catch (e: Exception) {
                         Timber.e(e, "Error processing file")
@@ -419,8 +425,14 @@ class AddMeetingViewModel @Inject constructor(
                 }
 
                 // 3. Multipart 생성 (정확한 MIME 타입 사용)
-                val fileParts = files.map { (file, _, mimeType) ->
+                val fileParts = files.mapIndexed { index, (file, _, mimeType) ->
+                    Timber.d("=== Preparing upload ${index + 1}/${files.size} ===")
+                    Timber.d("File: ${file.name}")
+                    Timber.d("File extension: ${file.extension}")
+                    Timber.d("MIME type: $mimeType")
+                    Timber.d("File size: ${file.length()} bytes")
                     val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                    Timber.d("RequestBody Content-Type: ${requestFile.contentType()}")
                     MultipartBody.Part.createFormData("file", file.name, requestFile)
                 }
 
@@ -429,16 +441,22 @@ class AddMeetingViewModel @Inject constructor(
                 // 4. API 호출
                 val imageUrls = mutableListOf<String>()
 
-                for (filePart in fileParts) {
+                for ((index, filePart) in fileParts.withIndex()) {
+                    Timber.d("Uploading image ${index + 1}/${fileParts.size}...")
                     val response = imageApi.uploadImage("Bearer $token", filePart, folderBody)
 
                     if (response.isSuccessful && response.body()?.success == true) {
                         response.body()?.data?.url?.let { url ->
                             imageUrls.add(url)
+                            Timber.d("✓ Image ${index + 1} uploaded successfully: $url")
                         }
                     } else {
                         val errorMsg = response.body()?.message ?: context.getString(R.string.toast_image_upload_failed_default)
-                        Timber.e("Image upload failed: $errorMsg")
+                        val errorBody = response.errorBody()?.string()
+                        Timber.e("✗ Image upload failed")
+                        Timber.e("Response code: ${response.code()}")
+                        Timber.e("Error message: $errorMsg")
+                        Timber.e("Error body: $errorBody")
                         files.forEach { it.first.delete() }
                         onComplete(false, errorMsg)
                         return@launch
