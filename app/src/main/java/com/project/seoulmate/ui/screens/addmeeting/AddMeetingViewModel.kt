@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.R
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.MeetingForm
 import com.project.seoulmate.data.remote.ImageApi
+import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,6 +40,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddMeetingViewModel @Inject constructor(
     private val repository: MeetingRepository,
+    private val catalogRepository: CatalogRepository,
     private val imageApi: ImageApi,
     @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
@@ -60,10 +63,29 @@ class AddMeetingViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // 카탈로그 데이터 (카테고리)
+    private val _categories = MutableStateFlow<List<CategoryItem>>(emptyList())
+    val categories: StateFlow<List<CategoryItem>> = _categories.asStateFlow()
+
     init {
+        // 카탈로그 데이터 로드
+        loadCategories()
+
         // 수정 모드인 경우 기존 만남 데이터 로드
         if (isEditMode && meetingId != null) {
             loadMeetingForEdit(meetingId)
+        }
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            catalogRepository.getCategories().onSuccess { categories ->
+                // TODAY 카테고리 제외 (만남 등록에서는 사용하지 않음)
+                _categories.value = categories.filter { it.code != "TODAY" }
+                Timber.d("Categories loaded: ${_categories.value.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load categories")
+            }
         }
     }
 

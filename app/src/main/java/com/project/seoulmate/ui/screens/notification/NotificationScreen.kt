@@ -31,6 +31,7 @@ import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.data.remote.ApplicationResponse
 import com.project.seoulmate.data.remote.NotificationResponse
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
 import kotlinx.coroutines.flow.collectLatest
@@ -103,6 +104,13 @@ fun NotificationScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
+                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                         else -> selectedBottomItem = index
                     }
                 }

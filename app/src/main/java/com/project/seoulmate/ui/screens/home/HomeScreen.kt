@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +46,8 @@ import com.project.seoulmate.ui.components.*
 import com.project.seoulmate.ui.navigation.Screen
 import com.project.seoulmate.ui.theme.SeoulMateTheme
 import com.project.seoulmate.config.AppConfig
+import com.project.seoulmate.util.getCategoryLabel
+import com.project.seoulmate.util.getCongestionLabel
 
 /**
  * 홈 화면 Composable
@@ -73,6 +76,9 @@ fun HomeScreen(
     // 하단 네비게이션 선택 상태
     var selectedBottomItem by remember { mutableStateOf(0) }
 
+    // Context for i18n
+    val context = LocalContext.current
+
     // 다국어 지원을 위한 stringResource
     val categoryFilterLabel = stringResource(id = R.string.home_filter_category)
     val congestionFilterLabel = stringResource(id = R.string.home_filter_congestion)
@@ -93,8 +99,7 @@ fun HomeScreen(
                             restoreState = true
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        // 개발 모드에서만 쪽지(3)/프로필(4) 탭 노출
-
+                        // 개발 모드에서만 프로필(3) 탭 노출
                         3 -> if (!AppConfig.IS_PRODUCTION) {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
@@ -131,7 +136,8 @@ fun HomeScreen(
                     },
                     onNotificationClick = {
                         navController.navigate(Screen.Notifications.route)
-                    }
+                    },
+                    hasUnreadNotifications = false // TODO: 실제 미읽음 알림 수 API 연결 후 동적으로 변경
                 )
             }
 
@@ -223,13 +229,25 @@ fun HomeScreen(
                     ) {
                         // 카테고리 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
                         if (filterCategories.isNotEmpty()) {
+                            // code를 기반으로 기기 언어에 맞는 라벨 가져오기
+                            val localizedCategories = filterCategories.map {
+                                context.getCategoryLabel(it.code, it.label)
+                            }
+                            val selectedLabel = filterCategories.find { it.code == selectedFilterCategory }?.let {
+                                context.getCategoryLabel(it.code, it.label)
+                            } ?: categoryFilterLabel
+
                             FilterChipItem(
                                 text = categoryFilterLabel,
-                                options = filterCategories,
-                                selectedOption = selectedFilterCategory ?: categoryFilterLabel,
-                                onOptionSelected = { selectedName ->
+                                options = localizedCategories,
+                                selectedOption = selectedLabel,
+                                onOptionSelected = { selectedLocalizedLabel ->
+                                    // 선택된 localized 라벨로부터 원본 CategoryItem 찾기
+                                    val selectedItem = filterCategories.find {
+                                        context.getCategoryLabel(it.code, it.label) == selectedLocalizedLabel
+                                    }
                                     // "당일만남" 선택 시 null 전달 (백엔드에서 today=true로 처리)
-                                    val categoryParam = if (selectedName == "당일만남") null else selectedName
+                                    val categoryParam = if (selectedItem?.code == "TODAY") null else selectedItem?.code
                                     viewModel.onFilterCategorySelected(categoryParam)
                                 }
                             )
@@ -237,12 +255,23 @@ fun HomeScreen(
 
                         // 혼잡도 드롭다운 필터 (카탈로그 API 데이터 + 다국어 지원)
                         if (congestionLevels.isNotEmpty()) {
+                            // code를 기반으로 기기 언어에 맞는 라벨 가져오기
+                            val localizedCongestions = congestionLevels.map {
+                                context.getCongestionLabel(it.code, it.label)
+                            }
+                            val selectedCongestionLabel = congestionLevels.find { it.code == selectedCongestion }?.let {
+                                context.getCongestionLabel(it.code, it.label)
+                            } ?: congestionFilterLabel
+
                             FilterChipItem(
                                 text = congestionFilterLabel,
-                                options = congestionLevels.map { it.label },
-                                selectedOption = congestionLevels.find { it.code == selectedCongestion }?.label ?: congestionFilterLabel,
-                                onOptionSelected = { selectedLabel ->
-                                    val congestionOption = congestionLevels.find { it.label == selectedLabel }
+                                options = localizedCongestions,
+                                selectedOption = selectedCongestionLabel,
+                                onOptionSelected = { selectedLocalizedLabel ->
+                                    // 선택된 localized 라벨로부터 원본 CongestionLevelOption 찾기
+                                    val congestionOption = congestionLevels.find {
+                                        context.getCongestionLabel(it.code, it.label) == selectedLocalizedLabel
+                                    }
                                     // "전체" 선택 시 null 전달
                                     val congestionParam = if (congestionOption?.code == "ALL") null else congestionOption?.code
                                     viewModel.onCongestionSelected(congestionParam)

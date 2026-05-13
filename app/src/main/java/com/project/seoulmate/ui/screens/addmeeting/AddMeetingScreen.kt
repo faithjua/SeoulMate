@@ -52,6 +52,10 @@ fun AddMeetingScreen(
     val isEditMode = viewModel.isEditMode
     // 로딩 상태
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    // 카테고리 데이터
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
 
     /**
      * 카테고리, 장소/시간 정보 공유를 위한 추가 코드
@@ -69,8 +73,12 @@ fun AddMeetingScreen(
     val returnedCourseId by savedStateHandle?.getStateFlow<Long?>("course_id", null)
         ?.collectAsStateWithLifecycle(initialValue = null) ?: remember{mutableStateOf(null)}
 
-    //  3. LaunchedEffect에서 코스, 설명, ID를 모두 처리하도록 수정
-    LaunchedEffect(returnedCourses, returnedDescription, returnedCourseId) {
+    //  3. 카메라에서 촬영한 이미지 URI 받는 로직 추가
+    val returnedImageUri by savedStateHandle?.getStateFlow<String?>("captured_image_uri", null)
+        ?.collectAsStateWithLifecycle(initialValue = null) ?: remember{mutableStateOf(null)}
+
+    //  4. LaunchedEffect에서 코스, 설명, ID를 모두 처리하도록 수정
+    LaunchedEffect(returnedCourses, returnedDescription, returnedCourseId, returnedImageUri) {
         if (returnedCourses.isNotEmpty()) {
             // UI 표시용 코스 이름들
             returnedCourses.forEach { viewModel.addCourse(it) }
@@ -88,6 +96,21 @@ fun AddMeetingScreen(
             viewModel.updateCourseId(returnedCourseId!!)
             savedStateHandle?.remove<Long>("course_id")
         }
+
+        if (returnedImageUri != null) {
+            // 카메라에서 촬영한 이미지를 업로드
+            val uri = android.net.Uri.parse(returnedImageUri)
+            val uploadSuccessMsg = context.getString(R.string.addmeeting_image_upload_success)
+            val uploadFailMsg = context.getString(R.string.addmeeting_upload_failed)
+            viewModel.uploadImages(listOf(uri)) { success, errorMessage ->
+                if (success) {
+                    Toast.makeText(context, uploadSuccessMsg, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, errorMessage ?: uploadFailMsg, Toast.LENGTH_SHORT).show()
+                }
+            }
+            savedStateHandle?.remove<String>("captured_image_uri")
+        }
     }
     //여기까지 추가
 
@@ -100,7 +123,6 @@ fun AddMeetingScreen(
         }
     }
 
-    val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
@@ -230,6 +252,7 @@ fun AddMeetingScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     PhotoUploadSection(
                         imageUrls = formState.imageUrls,
+                        onCameraClick = { navController.navigate(Screen.Camera.route) },
                         onGalleryClick = { imagePickerLauncher.launch("image/*") }
                     )
                 }
@@ -258,6 +281,7 @@ fun AddMeetingScreen(
                 // 카테고리/태그 섹션
                 FormSection(title = stringResource(id = R.string.addmeeting_label_category), required = true) {
                     CategoryTagSection(
+                        categories = categories,
                         selectedCategories = formState.selectedCategories,
                         onCategoryToggle = { viewModel.toggleCategory(it) }
                     )

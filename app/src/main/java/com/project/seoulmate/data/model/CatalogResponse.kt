@@ -7,23 +7,20 @@ import kotlinx.serialization.Serializable
  */
 
 /**
- * 카테고리 목록 응답
+ * 카테고리 단일 항목
+ * @param code 카테고리 코드 (영어, 예: "TOURISM", "KPOP")
+ * @param label 카테고리 라벨 (한국어, 예: "관광", "K-팝")
  */
 @Serializable
-data class CategoriesResponseData(
-    val data: List<String>
-)
-
-/**
- * 혼잡도 옵션 응답
- */
-@Serializable
-data class CongestionLevelsResponseData(
-    val data: List<CongestionLevelOption>
+data class CategoryItem(
+    val code: String,
+    val label: String
 )
 
 /**
  * 혼잡도 옵션 단일 항목
+ * @param code 혼잡도 코드 (영어, 예: "RELAXED", "BUSY")
+ * @param label 혼잡도 라벨 (한국어, 예: "여유", "붐빔")
  */
 @Serializable
 data class CongestionLevelOption(

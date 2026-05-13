@@ -174,6 +174,25 @@
     <string name="home_congestion_crowded">붐빔</string>
     <string name="home_meeting_count">만남 %d개</string>
 
+    <!-- Category i18n keys (code → label) -->
+    <string name="category_TODAY">당일만남</string>
+    <string name="category_TOURISM">관광</string>
+    <string name="category_KPOP">K-팝</string>
+    <string name="category_KBEAUTY">K-뷰티</string>
+    <string name="category_SHOPPING">쇼핑</string>
+    <string name="category_KOREAN_FOOD">한식</string>
+    <string name="category_CAFE">카페</string>
+    <string name="category_TRANSPORT_GUIDE">교통가이드</string>
+    <string name="category_CLASS">클래스</string>
+    <string name="category_COMMUNITY">커뮤니티</string>
+    <string name="category_EXHIBITION">전시·스타일</string>
+    <string name="category_SAFETY">안전·생활</string>
+
+    <!-- Congestion Levels (혼잡도) -->
+    <string name="congestion_RELAXED">여유</string>
+    <string name="congestion_MODERATE">보통</string>
+    <string name="congestion_BUSY">붐빔</string>
+
     <!-- TopBar.kt -->
     <string name="topbar_logo">Seoul Mate 로고</string>
 
@@ -219,6 +238,15 @@
     <string name="addmeeting_freq_weekly">매주</string>
     <string name="addmeeting_freq_biweekly">격주</string>
     <string name="addmeeting_freq_monthly">매월</string>
+
+    <!-- CameraScreen.kt -->
+    <string name="camera_permission_required">카메라 권한이 필요합니다</string>
+    <string name="camera_grant_permission">권한 허용</string>
+    <string name="camera_back">뒤로가기</string>
+    <string name="camera_title">사진 촬영</string>
+    <string name="camera_capture">사진 촬영</string>
+    <string name="camera_capture_success">사진이 촬영되었습니다</string>
+    <string name="camera_capture_failed">사진 촬영에 실패했습니다</string>
 
     <!-- AddCourseScreen.kt -->
     <string name="addcourse_title">코스 추가</string>

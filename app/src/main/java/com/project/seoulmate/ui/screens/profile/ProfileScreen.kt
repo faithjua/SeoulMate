@@ -1,5 +1,8 @@
 package com.project.seoulmate.ui.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,11 +44,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.components.SuitFontFamily
 import com.project.seoulmate.ui.navigation.Screen
+import com.project.seoulmate.ui.theme.SeoulMatePrimary
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -54,10 +60,34 @@ fun ProfileScreen(
     navController: NavController,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(2) } // default to stringResource(id = R.string.profile_tab_info) (Index 2)
-    var selectedBottomItem by remember { mutableStateOf(4) } // Profile is index 4
+    var selectedBottomItem by remember { mutableStateOf(3) } // Profile is index 3
     var showMenu by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // ViewModel 상태
+    val profileImageUrl by viewModel.profileImageUrl.collectAsStateWithLifecycle()
+    val uploadingImage by viewModel.uploadingImage.collectAsStateWithLifecycle()
+    val bio by viewModel.bio.collectAsStateWithLifecycle()
+    val updatingBio by viewModel.updatingBio.collectAsStateWithLifecycle()
+
+    // 이미지 선택 런처
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.uploadProfileImage(it)
+        }
+    }
+
+    // 자기소개 편집 다이얼로그 상태
+    var showBioEditDialog by remember { mutableStateOf(false) }
+
+    // 프로필 로드
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+    }
 
     // 로그아웃 확인 다이얼로그
     if (showLogoutDialog) {
@@ -84,6 +114,26 @@ fun ProfileScreen(
                 TextButton(onClick = { showLogoutDialog = false }) {
                     Text("취소", fontFamily = SuitFontFamily)
                 }
+            }
+        )
+    }
+
+    // 자기소개 편집 다이얼로그
+    if (showBioEditDialog) {
+        BioEditDialog(
+            currentBio = bio,
+            isUpdating = updatingBio,
+            onDismiss = { showBioEditDialog = false },
+            onSave = { newBio ->
+                viewModel.updateBio(
+                    newBio = newBio,
+                    onSuccess = {
+                        showBioEditDialog = false
+                    },
+                    onError = { error ->
+                        // TODO: 에러 표시 (Toast 또는 Snackbar)
+                    }
+                )
             }
         )
     }
@@ -125,7 +175,17 @@ fun ProfileScreen(
                 .background(Color.White)
         ) {
             // 알맹이(Profile Info)
-            ProfileHeader()
+            ProfileHeader(
+                profileImageUrl = profileImageUrl,
+                uploadingImage = uploadingImage,
+                bio = bio,
+                onEditProfileImageClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
+                onEditBioClick = {
+                    showBioEditDialog = true
+                }
+            )
 
             Spacer(modifier = Modifier.height(2.dp))
 
@@ -161,8 +221,8 @@ fun ProfileScreen(
             ) {
                 when (selectedTab) {
                     0 -> MeetingTabContent(viewModel = viewModel, navController = navController)
-                    1 -> ReviewTabContent()
-                    2 -> BadgeTabContent(navController = navController)
+                    1 -> ReviewTabContent(viewModel = viewModel)
+                    2 -> BadgeTabContent(viewModel = viewModel, navController = navController)
                 }
             }
         }
@@ -224,7 +284,13 @@ fun ProfileTopBar(
 }
 
 @Composable
-fun ProfileHeader() {
+fun ProfileHeader(
+    profileImageUrl: String? = null,
+    uploadingImage: Boolean = false,
+    bio: String = "",
+    onEditProfileImageClick: () -> Unit = {},
+    onEditBioClick: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,25 +300,52 @@ fun ProfileHeader() {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Image (Default image used)
+            // Profile Image
             Box(
                 modifier = Modifier.size(72.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.img_default_profile),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                )
+                if (profileImageUrl != null) {
+                    AsyncImage(
+                        model = profileImageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        placeholder = painterResource(id = R.drawable.img_default_profile),
+                        error = painterResource(id = R.drawable.img_default_profile)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_default_profile),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                }
+
+                // 업로드 중 로딩 표시
+                if (uploadingImage) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        color = Color(0xFF6C60FD),
+                        strokeWidth = 3.dp
+                    )
+                }
+
+                // 연필 버튼 (개발 모드에서만)
                 if (!AppConfig.IS_PRODUCTION) {
                     Box(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .align(Alignment.BottomEnd),
+                            .align(Alignment.BottomEnd)
+                            .clickable { onEditProfileImageClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -309,10 +402,10 @@ fun ProfileHeader() {
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "인스타 @imseoul 워킹맘\n관광학부 전공으로 개인 투어 맛집입니다 허허\n\n영어, 프랑스어, 한국어 가능합니다^^",
+            text = bio.ifEmpty { "자기소개를 입력해주세요" },
             fontSize = 14.sp,
             fontFamily = SuitFontFamily,
-            color = Color.Black,
+            color = if (bio.isEmpty()) Color.Gray else Color.Black,
             lineHeight = 20.sp
         )
 
@@ -330,7 +423,7 @@ fun ProfileHeader() {
         Spacer(modifier = Modifier.height(6.dp))
 
         OutlinedButton(
-            onClick = { /* TODO */ },
+            onClick = onEditBioClick,
             modifier = Modifier
                 .width(361.dp)
                 .height(36.dp)
@@ -352,8 +445,16 @@ fun ProfileHeader() {
 }
 
 @Composable
-fun BadgeTabContent(navController: NavController) {
+fun BadgeTabContent(
+    viewModel: ProfileViewModel,
+    navController: NavController
+) {
+    // API에서 가져온 배지 데이터
+    val badges by viewModel.badges.collectAsStateWithLifecycle()
+    val loadingBadges by viewModel.loadingBadges.collectAsStateWithLifecycle()
+
     // 12개 배지 정의 (이름, 아이콘 리소스)
+    // categoryCode와 매핑되는 drawable 리소스
     val badgeList = remember {
         listOf(
             BadgeData("관광", R.drawable.badge_tour),
@@ -371,34 +472,44 @@ fun BadgeTabContent(navController: NavController) {
         )
     }
 
-    // 첨부 이미지와 완벽히 매칭하기 위해 기본 활성화 상태(K-팝, 한식, 교통가이드, 전시·스타일, 안전) 지정
-    var selectedBadges by remember { 
-        mutableStateOf(setOf("K-팝", "한식", "교통가이드", "전시·스타일", "안전")) 
+    // API에서 받은 배지의 categoryCode 집합 (보유한 배지만 활성화)
+    val earnedBadgeCodes = remember(badges) {
+        badges.map { it.categoryCode }.toSet()
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // 12개 그리드 배지 아이템들
-        items(badgeList) { badge ->
-            val isSelected = selectedBadges.contains(badge.name)
-            BadgeGridItem(
-                badge = badge,
-                isSelected = isSelected,
-                onClick = {
-                    selectedBadges = if (isSelected) {
-                        selectedBadges - badge.name
-                    } else {
-                        selectedBadges + badge.name
+    if (loadingBadges) {
+        // 로딩 중 표시
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = SeoulMatePrimary)
+        }
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 12개 그리드 배지 아이템들
+            items(badgeList) { badge ->
+                // API에서 받은 배지 데이터에 이 배지가 있는지 확인
+                val badgeData = badges.find { it.categoryCode == badge.name }
+                val isEarned = badgeData != null
+
+                BadgeGridItem(
+                    badge = badge,
+                    isSelected = isEarned,
+                    count = badgeData?.count ?: 0,
+                    onClick = {
+                        // 배지는 클릭해도 상태가 바뀌지 않음 (읽기 전용)
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -412,6 +523,7 @@ data class BadgeData(
 fun BadgeGridItem(
     badge: BadgeData,
     isSelected: Boolean,
+    count: Int = 0,
     onClick: () -> Unit
 ) {
     Column(
@@ -422,18 +534,41 @@ fun BadgeGridItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Image(
-            painter = painterResource(id = badge.iconRes),
-            contentDescription = badge.name,
+        Box(
             modifier = Modifier
                 .aspectRatio(1f)
                 .fillMaxWidth(0.9f),
-            contentScale = ContentScale.Fit,
-            // 비활성화 상태일 경우 채도를 0으로 바꾸어 흑백 처리 + 투명도 조정
-            colorFilter = if (isSelected) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
-            alpha = if (isSelected) 1f else 0.45f
-        )
-        
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = badge.iconRes),
+                contentDescription = badge.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                // 비활성화 상태일 경우 채도를 0으로 바꾸어 흑백 처리 + 투명도 조정
+                colorFilter = if (isSelected) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
+                alpha = if (isSelected) 1f else 0.45f
+            )
+
+            // 배지 획득 횟수 표시 (획득한 경우에만)
+            if (isSelected && count > 0) {
+                Text(
+                    text = "×$count",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SuitFontFamily,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .background(
+                            color = SeoulMatePrimary,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+
         Text(
             text = badge.name,
             fontSize = 13.sp,
@@ -446,83 +581,163 @@ fun BadgeGridItem(
 }
 
 @Composable
-fun ReviewTabContent() {
-    // Dummy Data
-    val reviews = List(5) {
-        object {
-            val name = "마이서울"
-            val meetingTitle = "북촌조향사의집"
-            val time = "1일 전"
-            val content = "너무 좋은 투어를!!! 감사히 잘 다녀왔습니다\nmerci~~~"
-        }
-    }
+fun ReviewTabContent(viewModel: ProfileViewModel) {
+    // ViewModel 상태 구독
+    val reviews by viewModel.reviews.collectAsStateWithLifecycle()
+    val loadingReviews by viewModel.loadingReviews.collectAsStateWithLifecycle()
+    val totalReviews by viewModel.totalReviews.collectAsStateWithLifecycle()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp)
-    ) {
-        item {
-            Text(
-                text = "받은 후기 83",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = SuitFontFamily,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        items(reviews) { review ->
-            Row(modifier = Modifier.padding(bottom = 24.dp)) {
-                // Profile image
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF6C60FD))
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(24.dp)
+        ) {
+            item {
+                Text(
+                    text = "받은 후기 $totalReviews",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Black
                 )
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = review.name,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = SuitFontFamily,
-                            color = Color.Black
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            items(reviews) { review ->
+                Row(modifier = Modifier.padding(bottom = 24.dp)) {
+                    // Profile image
+                    if (review.authorProfileImage != null) {
+                        AsyncImage(
+                            model = review.authorProfileImage,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            placeholder = painterResource(id = R.drawable.img_default_profile),
+                            error = painterResource(id = R.drawable.img_default_profile)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${review.meetingTitle} · ${review.time}",
-                            fontSize = 12.sp,
-                            fontFamily = SuitFontFamily,
-                            color = Color.Gray
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF6C60FD))
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row {
-                        repeat(5) {
-                            Icon(
-                                imageVector = Icons.Filled.Star,
-                                contentDescription = stringResource(id = R.string.profile_rating),
-                                tint = Color(0xFF6C60FD),
-                                modifier = Modifier.size(16.dp)
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = review.authorNickname,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SuitFontFamily,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "${review.meetupContextTitle} · ${formatReviewTime(review.createdAt)}",
+                                fontSize = 12.sp,
+                                fontFamily = SuitFontFamily,
+                                color = Color.Gray
                             )
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row {
+                            repeat(5) { index ->
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = stringResource(id = R.string.profile_rating),
+                                    tint = if (index < review.rating) Color(0xFF6C60FD) else Color(0xFFE0E0E0),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = review.content,
+                            fontSize = 14.sp,
+                            fontFamily = SuitFontFamily,
+                            color = Color.Black,
+                            lineHeight = 20.sp
+                        )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = review.content,
-                        fontSize = 14.sp,
-                        fontFamily = SuitFontFamily,
-                        color = Color.Black,
-                        lineHeight = 20.sp
-                    )
                 }
             }
         }
+
+        // 로딩 상태
+        if (loadingReviews) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = SeoulMatePrimary
+            )
+        }
+
+        // 빈 상태 (리뷰가 없을 때)
+        if (!loadingReviews && reviews.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = "리뷰 없음",
+                    tint = Color.LightGray,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "아직 받은 후기가 없습니다",
+                    fontSize = 16.sp,
+                    fontFamily = SuitFontFamily,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+/**
+ * ISO 8601 시간 문자열을 상대 시간으로 변환
+ * 예: "2026-05-12T22:46:52.063Z" -> "1일 전"
+ */
+private fun formatReviewTime(isoTime: String): String {
+    return try {
+        // 간단한 구현 - 실제로는 더 정교한 시간 계산 필요
+        // TODO: 실제 시간 차이 계산 로직 추가
+        val now = System.currentTimeMillis()
+        val timePattern = """(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})""".toRegex()
+        val match = timePattern.find(isoTime)
+
+        if (match != null) {
+            val (year, month, day, hour, minute, second) = match.destructured
+            val reviewDate = java.util.Calendar.getInstance().apply {
+                set(year.toInt(), month.toInt() - 1, day.toInt(), hour.toInt(), minute.toInt(), second.toInt())
+            }.timeInMillis
+
+            val diffMillis = now - reviewDate
+            val diffDays = diffMillis / (1000 * 60 * 60 * 24)
+            val diffHours = diffMillis / (1000 * 60 * 60)
+            val diffMinutes = diffMillis / (1000 * 60)
+
+            when {
+                diffDays > 0 -> "${diffDays}일 전"
+                diffHours > 0 -> "${diffHours}시간 전"
+                diffMinutes > 0 -> "${diffMinutes}분 전"
+                else -> "방금 전"
+            }
+        } else {
+            isoTime.substring(0, 10) // 날짜만 표시
+        }
+    } catch (e: Exception) {
+        isoTime.substring(0, 10) // 날짜만 표시
     }
 }
 
@@ -892,4 +1107,84 @@ fun MeetingTabContent(
             }
         }
     }
+}
+
+/**
+ * 자기소개 편집 다이얼로그
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BioEditDialog(
+    currentBio: String,
+    isUpdating: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var bioText by remember { mutableStateOf(currentBio) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "자기소개 수정",
+                fontFamily = SuitFontFamily,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = bioText,
+                    onValueChange = { bioText = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    placeholder = {
+                        Text(
+                            "자기소개를 입력해주세요",
+                            fontFamily = SuitFontFamily,
+                            color = Color.Gray
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFEEEEEE),
+                        focusedBorderColor = Color(0xFF6C60FD)
+                    ),
+                    maxLines = 10,
+                    enabled = !isUpdating
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(bioText) },
+                enabled = !isUpdating
+            ) {
+                if (isUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color(0xFF6C60FD),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        "저장",
+                        fontFamily = SuitFontFamily,
+                        color = Color(0xFF6C60FD)
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isUpdating
+            ) {
+                Text(
+                    "취소",
+                    fontFamily = SuitFontFamily
+                )
+            }
+        }
+    )
 }

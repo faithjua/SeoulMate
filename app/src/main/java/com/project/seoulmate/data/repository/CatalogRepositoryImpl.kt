@@ -1,5 +1,6 @@
 package com.project.seoulmate.data.repository
 
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.CongestionLevelOption
 import com.project.seoulmate.data.remote.CatalogApi
 import timber.log.Timber
@@ -15,10 +16,10 @@ class CatalogRepositoryImpl @Inject constructor(
 ) : CatalogRepository {
 
     // 메모리 캐시
-    private var cachedCategories: List<String>? = null
+    private var cachedCategories: List<CategoryItem>? = null
     private var cachedCongestionLevels: List<CongestionLevelOption>? = null
 
-    override suspend fun getCategories(): Result<List<String>> {
+    override suspend fun getCategories(): Result<List<CategoryItem>> {
         // 캐시가 있으면 반환
         cachedCategories?.let {
             Timber.d("Returning cached categories: ${it.size} items")
@@ -28,17 +29,28 @@ class CatalogRepositoryImpl @Inject constructor(
         return try {
             val response = catalogApi.getCategories()
 
-            if (response.isSuccessful && response.body() != null) {
-                val categories = response.body()!!.data
+            if (response.isSuccessful && response.body()?.success == true) {
+                val categories = response.body()?.data ?: emptyList()
                 cachedCategories = categories
                 Timber.d("Categories loaded and cached: ${categories.size} items")
                 Result.success(categories)
             } else {
                 // API 실패 시 폴백 데이터 사용 (백엔드 배포 전 임시)
-                Timber.w("카테고리 API 실패: ${response.code()}, 폴백 데이터 사용")
+                val errorMsg = response.body()?.message ?: "Unknown error"
+                Timber.w("카테고리 API 실패: ${response.code()}, message: $errorMsg, 폴백 데이터 사용")
                 val fallbackCategories = listOf(
-                    "당일만남", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페",
-                    "교통가이드", "클래스", "커뮤니티", "전시·스타일", "안전·생활"
+                    CategoryItem(code = "TODAY", label = "당일만남"),
+                    CategoryItem(code = "TOURISM", label = "관광"),
+                    CategoryItem(code = "KPOP", label = "K-팝"),
+                    CategoryItem(code = "KBEAUTY", label = "K-뷰티"),
+                    CategoryItem(code = "SHOPPING", label = "쇼핑"),
+                    CategoryItem(code = "KOREAN_FOOD", label = "한식"),
+                    CategoryItem(code = "CAFE", label = "카페"),
+                    CategoryItem(code = "TRANSPORT_GUIDE", label = "교통가이드"),
+                    CategoryItem(code = "CLASS", label = "클래스"),
+                    CategoryItem(code = "COMMUNITY", label = "커뮤니티"),
+                    CategoryItem(code = "EXHIBITION", label = "전시·스타일"),
+                    CategoryItem(code = "SAFETY", label = "안전·생활")
                 )
                 cachedCategories = fallbackCategories
                 Result.success(fallbackCategories)
@@ -47,8 +59,18 @@ class CatalogRepositoryImpl @Inject constructor(
             // 네트워크 에러 등 예외 발생 시 폴백 데이터 사용
             Timber.e(e, "Get categories error, 폴백 데이터 사용")
             val fallbackCategories = listOf(
-                "당일만남", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페",
-                "교통가이드", "클래스", "커뮤니티", "전시·스타일", "안전·생활"
+                CategoryItem(code = "TODAY", label = "당일만남"),
+                CategoryItem(code = "TOURISM", label = "관광"),
+                CategoryItem(code = "KPOP", label = "K-팝"),
+                CategoryItem(code = "KBEAUTY", label = "K-뷰티"),
+                CategoryItem(code = "SHOPPING", label = "쇼핑"),
+                CategoryItem(code = "KOREAN_FOOD", label = "한식"),
+                CategoryItem(code = "CAFE", label = "카페"),
+                CategoryItem(code = "TRANSPORT_GUIDE", label = "교통가이드"),
+                CategoryItem(code = "CLASS", label = "클래스"),
+                CategoryItem(code = "COMMUNITY", label = "커뮤니티"),
+                CategoryItem(code = "EXHIBITION", label = "전시·스타일"),
+                CategoryItem(code = "SAFETY", label = "안전·생활")
             )
             cachedCategories = fallbackCategories
             Result.success(fallbackCategories)
@@ -65,14 +87,15 @@ class CatalogRepositoryImpl @Inject constructor(
         return try {
             val response = catalogApi.getCongestionLevels()
 
-            if (response.isSuccessful && response.body() != null) {
-                val levels = response.body()!!.data
+            if (response.isSuccessful && response.body()?.success == true) {
+                val levels = response.body()?.data ?: emptyList()
                 cachedCongestionLevels = levels
                 Timber.d("Congestion levels loaded and cached: ${levels.size} items")
                 Result.success(levels)
             } else {
                 // API 실패 시 폴백 데이터 사용 (백엔드 배포 전 임시)
-                Timber.w("혼잡도 API 실패: ${response.code()}, 폴백 데이터 사용")
+                val errorMsg = response.body()?.message ?: "Unknown error"
+                Timber.w("혼잡도 API 실패: ${response.code()}, message: $errorMsg, 폴백 데이터 사용")
                 val fallbackLevels = listOf(
                     CongestionLevelOption(code = "ALL", label = "전체"),
                     CongestionLevelOption(code = "RELAXED", label = "여유"),
