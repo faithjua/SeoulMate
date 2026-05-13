@@ -74,7 +74,7 @@ fun WishlistScreen(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                         2 -> navController.navigate(Screen.AddMeeting.createRoute())
-                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                        3 -> {
                             navController.navigate(Screen.Profile.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
@@ -175,7 +175,12 @@ fun WishlistScreen(
                     }
                     FilterChipItem(
                         text = "카테고리",
-                        options = localizedCategories
+                        options = localizedCategories,
+                        onSelected = { index ->
+                            // 첫 번째 항목은 "전체"이므로 null, 나머지는 해당 카테고리 code
+                            val categoryCode = if (index == 0) null else filterCategories[index - 1].code
+                            viewModel.applyCategory(categoryCode)
+                        }
                     )
                 }
 
@@ -186,7 +191,11 @@ fun WishlistScreen(
                     }
                     FilterChipItem(
                         text = stringResource(id = R.string.wishlist_filter_congestion),
-                        options = localizedCongestions
+                        options = localizedCongestions,
+                        onSelected = { index ->
+                            val congestionCode = congestionLevels[index].code
+                            viewModel.applyCongestion(congestionCode)
+                        }
                     )
                 }
                 
@@ -257,7 +266,8 @@ fun WishlistScreen(
 @Composable
 fun FilterChipItem(
     text: String,
-    options: List<String> = emptyList() // 드롭다운에 보여줄 항목들
+    options: List<String> = emptyList(), // 드롭다운에 보여줄 항목들
+    onSelected: (Int) -> Unit = {} // 선택된 항목의 인덱스를 전달하는 콜백
 ) {
     // 드롭다운 메뉴가 열려있는지 여부를 저장하는 상태
     var expanded by remember { mutableStateOf(false) }
@@ -293,19 +303,20 @@ fun FilterChipItem(
                 )
             }
         }
-        
+
         // 드롭다운 메뉴 레고 조립!
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }, // 바깥을 누르면 닫힘
             modifier = Modifier.background(Color.White)
         ) {
-            options.forEach { option ->
+            options.forEachIndexed { index, option ->
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
                         selectedText = option // 선택한 항목으로 글자 변경
                         expanded = false // 선택 후 메뉴 닫기
+                        onSelected(index) // 선택된 인덱스를 콜백으로 전달
                     }
                 )
             }

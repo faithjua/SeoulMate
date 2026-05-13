@@ -44,6 +44,13 @@ class WishlistViewModel @Inject constructor(
     private val _blockedUserIds = MutableStateFlow<Set<Long>>(emptySet())
     private val blockedUserIds: StateFlow<Set<Long>> = _blockedUserIds.asStateFlow()
 
+    // 필터 상태
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+
+    private val _selectedCongestion = MutableStateFlow<String?>(null)
+    val selectedCongestion: StateFlow<String?> = _selectedCongestion.asStateFlow()
+
     init {
         loadBlockedUsers()
         loadFavorites()
@@ -85,7 +92,14 @@ class WishlistViewModel @Inject constructor(
                 }
 
                 // API 콜 (만남(MEETUP) 타입만 첫 번째 페이지로 20개를 불러옵니다)
-                val result = favoriteRepository.getFavorites(idToken, targetType = "MEETUP", page = 0, size = 20)
+                val result = favoriteRepository.getFavorites(
+                    token = idToken,
+                    targetType = "MEETUP",
+                    page = 0,
+                    size = 20,
+                    category = _selectedCategory.value,
+                    congestion = _selectedCongestion.value
+                )
                 result.onSuccess { pageResponse ->
                     _uiState.value = pageResponse.content.mapNotNull { item ->
                         // 각 찜 항목의 상세 정보 조회 (N+1 쿼리이지만 현재 백엔드 API 구조상 불가피)
@@ -190,5 +204,24 @@ class WishlistViewModel @Inject constructor(
      */
     fun refreshBlockedUsers() {
         loadBlockedUsers()
+    }
+
+    /**
+     * 카테고리 필터 적용
+     * @param categoryCode 선택한 카테고리 code (예: "TOURISM", "KPOP") 또는 null (전체)
+     */
+    fun applyCategory(categoryCode: String?) {
+        _selectedCategory.value = categoryCode
+        loadFavorites()
+    }
+
+    /**
+     * 혼잡도 필터 적용
+     * @param congestionCode 선택한 혼잡도 code (예: "RELAXED", "BUSY") 또는 "ALL" (전체)
+     */
+    fun applyCongestion(congestionCode: String?) {
+        // "ALL"은 null로 변환 (전체 선택)
+        _selectedCongestion.value = if (congestionCode == "ALL") null else congestionCode
+        loadFavorites()
     }
 }

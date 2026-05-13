@@ -26,6 +26,8 @@ interface FavoriteRepository {
         token: String,
         targetType: String? = null,
         page: Int = 0,
-        size: Int = 10
+        size: Int = 10,
+        category: String? = null,
+        congestion: String? = null
     ): Result<PageResponse<FavoriteItemResponse>>
 }
