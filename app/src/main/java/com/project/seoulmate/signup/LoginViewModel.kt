@@ -91,4 +91,12 @@ class LoginViewModel @Inject constructor(
             )
         }
     }
+    // 가입 취소 시 호출. _loginState가 Success(isNewMember=true)인 채로 남으면
+    // LoginScreen의 LaunchedEffect(loginState)가 다시 발동해 Signup으로 자동 이동
+    // → 가입 취소가 안 되는 무한 루프가 됨. Idle로 초기화한다.
+    fun resetState() {
+        _loginState.value = LoginState.Idle
+        currentIdToken = ""
+        currentUserEmail = ""
+    }
 }
