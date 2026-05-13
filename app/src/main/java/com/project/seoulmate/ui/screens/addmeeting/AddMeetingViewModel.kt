@@ -371,9 +371,13 @@ class AddMeetingViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 2. 파일 크기 검증
+                // 2. 파일 크기 검증 및 MIME 타입 추출
                 val files = uris.mapNotNull { uri ->
                     try {
+                        // URI의 MIME 타입 가져오기
+                        val rawMimeType = context.contentResolver.getType(uri)
+                        val mimeType = normalizeMimeType(rawMimeType ?: "image/jpeg")
+
                         val inputStream = context.contentResolver.openInputStream(uri)
                         val fileSize = inputStream?.available() ?: 0
                         inputStream?.close()
@@ -384,14 +388,22 @@ class AddMeetingViewModel @Inject constructor(
                             return@launch
                         }
 
+                        // MIME 타입에 따라 파일 확장자 결정
+                        val extension = when (mimeType) {
+                            "image/jpeg" -> "jpg"
+                            "image/png" -> "png"
+                            "image/webp" -> "webp"
+                            else -> "jpg"
+                        }
+
                         // 임시 파일로 저장
-                        val tempFile = File.createTempFile("upload_", ".jpg", context.cacheDir)
+                        val tempFile = File.createTempFile("upload_", ".$extension", context.cacheDir)
                         context.contentResolver.openInputStream(uri)?.use { input ->
                             tempFile.outputStream().use { output ->
                                 input.copyTo(output)
                             }
                         }
-                        tempFile to fileSize.toLong()
+                        Triple(tempFile, fileSize.toLong(), mimeType)
                     } catch (e: Exception) {
                         Timber.e(e, "Error processing file")
                         null
@@ -406,9 +418,9 @@ class AddMeetingViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 3. Multipart 생성
-                val fileParts = files.map { (file, _) ->
-                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                // 3. Multipart 생성 (정확한 MIME 타입 사용)
+                val fileParts = files.map { (file, _, mimeType) ->
+                    val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
                     MultipartBody.Part.createFormData("file", file.name, requestFile)
                 }
 
@@ -445,6 +457,27 @@ class AddMeetingViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Image upload error")
                 onComplete(false, context.getString(R.string.toast_image_upload_generic_error))
+            }
+        }
+    }
+
+    /**
+     * MIME 타입 정규화
+     * Android에서 반환하는 비표준 MIME 타입을 표준 형식으로 변환
+     * 백엔드는 image/jpeg, image/png, image/webp만 허용
+     */
+    private fun normalizeMimeType(mimeType: String): String {
+        return when (mimeType.lowercase()) {
+            "image/jpg", "image/jpeg" -> "image/jpeg"
+            "image/png" -> "image/png"
+            "image/webp" -> "image/webp"
+            // 비표준 형식 처리
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            else -> {
+                Timber.w("Unknown MIME type: $mimeType, defaulting to image/jpeg")
+                "image/jpeg"
             }
         }
     }
