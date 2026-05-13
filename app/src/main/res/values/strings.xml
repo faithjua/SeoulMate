@@ -1,3 +1,337 @@
 <resources>
     <string name="app_name">SeoulMate</string>
+
+<!-- WishlistScreen.kt -->
+<string name="wishlist_title">찜</string>
+<string name="wishlist_translate">번역</string>
+<string name="wishlist_notification">알림</string>
+<string name="wishlist_filter_region">지역·명소</string>
+<string name="wishlist_filter_mate">메이트 선호</string>
+<string name="wishlist_filter_congestion">혼잡도</string>
+<string name="wishlist_filter_all">전체</string>
+<string name="wishlist_region_seoul">서울</string>
+<string name="wishlist_region_busan">부산</string>
+<string name="wishlist_region_jeju">제주</string>
+<string name="wishlist_mate_same">동성</string>
+<string name="wishlist_mate_opposite">이성</string>
+<string name="wishlist_mate_any">무관</string>
+<string name="wishlist_congestion_free">여유</string>
+<string name="wishlist_congestion_normal">보통</string>
+<string name="wishlist_congestion_crowded">혼잡</string>
+<string name="wishlist_filter_setting">필터 설정</string>
+<string name="wishlist_total_count">총 %d개</string>
+<string name="wishlist_cancel">찜 취소</string>
+<string name="wishlist_expected_price">예상 %s</string>
+<string name="wishlist_rating">평점</string>
+
+<!-- SearchScreen.kt & SearchViewModel.kt -->
+<string name="search_hint">만남을 검색해보세요!</string>
+<string name="search_no_result">검색 결과가 없습니다.</string>
+<string name="search_recent">최근 검색어</string>
+<string name="search_clear_all">모두 지우기</string>
+<string name="search_ad_label">AD</string>
+<string name="search_ad_title">광고 문의 받습니다</string>
+<string name="search_trending">주간 급상승 검색어</string>
+
+<!-- Search Network Errors -->
+<string name="error_timeout">서버 응답 시간이 초과되었습니다. 다시 시도해주세요.</string>
+<string name="error_network">네트워크 문제가 발생했습니다. 연결 상태를 확인해주세요.</string>
+<string name="error_server">서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</string>
+<string name="error_unknown">알 수 없는 에러가 발생했습니다.</string>
+<string name="error_load_data">데이터를 불러오는 중 오류가 발생했습니다.</string>
+
+
+<!-- Meeting / MeetingDetail -->
+<string name="meeting_search">만남 검색</string>
+<string name="meeting_favorite">찜하기</string>
+<string name="meeting_course">코스</string>
+<string name="meeting_start">시작</string>
+<string name="meeting_end">종료</string>
+<string name="meeting_capacity_format">%1$d/%2$d명</string>
+<string name="meeting_status_open">모집중</string>
+<string name="meeting_status_closed">마감</string>
+<string name="meeting_status_completed">완료</string>
+<string name="meeting_status_full">정원마감</string>
+<string name="meeting_mate_info">메이트 정보</string>
+<string name="meeting_block">차단하기</string>
+<string name="meeting_report">신고하기</string>
+<string name="meeting_profile_image">프로필 이미지</string>
+<string name="meeting_report_post_inappropriate">게시글 부적절</string>
+<string name="meeting_report_user_inappropriate">사용자 부적절</string>
+
+<!-- ProfileScreen.kt -->
+<string name="profile_tab_meeting">만남</string>
+<string name="profile_tab_review">리뷰</string>
+<string name="profile_tab_badge">배지</string>
+<string name="profile_back">뒤로가기</string>
+<string name="profile_menu">메뉴</string>
+<string name="profile_edit">수정</string>
+<string name="profile_verified">인증됨</string>
+<string name="profile_rating">별점</string>
+<string name="profile_view_briefly">간략히 보기</string>
+<string name="profile_edit_button">수정하기</string>
+<string name="profile_recent_activity">최근 3일 이내 활동함</string>
+<string name="profile_join_date">가입한 날짜</string>
+<string name="profile_verification_history">인증 내역</string>
+<string name="profile_email_verified">이메일 인증 완료</string>
+<string name="profile_previous_username">이전 사용자 이름</string>
+<string name="profile_username_changed_count">%1$s님은 사용자 이름을 %2$d회 변경했습니다.</string>
+<string name="profile_faq_contact">FAQ · 문의하기</string>
+
+<!-- NotificationScreen.kt -->
+<string name="notification_title">알림</string>
+<string name="notification_reservation_request">예약 신청을 보내왔습니다.</string>
+<string name="notification_meeting_image">만남 이미지</string>
+<string name="notification_approve">승인</string>
+<string name="notification_ignore">무시</string>
+
+
+<!-- 로그인 화면 -->
+<string name="app_tagline">K-뷰티·덕질·탐방·클래스\n모두 동네의 서울 메이트와 함께</string>
+<string name="login_get_started">시작하기</string>
+<string name="login_checking_status">로그인 정보 확인 중...</string>
+<string name="login_selecting_account">Google 계정 선택 중...</string>
+<string name="login_signing_in">로그인 중...</string>
+<string name="login_error_status_unknown">구글 로그인 상태를 확인할 수 없습니다.</string>
+<string name="login_error_token_failed">토큰 발급 실패</string>
+<string name="login_error_firebase_failed">Firebase 인증에 실패했습니다.</string>
+<string name="login_error_cancelled">구글 로그인이 취소되었거나 계정이 없습니다.</string>
+<string name="login_error_generic">로그인 중 에러가 발생했습니다.</string>
+<string name="logo_description">로고</string>
+
+<!-- 회원가입 화면 -->
+<string name="signup_title">회원가입</string>
+<string name="signup_label_email">이메일</string>
+<string name="signup_label_nickname">닉네임</string>
+<string name="signup_label_role">역할 (Role)</string>
+<string name="signup_label_nationality">국적</string>
+<string name="signup_button_cancel">취소</string>
+<string name="signup_button_submit">이대로 완료</string>
+
+<!-- 국적 선택 바텀시트 -->
+<string name="nationality_search_title">국적 검색</string>
+<string name="nationality_search_placeholder">국가를 검색하세요</string>
+<string name="nationality_search_icon_desc">검색</string>
+
+<!-- 가입 취소 다이얼로그 -->
+<string name="signup_cancel_dialog_title">가입을 취소하시겠습니까?</string>
+<string name="signup_cancel_dialog_message">지금까지 입력한 정보가 저장되지 않습니다.</string>
+<string name="signup_cancel_dialog_confirm">가입 취소</string>
+<string name="signup_cancel_dialog_dismiss">계속 가입</string>
+
+    <!-- CommentSection.kt -->
+    <string name="comment_count">댓글 %d</string>
+    <string name="comment_empty">아직 댓글이 없습니다. 가장 먼저 댓글을 남겨보세요!</string>
+    <string name="comment_login_required_hint">로그인 후 댓글을 작성할 수 있어요.</string>
+    <string name="comment_profile_image">프로필</string>
+    <string name="comment_label_host">작성자</string>
+    <string name="comment_label_mate_order">%d번째 메이트</string>
+    <string name="comment_private">비공개</string>
+    <string name="comment_translate">번역</string>
+    <string name="comment_original">원문</string>
+    <string name="comment_edit">수정</string>
+    <string name="comment_delete">삭제</string>
+    <string name="comment_cancel">취소</string>
+    <string name="comment_save">저장</string>
+    <string name="comment_input_hint">댓글을 입력하세요 (최대 %d자)</string>
+    <string name="comment_private_option">비공개 (호스트만 열람)</string>
+    <string name="comment_submit">등록</string>
+    <string name="comment_char_count">%1$d / %2$d</string>
+
+    <!-- MeetingDetailScreen.kt -->
+    <string name="meeting_image_indexed">만남 이미지 %d</string>
+    <string name="meeting_back">뒤로가기</string>
+    <string name="meeting_action_close">마감</string>
+    <string name="meeting_action_complete">완료</string>
+    <string name="meeting_action_reopen">재개</string>
+    <string name="meeting_completed_label">완료됨</string>
+    <string name="meeting_action_edit">수정</string>
+    <string name="meeting_action_delete">삭제</string>
+    <string name="meeting_like">좋아요</string>
+    <string name="meeting_datetime_label">일시/시간 : %s</string>
+    <string name="meeting_introduction_label">만남 소개 : %s</string>
+    <string name="meeting_report_post">이 게시글 신고하기</string>
+    <string name="meeting_course_empty">등록된 코스가 없습니다</string>
+    <string name="meeting_course_no_location">지도 위치 미지원 장소</string>
+    <string name="meeting_map_empty">표시할 수 있는 지도 위치가 없습니다.</string>
+    <string name="meeting_mate_verified">인증됨</string>
+    <string name="meeting_mate_rating_desc">평점</string>
+    <string name="meeting_apply">메이트 신청</string>
+    <string name="meeting_apply_dialog_message">호스트에게 전달할 메시지를 입력해주세요</string>
+    <string name="meeting_apply_dialog_placeholder">예: 안녕하세요! 함께 가고 싶어서 신청합니다 :)</string>
+    <string name="meeting_apply_confirm">신청하기</string>
+    <string name="meeting_apply_cancel">취소</string>
+    <!-- HomeScreen.kt -->
+    <string name="home_section_recent">최근 올라온 만남</string>
+    <string name="home_section_today">당일 만남</string>
+    <string name="home_section_low_congestion">혼잡도 낮은 만남</string>
+    <string name="home_filter_category">카테고리</string>
+    <string name="home_filter_congestion">혼잡도</string>
+    <string name="home_congestion_all">전체</string>
+    <string name="home_congestion_free">여유</string>
+    <string name="home_congestion_normal">보통</string>
+    <string name="home_congestion_slightly_crowded">약간 붐빔</string>
+    <string name="home_congestion_crowded">붐빔</string>
+    <string name="home_meeting_count">만남 %d개</string>
+
+    <!-- Category i18n keys (code → label) -->
+    <string name="category_TODAY">당일만남</string>
+    <string name="category_TOURISM">관광</string>
+    <string name="category_KPOP">K-팝</string>
+    <string name="category_KBEAUTY">K-뷰티</string>
+    <string name="category_SHOPPING">쇼핑</string>
+    <string name="category_KOREAN_FOOD">한식</string>
+    <string name="category_CAFE">카페</string>
+    <string name="category_TRANSPORT_GUIDE">교통가이드</string>
+    <string name="category_CLASS">클래스</string>
+    <string name="category_COMMUNITY">커뮤니티</string>
+    <string name="category_EXHIBITION">전시·스타일</string>
+    <string name="category_SAFETY">안전·생활</string>
+
+    <!-- Congestion Levels (혼잡도) -->
+    <string name="congestion_RELAXED">여유</string>
+    <string name="congestion_MODERATE">보통</string>
+    <string name="congestion_BUSY">붐빔</string>
+
+    <!-- TopBar.kt -->
+    <string name="topbar_logo">Seoul Mate 로고</string>
+
+    <!-- Common dialog -->
+    <string name="dialog_yes">예</string>
+    <string name="dialog_no">아니오</string>
+    <string name="dialog_confirm">확인</string>
+    <string name="dialog_cancel">취소</string>
+
+    <!-- AddMeetingScreen.kt & AddMeetingComponents.kt -->
+    <string name="addmeeting_title_new">만남정보</string>
+    <string name="addmeeting_title_edit">만남 수정</string>
+    <string name="addmeeting_close">닫기</string>
+    <string name="addmeeting_submit">등록하기</string>
+    <string name="addmeeting_update">수정하기</string>
+    <string name="addmeeting_image_upload_success">이미지 업로드 완료</string>
+    <string name="addmeeting_upload_failed">업로드 실패</string>
+    <string name="addmeeting_label_name">만남명</string>
+    <string name="addmeeting_name_placeholder">(최대 10자)</string>
+    <string name="addmeeting_label_category">카테고리/태그</string>
+    <string name="addmeeting_label_course">코스</string>
+    <string name="addmeeting_label_time">요일/시간</string>
+    <string name="addmeeting_label_description">만남 소개</string>
+    <string name="addmeeting_description_placeholder">무엇을 할 것인가요?</string>
+    <string name="addmeeting_label_cost">예상 지출</string>
+    <string name="addmeeting_cost_placeholder">예상 금액</string>
+    <string name="addmeeting_label_members">모집 인원</string>
+    <string name="addmeeting_min_members_placeholder">최소 인원</string>
+    <string name="addmeeting_max_members_placeholder">최대 인원</string>
+    <string name="addmeeting_members_hint">최대 인원 모집 시 해당 포스팅이 자동으로 숨겨집니다.</string>
+    <string name="addmeeting_date_confirm">날짜 선정 완료</string>
+    <string name="addmeeting_no_limit">제한 없음</string>
+    <string name="addmeeting_date_undecided">날짜 미정</string>
+    <string name="addmeeting_photo">사진</string>
+    <string name="addmeeting_gallery">갤러리</string>
+    <string name="addmeeting_gallery_thumb">갤러리 썸네일</string>
+    <string name="addmeeting_image_preview">이미지 프리뷰</string>
+    <string name="addmeeting_add_course">코스 추가</string>
+    <string name="addmeeting_add_time">시간 추가</string>
+    <string name="addmeeting_frequency_setting">주기 설정</string>
+    <string name="addmeeting_repeat_title">반복 주기 설정</string>
+    <string name="addmeeting_freq_daily">매일</string>
+    <string name="addmeeting_freq_weekly">매주</string>
+    <string name="addmeeting_freq_biweekly">격주</string>
+    <string name="addmeeting_freq_monthly">매월</string>
+
+    <!-- CameraScreen.kt -->
+    <string name="camera_permission_required">카메라 권한이 필요합니다</string>
+    <string name="camera_grant_permission">권한 허용</string>
+    <string name="camera_back">뒤로가기</string>
+    <string name="camera_title">사진 촬영</string>
+    <string name="camera_capture">사진 촬영</string>
+    <string name="camera_capture_success">사진이 촬영되었습니다</string>
+    <string name="camera_capture_failed">사진 촬영에 실패했습니다</string>
+
+    <!-- AddCourseScreen.kt -->
+    <string name="addcourse_title">코스 추가</string>
+    <string name="addcourse_members_undecided">인원 미정</string>
+    <string name="addcourse_budget_undecided">예산 미정</string>
+    <string name="addcourse_label_region">지역</string>
+    <string name="addcourse_search_placeholder">지역을 입력해 주세요</string>
+    <string name="addcourse_clear">지우기</string>
+    <string name="addcourse_search">검색</string>
+    <string name="addcourse_no_search_result">검색 결과가 없습니다</string>
+    <string name="addcourse_move_up">위로</string>
+    <string name="addcourse_move_down">아래로</string>
+    <string name="addcourse_delete">삭제</string>
+    <string name="addcourse_label_detail">세부 장소</string>
+    <string name="addcourse_optional">(선택 작성)</string>
+    <string name="addcourse_detail_placeholder">예: 태릉입구역 6번 출구</string>
+    <string name="addcourse_ai_button">AI 코스 자동완성</string>
+    <string name="addcourse_complete">완료</string>
+    <string name="addcourse_logo">로고</string>
+    <string name="addcourse_prompt_title">무슨 코스를 완성해드릴까요?</string>
+    <string name="addcourse_prompt_meta">일정: %1$s | 테마: %2$s\n인원: %3$s | 예산: %4$s</string>
+    <string name="addcourse_prompt_placeholder">예: 외국인 친구랑 갈 종로 3시간 맛집 투어</string>
+    <string name="addcourse_ai_loading">AI가 코스를 짜는 중...</string>
+    <string name="addcourse_button_complete">코스 완성하기</string>
+    <string name="addcourse_ai_retry_hint">(시간이 오래걸리면 잠시후 다시 시도해주세요)</string>
+
+
+    <!-- Toast / Error messages (공통) -->
+    <string name="toast_login_required">로그인이 필요합니다</string>
+    <string name="toast_invalid_meeting_id">잘못된 만남 ID입니다</string>
+    <string name="toast_unknown_error">알 수 없는 오류</string>
+    <string name="toast_network_error">네트워크 에러</string>
+    <string name="toast_server_communication_error">서버 통신 에러</string>
+
+    <!-- MeetingDetailViewModel toasts -->
+    <string name="toast_report_received">신고가 접수되었습니다</string>
+    <string name="toast_report_error">신고 처리 중 오류가 발생했습니다</string>
+    <string name="toast_user_blocked">사용자를 차단했습니다</string>
+    <string name="toast_block_error">차단 처리 중 오류가 발생했습니다</string>
+    <string name="toast_apply_success">메이트 신청이 완료되었습니다. 호스트의 승인을 기다려주세요!</string>
+    <string name="toast_apply_failed">메이트 신청 실패</string>
+    <string name="toast_apply_generic_error">메이트 신청 중 오류가 발생했습니다</string>
+    <string name="toast_meeting_deleted">만남이 삭제되었습니다</string>
+    <string name="toast_meeting_delete_failed">만남 삭제 실패</string>
+    <string name="toast_meeting_delete_generic_error">만남 삭제 중 오류가 발생했습니다</string>
+    <string name="toast_status_change_failed">상태 변경 실패</string>
+    <string name="toast_status_change_generic_error">상태 변경 중 오류가 발생했습니다</string>
+    <string name="toast_status_closed_message">만남이 마감되었습니다. 참여자들에게 알림이 전송됩니다.</string>
+    <string name="toast_status_completed_message">만남이 완료 처리되었습니다. 참여자들에게 알림이 전송됩니다.</string>
+    <string name="toast_status_open_message">만남이 다시 열렸습니다. 참여자들에게 알림이 전송됩니다.</string>
+    <string name="toast_status_changed_generic">만남 상태가 변경되었습니다.</string>
+    <string name="toast_comment_create_failed">댓글 작성에 실패했습니다</string>
+    <string name="toast_comment_update_failed">댓글 수정에 실패했습니다</string>
+    <string name="toast_comment_delete_failed">댓글 삭제에 실패했습니다</string>
+    <string name="toast_translate_failed">번역에 실패했습니다 (Wi-Fi 연결 후 다시 시도)</string>
+
+    <!-- AddMeetingViewModel toasts -->
+    <string name="toast_validate_name">만남명을 입력해주세요</string>
+    <string name="toast_validate_category">카테고리를 하나 이상 선택해주세요</string>
+    <string name="toast_validate_course">코스를 추가해주세요</string>
+    <string name="toast_validate_time">요일/시간을 선택해주세요</string>
+    <string name="toast_validate_cost">예상 지출을 입력해주세요</string>
+    <string name="toast_validate_min_members">최소 인원을 입력해주세요</string>
+    <string name="toast_validate_max_members">최대 인원을 입력해주세요</string>
+    <string name="toast_validate_min_numeric">최소 인원은 숫자로 입력해주세요</string>
+    <string name="toast_validate_min_at_least_2">모집 최소 인원은 2명 이상이어야 합니다</string>
+    <string name="toast_validate_max_numeric">최대 인원은 숫자로 입력해주세요</string>
+    <string name="toast_validate_max_gte_min">최대 인원은 최소 인원보다 크거나 같아야 합니다</string>
+    <string name="toast_register_failed">만남 등록 실패</string>
+    <string name="toast_update_failed">만남 수정 실패</string>
+    <string name="toast_no_id_to_edit">수정할 만남 ID가 없습니다</string>
+    <string name="toast_load_failed">만남 정보를 불러올 수 없습니다</string>
+    <string name="toast_load_generic_error">만남 정보를 불러오는 중 오류가 발생했습니다</string>
+    <string name="toast_image_too_large">이미지는 5MB 이하만 업로드할 수 있습니다</string>
+    <string name="toast_total_too_large">한 번에 업로드할 수 있는 총 용량은 20MB 이하입니다</string>
+    <string name="toast_image_upload_failed_default">이미지 업로드 실패</string>
+    <string name="toast_image_upload_generic_error">이미지 업로드 중 오류가 발생했습니다</string>
+
+    <!-- AddCourseViewModel toasts -->
+    <string name="toast_ai_generate_failed">생성 실패</string>
+
+    <!-- LoginScreen toasts -->
+    <string name="toast_google_login_status_unknown">구글 로그인 상태를 확인할 수 없습니다.</string>
+    <string name="toast_token_issue_failed">토큰 발급 실패</string>
+    <string name="toast_firebase_auth_failed">Firebase 인증에 실패했습니다.</string>
+    <string name="toast_login_generic_error">로그인 중 에러가 발생했습니다.</string>
+
 </resources>

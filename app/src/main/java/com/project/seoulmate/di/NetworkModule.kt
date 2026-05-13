@@ -67,9 +67,9 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(traceInterceptor)
-            // ------------------------------- 첫 로그인시 시간이 오래 걸림
+            // ------------------------------- AI 생성 등 시간이 오래 걸리는 작업 고려
             .connectTimeout(30, TimeUnit.SECONDS) // 서버 연결 시도 제한 시간
-            .readTimeout(30, TimeUnit.SECONDS)    // 서버로부터 응답 데이터를 읽는 제한 시간
+            .readTimeout(90, TimeUnit.SECONDS)    // 서버로부터 응답 데이터를 읽는 제한 시간 (AI 생성용 90초)
             .writeTimeout(30, TimeUnit.SECONDS)   // 서버로 데이터를 보내는 제한 시간
             .build()
     }
@@ -116,6 +116,30 @@ object NetworkModule {
         return retrofit.create(com.project.seoulmate.data.remote.UserActionApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideImageApi(retrofit: Retrofit): com.project.seoulmate.data.remote.ImageApi {
+        return retrofit.create(com.project.seoulmate.data.remote.ImageApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideApplicationApi(retrofit: Retrofit): com.project.seoulmate.data.remote.ApplicationApi {
+        return retrofit.create(com.project.seoulmate.data.remote.ApplicationApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): com.project.seoulmate.data.remote.NotificationApi {
+        return retrofit.create(com.project.seoulmate.data.remote.NotificationApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCatalogApi(retrofit: Retrofit): com.project.seoulmate.data.remote.CatalogApi {
+        return retrofit.create(com.project.seoulmate.data.remote.CatalogApi::class.java)
+    }
+
     // --- 네이버 API용 Retrofit (별도 Base URL) ---
 
     @Provides
@@ -133,5 +157,23 @@ object NetworkModule {
     @Singleton
     fun provideNaverSearchApi(@NaverRetrofit retrofit: Retrofit): NaverSearchApi {
         return retrofit.create(NaverSearchApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCommentApi(retrofit: Retrofit): com.project.seoulmate.data.remote.CommentApi {
+        return retrofit.create(com.project.seoulmate.data.remote.CommentApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(retrofit: Retrofit): com.project.seoulmate.data.remote.UserApi {
+        return retrofit.create(com.project.seoulmate.data.remote.UserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchApi(retrofit: Retrofit): com.project.seoulmate.data.remote.SearchApi {
+        return retrofit.create(com.project.seoulmate.data.remote.SearchApi::class.java)
     }
 }

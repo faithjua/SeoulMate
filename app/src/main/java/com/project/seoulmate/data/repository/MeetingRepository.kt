@@ -16,7 +16,11 @@ interface MeetingRepository {
     fun getCategories(): List<Category>
 
     /** 홈 화면 데이터(최근 만남) 조회 */
-    suspend fun getHomeData(category: String? = null): Result<List<Meeting>>
+    suspend fun getHomeData(
+        category: String? = null,
+        filterCategory: String? = null,
+        congestion: String? = null
+    ): Result<List<Meeting>>
 
     /** 최근 본 만남 목록 반환 (로컬 기록/더미) - 기존 함수 유지 */
     fun getRecentMeetings(): List<Meeting>
@@ -46,4 +50,18 @@ interface MeetingRepository {
 
     /** 만남 상태 변경 */
     suspend fun updateMeetingStatus(token: String, meetingId: String, status: String): Result<Unit>
+
+    /** 만남 수정 */
+    suspend fun updateMeeting(token: String, meetingId: String, form: MeetingForm): Result<MeetingDetail>
+
+    /** 만남 삭제 */
+    suspend fun deleteMeeting(token: String, meetingId: String): Result<Unit>
+
+    /** 사용자 만남 목록 조회 */
+    suspend fun getUserMeetups(
+        token: String?,
+        memberId: Long,
+        page: Int = 0,
+        size: Int = 10
+    ): Result<PageResponse<Meeting>>
 }

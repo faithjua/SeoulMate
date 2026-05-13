@@ -27,7 +27,8 @@ sealed class LoginState {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     // 나중에 여기에 Repository나 Api를 주입받게 됨
-    private val authRepository: AuthRepository // Hilt가 NetworkModule에서 만든 걸 알아서 넣어줌
+    private val authRepository: AuthRepository, // Hilt가 NetworkModule에서 만든 걸 알아서 넣어줌
+    private val userPreferences: com.project.seoulmate.data.local.UserPreferences
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -53,7 +54,17 @@ class LoginViewModel @Inject constructor(
                     val apiResponse = response.body()!!
                     if (apiResponse.success && apiResponse.data != null) {
                         val memberResponse = apiResponse.data // 진짜 AuthResponse 알맹이
-                        Timber.tag("LoginViewModel").e("서버 통신 성공: $memberResponse")
+
+                        // 회원 ID 저장 (기존 회원, 신규 회원 모두)
+                        // 신규 회원도 백엔드에서 임시 ID를 받을 수 있으므로 저장
+                        if (memberResponse.id != null) {
+                            userPreferences.saveMemberId(memberResponse.id)
+                            Timber.tag("LoginViewModel").d("Member ID saved: ${memberResponse.id}, isNewMember: ${memberResponse.isNewMember}")
+                        } else {
+                            Timber.tag("LoginViewModel").w("Member ID is null from server response")
+                        }
+
+                        Timber.tag("LoginViewModel").d("서버 통신 성공: $memberResponse")
                         _loginState.value = LoginState.Success(memberResponse)
                     } else {
                         // HTTP 200이지만 서버 로직상 에러인 경우 (예: "존재하지 않는 회원입니다")

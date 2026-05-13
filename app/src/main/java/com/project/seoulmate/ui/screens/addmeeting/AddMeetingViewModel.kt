@@ -1,28 +1,56 @@
 package com.project.seoulmate.ui.screens.addmeeting
 
+import android.content.Context
+import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.project.seoulmate.R
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.data.model.MeetingForm
+import com.project.seoulmate.data.remote.ImageApi
+import com.project.seoulmate.data.repository.CatalogRepository
 import com.project.seoulmate.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 /**
  * AddMeetingScreen의 폼 상태와 비즈니스 로직을 담당하는 ViewModel
  * MeetingForm 데이터 클래스 하나의 StateFlow로 통합 관리합니다
+ *
+ * 수정 모드: meetingId가 있는 경우
+ * 등록 모드: meetingId가 null인 경우
  */
 @HiltViewModel
 class AddMeetingViewModel @Inject constructor(
-    private val repository: MeetingRepository
+    private val repository: MeetingRepository,
+    private val catalogRepository: CatalogRepository,
+    private val imageApi: ImageApi,
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // Navigation argument로 받은 meetingId (수정 모드인지 확인용)
+    private val meetingId: String? = savedStateHandle["meetingId"]
+
+    // 수정 모드 여부
+    val isEditMode: Boolean = meetingId != null
 
     private val _formState = MutableStateFlow(MeetingForm())
     val formState: StateFlow<MeetingForm> = _formState.asStateFlow()
@@ -30,6 +58,36 @@ class AddMeetingViewModel @Inject constructor(
     // 저장/등록 결과를 UI에 전달하기 위한 이벤트 상태
     private val _uiEvent = MutableStateFlow<AddMeetingUiEvent?>(null)
     val uiEvent: StateFlow<AddMeetingUiEvent?> = _uiEvent.asStateFlow()
+
+    // 로딩 상태
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // 카탈로그 데이터 (카테고리)
+    private val _categories = MutableStateFlow<List<CategoryItem>>(emptyList())
+    val categories: StateFlow<List<CategoryItem>> = _categories.asStateFlow()
+
+    init {
+        // 카탈로그 데이터 로드
+        loadCategories()
+
+        // 수정 모드인 경우 기존 만남 데이터 로드
+        if (isEditMode && meetingId != null) {
+            loadMeetingForEdit(meetingId)
+        }
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            catalogRepository.getCategories().onSuccess { categories ->
+                // TODAY 카테고리 제외 (만남 등록에서는 사용하지 않음)
+                _categories.value = categories.filter { it.code != "TODAY" }
+                Timber.d("Categories loaded: ${_categories.value.size} items")
+            }.onFailure { error ->
+                Timber.e(error, "Failed to load categories")
+            }
+        }
+    }
 
     // ──────────────────────────────────────────
     // 각 필드별 업데이트 함수
@@ -73,6 +131,21 @@ class AddMeetingViewModel @Inject constructor(
         _formState.update { it.copy(timeSlots = it.timeSlots + slot) }
     }
 
+    fun removeTimeSlot(index: Int) {
+        _formState.update { current ->
+            val newTimeSlots = current.timeSlots.filterIndexed { i, _ -> i != index }
+            current.copy(
+                timeSlots = newTimeSlots,
+                // timeSlot이 모두 삭제되면 meetDate도 초기화
+                meetDate = if (newTimeSlots.isEmpty()) "" else current.meetDate
+            )
+        }
+    }
+
+    fun updateMeetDate(meetDate: String) {
+        _formState.update { it.copy(meetDate = meetDate) }
+    }
+
     fun updateDescription(description: String) {
         _formState.update { it.copy(description = description) }
     }
@@ -109,21 +182,61 @@ class AddMeetingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 필수 항목 검증
+     * @return 검증 실패 시 에러 메시지, 성공 시 null
+     */
+    private fun validateRequiredFields(): String? {
+        val form = _formState.value
+
+        return when {
+            form.name.isBlank() -> context.getString(R.string.toast_validate_name)
+            form.selectedCategories.isEmpty() -> context.getString(R.string.toast_validate_category)
+            form.courses.isEmpty() -> context.getString(R.string.toast_validate_course)
+            form.timeSlots.isEmpty() -> context.getString(R.string.toast_validate_time)
+            form.expectedCost.isBlank() -> context.getString(R.string.toast_validate_cost)
+            form.minMembers.isBlank() -> context.getString(R.string.toast_validate_min_members)
+            form.maxMembers.isBlank() -> context.getString(R.string.toast_validate_max_members)
+            else -> {
+                val minMembers = form.minMembers.toIntOrNull()
+                when {
+                    minMembers == null -> context.getString(R.string.toast_validate_min_numeric)
+                    minMembers < 2 -> context.getString(R.string.toast_validate_min_at_least_2)
+                    else -> {
+                        val maxMembers = form.maxMembers.toIntOrNull()
+                        when {
+                            maxMembers == null -> context.getString(R.string.toast_validate_max_numeric)
+                            maxMembers < minMembers -> context.getString(R.string.toast_validate_max_gte_min)
+                            else -> null
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun registerMeeting() {
         viewModelScope.launch {
             try {
-                // Firebase에서 토큰 가져오기
+                // 1. 필수 항목 검증
+                val validationError = validateRequiredFields()
+                if (validationError != null) {
+                    _uiEvent.value = AddMeetingUiEvent.Error(validationError)
+                    return@launch
+                }
+
+                // 2. Firebase에서 토큰 가져오기
                 val user = FirebaseAuth.getInstance().currentUser
                 val tokenResult = user?.getIdToken(false)?.await()
                 val idToken = tokenResult?.token
 
                 if (idToken == null) {
                     Timber.e("Firebase token is null. User not logged in.")
-                    _uiEvent.value = AddMeetingUiEvent.Error("로그인이 필요합니다")
+                    _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_login_required))
                     return@launch
                 }
 
-                // 백엔드 API로 만남 등록
+                // 3. 백엔드 API로 만남 등록
                 val result = repository.registerMeeting(idToken, _formState.value)
 
                 result.onSuccess {
@@ -131,17 +244,209 @@ class AddMeetingViewModel @Inject constructor(
                     _uiEvent.value = AddMeetingUiEvent.NavigateBack
                 }.onFailure { error ->
                     Timber.e(error, "Failed to register meeting")
-                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: "만남 등록 실패")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_register_failed))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception during meeting registration")
-                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: "알 수 없는 오류")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: context.getString(R.string.toast_unknown_error))
+            }
+        }
+    }
+
+    /**
+     * 만남 수정
+     */
+    fun updateMeeting() {
+        if (meetingId == null) {
+            _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_no_id_to_edit))
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // 1. 필수 항목 검증
+                val validationError = validateRequiredFields()
+                if (validationError != null) {
+                    _uiEvent.value = AddMeetingUiEvent.Error(validationError)
+                    return@launch
+                }
+
+                // 2. Firebase에서 토큰 가져오기
+                val user = FirebaseAuth.getInstance().currentUser
+                val tokenResult = user?.getIdToken(false)?.await()
+                val idToken = tokenResult?.token
+
+                if (idToken == null) {
+                    Timber.e("Firebase token is null. User not logged in.")
+                    _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_login_required))
+                    return@launch
+                }
+
+                _isLoading.value = true
+
+                // 3. 백엔드 API로 만남 수정
+                val result = repository.updateMeeting(idToken, meetingId, _formState.value)
+
+                result.onSuccess {
+                    Timber.d("Meeting updated successfully: ${it.meeting.id}")
+                    _uiEvent.value = AddMeetingUiEvent.NavigateBack
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update meeting")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_update_failed))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception during meeting update")
+                _uiEvent.value = AddMeetingUiEvent.Error(e.message ?: context.getString(R.string.toast_unknown_error))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 수정 모드에서 기존 만남 데이터 로드
+     */
+    private fun loadMeetingForEdit(meetingId: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                Timber.d("Loading meeting for edit: $meetingId")
+
+                val result = repository.getMeetingDetail(meetingId)
+
+                result.onSuccess { meetingDetail ->
+                    Timber.d("Meeting loaded successfully: ${meetingDetail.meeting.title}")
+
+                    // MeetingDetail을 MeetingForm으로 변환
+                    val form = MeetingForm(
+                        name = meetingDetail.meeting.title,
+                        description = meetingDetail.description,
+                        selectedCategories = meetingDetail.meeting.tags.toSet(),
+                        courses = meetingDetail.courses.map { it.name },
+                        courseId = meetingDetail.courses.firstOrNull()?.let {
+                            // TODO: Course ID는 서버 응답에 포함되어야 함
+                            null
+                        },
+                        timeSlots = listOf(meetingDetail.meeting.time),
+                        meetDate = meetingDetail.meeting.meetDate ?: "",
+                        expectedCost = meetingDetail.meeting.price.filter { it.isDigit() },
+                        minMembers = "2", // TODO: 서버 응답에서 가져와야 함
+                        maxMembers = "10", // TODO: 서버 응답에서 가져와야 함
+                        isRepeating = false, // TODO: 서버 응답에서 가져와야 함
+                        imageUrls = meetingDetail.meeting.imageUrls,
+                        ratingAvg = meetingDetail.meeting.ratingAvg
+                    )
+
+                    _formState.value = form
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to load meeting for edit")
+                    _uiEvent.value = AddMeetingUiEvent.Error(error.message ?: context.getString(R.string.toast_load_failed))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Exception loading meeting for edit")
+                _uiEvent.value = AddMeetingUiEvent.Error(context.getString(R.string.toast_load_generic_error))
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun onEventConsumed() {
         _uiEvent.value = null
+    }
+
+    /**
+     * 이미지 업로드 (단일/다중)
+     */
+    fun uploadImages(uris: List<Uri>, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 1. Firebase 토큰 획득
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+
+                if (token == null) {
+                    Timber.e("User not logged in")
+                    onComplete(false, context.getString(R.string.toast_login_required))
+                    return@launch
+                }
+
+                // 2. 파일 크기 검증
+                val files = uris.mapNotNull { uri ->
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val fileSize = inputStream?.available() ?: 0
+                        inputStream?.close()
+
+                        // 단일 파일 5MB 체크
+                        if (fileSize > 5 * 1024 * 1024) {
+                            onComplete(false, context.getString(R.string.toast_image_too_large))
+                            return@launch
+                        }
+
+                        // 임시 파일로 저장
+                        val tempFile = File.createTempFile("upload_", ".jpg", context.cacheDir)
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        tempFile to fileSize.toLong()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error processing file")
+                        null
+                    }
+                }
+
+                // 전체 크기 20MB 체크
+                val totalSize = files.sumOf { it.second }
+                if (totalSize > 20 * 1024 * 1024) {
+                    onComplete(false, context.getString(R.string.toast_total_too_large))
+                    files.forEach { it.first.delete() }
+                    return@launch
+                }
+
+                // 3. Multipart 생성
+                val fileParts = files.map { (file, _) ->
+                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("file", file.name, requestFile)
+                }
+
+                val folderBody = "meetups".toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // 4. API 호출
+                val imageUrls = mutableListOf<String>()
+
+                for (filePart in fileParts) {
+                    val response = imageApi.uploadImage("Bearer $token", filePart, folderBody)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        response.body()?.data?.url?.let { url ->
+                            imageUrls.add(url)
+                        }
+                    } else {
+                        val errorMsg = response.body()?.message ?: context.getString(R.string.toast_image_upload_failed_default)
+                        Timber.e("Image upload failed: $errorMsg")
+                        files.forEach { it.first.delete() }
+                        onComplete(false, errorMsg)
+                        return@launch
+                    }
+                }
+
+                // 5. 성공 - imageUrls에 저장
+                _formState.update { it.copy(imageUrls = imageUrls) }
+
+                // 임시 파일 삭제
+                files.forEach { it.first.delete() }
+
+                Timber.d("Images uploaded successfully: ${imageUrls.size}")
+                onComplete(true, null)
+
+            } catch (e: Exception) {
+                Timber.e(e, "Image upload error")
+                onComplete(false, context.getString(R.string.toast_image_upload_generic_error))
+            }
+        }
     }
 }
 

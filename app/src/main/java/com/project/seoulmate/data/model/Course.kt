@@ -57,7 +57,9 @@ data class CourseLocation(
     val lat: Double? = null,           // 지오코딩 위도 (선택)
     val lng: Double? = null,           // 지오코딩 경도 (선택)
     val address: String? = null,       // 주소 (선택)
-    val congestionLevel: String? = null// 혼잡도 (선택)
+    val congestionLevel: String? = null,// 혼잡도 (선택)
+    val badges: List<String> = emptyList(),
+    val imageUrl: String? = null
 )
 
 @Serializable

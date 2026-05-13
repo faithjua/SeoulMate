@@ -6,9 +6,11 @@ build/
 /captures
 .externalNativeBuild
 .cxx/
+/release/
 *.aab
 *.apk
 output-metadata.json
+*.ap_
 
 # --- Local Configuration (중요: 보안 관련) ---
 local.properties
@@ -33,6 +35,11 @@ render.experimental.xml
 # --- Keystore (보안) ---
 *.jks
 *.keystore
+keystore.properties
 
 # --- Android Profiling ---
 *.hprof
+
+/app/release/
+*.dm
+.assets

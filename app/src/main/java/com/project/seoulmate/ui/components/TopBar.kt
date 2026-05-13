@@ -1,5 +1,7 @@
 package com.project.seoulmate.ui.components
 
+import com.project.seoulmate.config.AppConfig
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,7 +27,8 @@ import com.project.seoulmate.R
 @Composable
 fun TopBar(
     onTranslateClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    hasUnreadNotifications: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -36,7 +40,7 @@ fun TopBar(
     ) {
         Image(
             painter = painterResource(id = R.drawable.logo_seoul_mate),
-            contentDescription = "Seoul Mate 로고",
+            contentDescription = stringResource(id = R.string.topbar_logo),
             modifier = Modifier
                 .width(106.dp)
                 .height(20.dp)
@@ -46,39 +50,35 @@ fun TopBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 번역 아이콘은 항상 노출 (앱 로케일 토글)
             IconButton(onClick = onTranslateClick) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_translate),
-                    contentDescription = "번역",
+                    contentDescription = stringResource(id = R.string.wishlist_translate),
                     contentScale = ContentScale.None
                 )
             }
-            
-            Box(contentAlignment = Alignment.TopEnd) {
-                IconButton(onClick = onNotificationClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "알림",
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.Black
-                    )
-                }
-                
-                // Badge
-                Box(
-                    modifier = Modifier
-                        .padding(top = 6.dp, end = 6.dp)
-                        .size(16.dp)
-                        .background(color = Color(0xFFFF6B6B), shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "2",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
+
+            if (!AppConfig.IS_PRODUCTION) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    IconButton(onClick = onNotificationClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = stringResource(id = R.string.wishlist_notification),
+                            modifier = Modifier.size(28.dp),
+                            tint = Color.Black
+                        )
+                    }
+
+                    // 읽지 않은 알림이 있을 때만 빨간 배지 표시
+                    if (hasUnreadNotifications) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 6.dp, end = 6.dp)
+                                .size(10.dp)
+                                .background(color = Color(0xFFFF6B6B), shape = CircleShape)
+                        )
+                    }
                 }
             }
         }

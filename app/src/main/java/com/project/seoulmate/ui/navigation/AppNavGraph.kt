@@ -20,6 +20,7 @@ import com.project.seoulmate.signup.SignupScreen
 //import com.project.seoulmate.signup.CourseAddViewModel
 import com.project.seoulmate.ui.screens.profile.ProfileScreen
 import com.project.seoulmate.ui.screens.meeting.MeetingDetailScreen
+import com.project.seoulmate.ui.screens.camera.CameraScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,8 +42,16 @@ sealed class Screen(val route: String) {
 
     /** 홈 화면 */
     object Home : Screen("home")
-    /** 만남 등록 화면 */
-    object AddMeeting : Screen("add_meeting")
+    /** 만남 등록/수정 화면 */
+    object AddMeeting : Screen("add_meeting?meetingId={meetingId}") {
+        fun createRoute(meetingId: String? = null): String {
+            return if (meetingId != null) {
+                "add_meeting?meetingId=$meetingId"
+            } else {
+                "add_meeting"
+            }
+        }
+    }
     /** 알림 화면 */
     object Notifications : Screen("notifications")
     /** 검색 화면 */
@@ -59,6 +68,8 @@ sealed class Screen(val route: String) {
     object MeetingDetail : Screen("meeting_detail/{meetingId}") {
         fun createRoute(meetingId: String) = "meeting_detail/$meetingId"
     }
+    /** 카메라 화면 */
+    object Camera : Screen("camera")
 }
 
 /**
@@ -131,6 +142,11 @@ fun AppNavGraph(
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Signup.route) { inclusive = true }
                     }
+                },
+                onCancelSignup = {                                          // 가입 취소
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Signup.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -140,8 +156,17 @@ fun AppNavGraph(
         composable(route = Screen.Home.route) {
             HomeScreen(navController = navController)
         }
-        // 만남 등록 화면
-        composable(route = Screen.AddMeeting.route) {
+        // 만남 등록/수정 화면
+        composable(
+            route = Screen.AddMeeting.route,
+            arguments = listOf(
+                navArgument("meetingId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             AddMeetingScreen(navController = navController)
         }
         // 알림 화면
@@ -173,6 +198,19 @@ fun AppNavGraph(
         ) {
             MeetingDetailScreen(navController = navController)
 
+        }
+        // 카메라 화면
+        composable(route = Screen.Camera.route) {
+            CameraScreen(
+                navController = navController,
+                onImageCaptured = { uri ->
+                    // 이전 화면(AddMeetingScreen)의 savedStateHandle에 URI 저장
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "captured_image_uri",
+                        uri.toString()
+                    )
+                }
+            )
         }
     }
 }

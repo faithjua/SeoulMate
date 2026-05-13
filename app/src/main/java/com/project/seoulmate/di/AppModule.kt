@@ -10,8 +10,24 @@ import com.project.seoulmate.data.repository.FavoriteRepository
 import com.project.seoulmate.data.repository.FavoriteRepositoryImpl
 import com.project.seoulmate.data.repository.UserActionRepository
 import com.project.seoulmate.data.repository.UserActionRepositoryImpl
+import com.project.seoulmate.data.repository.ApplicationRepository
+import com.project.seoulmate.data.repository.ApplicationRepositoryImpl
+import com.project.seoulmate.data.repository.NotificationRepository
+import com.project.seoulmate.data.repository.NotificationRepositoryImpl
+import com.project.seoulmate.data.repository.CatalogRepository
+import com.project.seoulmate.data.repository.CatalogRepositoryImpl
+import com.project.seoulmate.data.repository.CommentRepository
+import com.project.seoulmate.data.repository.CommentRepositoryImpl
+import com.project.seoulmate.data.repository.ImageRepository
+import com.project.seoulmate.data.repository.ImageRepositoryImpl
+import com.project.seoulmate.data.repository.UserRepository
+import com.project.seoulmate.data.repository.UserRepositoryImpl
+import com.project.seoulmate.data.repository.SearchRepository
+import com.project.seoulmate.data.repository.SearchRepositoryImpl
+import com.google.firebase.auth.FirebaseAuth
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -66,4 +82,53 @@ abstract class AppModule {
         impl: UserActionRepositoryImpl
     ): UserActionRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindApplicationRepository(
+        impl: ApplicationRepositoryImpl
+    ): ApplicationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(
+        impl: NotificationRepositoryImpl
+    ): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCatalogRepository(
+        impl: CatalogRepositoryImpl
+    ): CatalogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCommentRepository(
+        impl: CommentRepositoryImpl
+    ): CommentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindImageRepository(
+        impl: ImageRepositoryImpl
+    ): ImageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(
+        impl: UserRepositoryImpl
+    ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSearchRepository(
+        impl: SearchRepositoryImpl
+    ): SearchRepository
+
+    companion object {
+        @Provides
+        @Singleton
+        fun provideFirebaseAuth(): FirebaseAuth {
+            return FirebaseAuth.getInstance()
+        }
+    }
 }

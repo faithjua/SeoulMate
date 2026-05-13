@@ -1,5 +1,6 @@
 package com.project.seoulmate.ui.screens.addcourse
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,8 +23,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -31,12 +34,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.compose.*
 import com.project.seoulmate.R
-import com.project.seoulmate.ui.screens.addcourse.AddCourseViewModel
+import com.project.seoulmate.config.AppConfig
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalNaverMapApi::class)
@@ -46,11 +50,14 @@ fun AddCourseScreen(
     viewModel: AddCourseViewModel = hiltViewModel()
 ) {
     // 이전 화면에서 넘어온 데이터 바구니 꺼내기
-    val passedDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_date") ?: "날짜 미정"
+    val dateUndecided = stringResource(id = R.string.addmeeting_date_undecided)
+    val membersUndecided = stringResource(id = R.string.addcourse_members_undecided)
+    val budgetUndecided = stringResource(id = R.string.addcourse_budget_undecided)
+    val passedDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_date") ?: dateUndecided
     val passedCategoriesText = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_categories") ?: ""
     //  인원과 예산 꺼내기
-    val passedMembers = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_members") ?: "인원 미정"
-    val passedCost = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_cost") ?: "예산 미정"
+    val passedMembers = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_members") ?: membersUndecided
+    val passedCost = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ai_cost") ?: budgetUndecided
     //  뷰모델 상태 관찰
     val courseList by viewModel.courseLocations.collectAsState()
     val isAiLoading by viewModel.isAiLoading.collectAsState()
@@ -60,6 +67,19 @@ fun AddCourseScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+
+    // AI 생성 에러 메시지 수집
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+
+    // 에러 메시지 토스트 표시
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearErrorMessage()
+        }
+    }
 
     // 한글 자모 분리 방지를 위한 로컬 TextFieldValue 상태
     var searchTextFieldValue by remember { mutableStateOf(TextFieldValue(searchQuery)) }
@@ -88,10 +108,19 @@ fun AddCourseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("코스 추가", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.addcourse_title),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 actions = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.Close, contentDescription = "닫기")
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = stringResource(id = R.string.addmeeting_close)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -112,17 +141,21 @@ fun AddCourseScreen(
                     containerColor = Color(0xFF6C60FD),
                     contentColor = Color.White,
                     modifier = Modifier.padding(bottom = 16.dp),
-                    icon = { Icon(Icons.Default.AutoAwesome, "AI Icon") },
-                    text = { Text("AI 코스 자동완성", fontWeight = FontWeight.Bold) }
+                    icon = { Icon(Icons.Default.AutoAwesome, null) },
+                    text = {
+                        Text(
+                            text = stringResource(id = R.string.addcourse_ai_button),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 )
 
                 // 완료 버튼 누르면 서버에 저장 후 ID를 들고 돌아감
                 Button(
                     onClick = {
                         // "서울" 등 기본 지역명이 없으므로 첫 번째 장소의 지역 혹은 빈 값으로 처리
-                        // (Back-end 스펙에 맞춰 적절한 지역명 선정이 필요할 수 있으나 여기선 '서울'로 가정)
                         viewModel.submitFinalCourse(
-                            region = "서울", 
+                            region = "서울",
                             detailLocation = detailLocation,
                             originalPrompt = aiDescription,
                             onSuccess = { savedId ->
@@ -133,7 +166,6 @@ fun AddCourseScreen(
                                 navController.popBackStack()
                             },
                             onError = { error ->
-                                // 토스트 혹은 로그 출력 (UI 피드백 강화 필요 시)
                                 Timber.tag("CourseSubmit").e("저장 실패: $error")
                             }
                         )
@@ -151,7 +183,11 @@ fun AddCourseScreen(
                     if (isAiLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("완료", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(id = R.string.addcourse_complete),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -168,7 +204,7 @@ fun AddCourseScreen(
             item {
                 // 지역 타이틀
                 Text(
-                    text = "지역",
+                    text = stringResource(id = R.string.addcourse_label_region),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)
@@ -188,7 +224,17 @@ fun AddCourseScreen(
                         NaverMap(
                             modifier = Modifier.fillMaxSize(),
                             cameraPositionState = cameraPositionState
-                        )
+                        ) {
+                            //  courseList에 있는 장소 중 좌표가 유효한 항목만 마커로 표시
+                            courseList.forEach { location ->
+                                if (location.lat != null && location.lng != null) {
+                                    Marker(
+                                        state = MarkerState(position = LatLng(location.lat, location.lng)),
+                                        captionText = location.name
+                                    )
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = searchTextFieldValue,
@@ -196,14 +242,24 @@ fun AddCourseScreen(
                                 searchTextFieldValue = it
                                 viewModel.updateSearchQuery(it.text)
                             },
-                            placeholder = { Text("지역을 입력해 주세요", color = Color.Gray) },
+                            placeholder = {
+                                Text(stringResource(id = R.string.addcourse_search_placeholder), color = Color.Gray)
+                            },
                             trailingIcon = {
                                 if (searchTextFieldValue.text.isNotEmpty()) {
                                     IconButton(onClick = { viewModel.clearSearchQuery() }) {
-                                        Icon(Icons.Default.Close, contentDescription = "지우기", tint = Color.Gray)
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = stringResource(id = R.string.addcourse_clear),
+                                            tint = Color.Gray
+                                        )
                                     }
                                 } else {
-                                    Icon(Icons.Default.Search, contentDescription = "검색", tint = Color(0xFF6C60FD))
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = stringResource(id = R.string.addcourse_search),
+                                        tint = Color(0xFF6C60FD)
+                                    )
                                 }
                             },
                             modifier = Modifier
@@ -250,7 +306,7 @@ fun AddCourseScreen(
                                     }
                                 } else if (searchResults.isEmpty()) {
                                     Text(
-                                        text = "검색 결과가 없습니다",
+                                        text = stringResource(id = R.string.addcourse_no_search_result),
                                         color = Color.Gray,
                                         fontSize = 14.sp,
                                         modifier = Modifier.padding(16.dp)
@@ -314,14 +370,23 @@ fun AddCourseScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween // 양끝 정렬
                 ) {
-                    // 왼쪽: 순번과 장소 이름 (글자가 길어질 것을 대비해 weight(1f) 부여)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(location.name, fontSize = 14.sp)
+                    // 왼쪽: 순번과 장소 이름 + (좌표 없으면) 위치 미지원 안내
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${index + 1}", color = Color(0xFF6C60FD), fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(location.name, fontSize = 14.sp)
+                        }
+
+                        // 좌표가 없으면 작게 안내 문구
+                        if (location.lat == null || location.lng == null) {
+                            Text(
+                                text = stringResource(id = R.string.meeting_course_no_location),
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 20.dp, top = 2.dp)
+                            )
+                        }
                     }
 
                     // 오른쪽: 위/아래 이동 및 삭제 버튼 묶음
@@ -332,7 +397,11 @@ fun AddCourseScreen(
                                 onClick = { viewModel.moveLocation(index, index - 1) },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "위로", tint = Color.Gray)
+                                Icon(
+                                    Icons.Default.KeyboardArrowUp,
+                                    contentDescription = stringResource(id = R.string.addcourse_move_up),
+                                    tint = Color.Gray
+                                )
                             }
                         }
 
@@ -342,7 +411,11 @@ fun AddCourseScreen(
                                 onClick = { viewModel.moveLocation(index, index + 1) },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "아래로", tint = Color.Gray)
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = stringResource(id = R.string.addcourse_move_down),
+                                    tint = Color.Gray
+                                )
                             }
                         }
 
@@ -351,32 +424,44 @@ fun AddCourseScreen(
                             onClick = { viewModel.removeLocation(index) },
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "삭제", tint = Color(0xFFE53935)) // 삭제는 빨간색 계열로 포인트
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = stringResource(id = R.string.addcourse_delete),
+                                tint = Color(0xFFE53935)
+                            ) // 삭제는 빨간색 계열로 포인트
                         }
                     }
                 }
             }
 
+            // IS_PRODUCTION이 false일 때만 세부 장소 입력란 표시
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("세부 장소", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("(선택 작성)", fontSize = 14.sp, color = Color.Gray)
-                    }
+                if (!AppConfig.IS_PRODUCTION) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(id = R.string.addcourse_label_detail), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(id = R.string.addcourse_optional), fontSize = 14.sp, color = Color.Gray)
+                        }
 
-                    OutlinedTextField(
-                        value = detailLocation,
-                        onValueChange = { detailLocation = it },
-                        placeholder = { Text("예: 태릉입구역 6번 출구", color = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 80.dp),
-                        shape = CircleShape,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6C60FD),
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
-                        ),
-                        singleLine = true
-                    )
+                        OutlinedTextField(
+                            value = detailLocation,
+                            onValueChange = { detailLocation = it },
+                            placeholder = {
+                                Text(stringResource(id = R.string.addcourse_detail_placeholder), color = Color.Gray)
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 80.dp),
+                            shape = CircleShape,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF6C60FD),
+                                unfocusedBorderColor = Color(0xFFE0E0E0)
+                            ),
+                            singleLine = true
+                        )
+                    }
+                } else {
+                    // IS_PRODUCTION일 때는 하단 패딩만 유지
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
             }
         }
@@ -402,22 +487,42 @@ fun AddCourseScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(70.dp)
                         .background(color = Color(0xFFF4F5F6), shape = RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_logo),
-                        contentDescription = "로고",
+                        painter = painterResource(id = R.drawable.ic_seoul_mate_logo),
+                        contentDescription = stringResource(id = R.string.addcourse_logo),
                         contentScale = ContentScale.None
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text("무슨 코스를 완성해드릴까요?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Text(
+                    text = stringResource(id = R.string.addcourse_prompt_title),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("일정: $passedDate | 테마: $passedCategoriesText\n인원: $passedMembers | 예산: $passedCost", color = Color.Gray, fontSize = 13.sp)
+                Text(
+                    text = stringResource(id = R.string.addcourse_ai_retry_hint),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(
+                        id = R.string.addcourse_prompt_meta,
+                        passedDate, passedCategoriesText, passedMembers, passedCost
+                    ),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Box(
@@ -439,7 +544,11 @@ fun AddCourseScreen(
                         singleLine = true,
                         decorationBox = { innerTextField ->
                             if (promptText.isEmpty()) {
-                                Text("예: 외국인 친구랑 갈 종로 3시간 맛집 투어", color = Color(0xFFBDBDBD), fontSize = 15.sp)
+                                Text(
+                                    text = stringResource(id = R.string.addcourse_prompt_placeholder),
+                                    color = Color(0xFFBDBDBD),
+                                    fontSize = 15.sp
+                                )
                             }
                             innerTextField()
                         }
@@ -472,9 +581,14 @@ fun AddCourseScreen(
                     if (isAiLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI가 코스를 짜는 중...")
+                        Text(stringResource(id = R.string.addcourse_ai_loading))
                     } else {
-                        Text("코스 완성하기", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(
+                            text = stringResource(id = R.string.addcourse_button_complete),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
                     }
                 }
             }

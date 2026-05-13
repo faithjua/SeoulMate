@@ -21,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.outlined.Tune
@@ -31,12 +33,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.project.seoulmate.R
 import com.project.seoulmate.data.model.Meeting
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.BottomNavigationBar
 import com.project.seoulmate.ui.navigation.Screen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.project.seoulmate.util.getCategoryLabel
+import com.project.seoulmate.util.getCongestionLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,11 +52,17 @@ fun WishlistScreen(
 ) {
     val meetings by viewModel.uiState.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val filterCategories by viewModel.filterCategories.collectAsStateWithLifecycle()
+    val congestionLevels by viewModel.congestionLevels.collectAsStateWithLifecycle()
+
+    // Context for i18n
+    val context = LocalContext.current
+
     // 하단 네비게이션 선택 상태 (찜 화면이므로 1)
     val selectedBottomItem = 1
 
-    // 알림 개수를 저장하는 상태 변수
-    var unreadAlarmCount by remember { mutableStateOf(2) }
+    // 알림 개수를 저장하는 상태 변수 (현재 사용 안 함)
+    // var unreadAlarmCount by remember { mutableStateOf(2) }
 
     Scaffold(
         bottomBar = {
@@ -61,8 +73,14 @@ fun WishlistScreen(
                         0 -> navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
-                        2 -> navController.navigate(Screen.AddMeeting.route)
-                        // TODO: Handle other tabs when implemented
+                        2 -> navController.navigate(Screen.AddMeeting.createRoute())
+                        3 -> if (!AppConfig.IS_PRODUCTION) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     }
                 }
             )
@@ -84,12 +102,14 @@ fun WishlistScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "찜",
+                    text = stringResource(id = R.string.wishlist_title),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
 
+                // 번역 아이콘과 알람 아이콘 숨김처리
+                /*
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -97,7 +117,7 @@ fun WishlistScreen(
                     IconButton(onClick = { /* TODO: Translate */ }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_translate),
-                            contentDescription = "번역",
+                            contentDescription = stringResource(id = R.string.wishlist_translate),
                             contentScale = ContentScale.None
                         )
                     }
@@ -108,7 +128,7 @@ fun WishlistScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "알림",
+                                contentDescription = stringResource(id = R.string.wishlist_notification),
                                 modifier = Modifier.size(28.dp),
                                 tint = Color.Black
                             )
@@ -134,6 +154,7 @@ fun WishlistScreen(
                         }
                     }
                 }
+                */
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -146,9 +167,28 @@ fun WishlistScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChipItem(text = "지역·명소", options = listOf("전체", "서울", "부산", "제주"))
-                FilterChipItem(text = "메이트 선호", options = listOf("전체", "동성", "이성", "무관"))
-                FilterChipItem(text = "혼잡도", options = listOf("전체", "여유", "보통", "혼잡"))
+                // 카테고리 필터 (카탈로그 API 데이터 사용 + 다국어 지원)
+                if (filterCategories.isNotEmpty()) {
+                    val allCategoryLabel = stringResource(id = R.string.wishlist_filter_all)
+                    val localizedCategories = listOf(allCategoryLabel) + filterCategories.map {
+                        context.getCategoryLabel(it.code, it.label)
+                    }
+                    FilterChipItem(
+                        text = "카테고리",
+                        options = localizedCategories
+                    )
+                }
+
+                // 혼잡도 필터 (카탈로그 API 데이터 사용 + 다국어 지원)
+                if (congestionLevels.isNotEmpty()) {
+                    val localizedCongestions = congestionLevels.map {
+                        context.getCongestionLabel(it.code, it.label)
+                    }
+                    FilterChipItem(
+                        text = stringResource(id = R.string.wishlist_filter_congestion),
+                        options = localizedCongestions
+                    )
+                }
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
@@ -167,7 +207,7 @@ fun WishlistScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Tune,
-                            contentDescription = "필터 설정",
+                            contentDescription = stringResource(id = R.string.wishlist_filter_setting),
                             tint = Color.Black,
                             modifier = Modifier.size(20.dp)
                         )
@@ -179,7 +219,7 @@ fun WishlistScreen(
 
             // 3. Count
             Text(
-                text = "총 ${meetings.size}개",
+                text = stringResource(id = R.string.wishlist_total_count, meetings.size),
                 modifier = Modifier.padding(horizontal = 24.dp),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -291,12 +331,24 @@ fun WishlistCard(
                 .aspectRatio(1f) // Square shape based on design
                 .clip(RoundedCornerShape(12.dp))
         ) {
-            Image(
-                painter = painterResource(id = meeting.imageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            // 서버 이미지 URL 우선 사용, 없으면 로컬 리소스 사용
+            if (meeting.imageUrl != null) {
+                AsyncImage(
+                    model = meeting.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                    placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             // Heart Icon (Top Right)
             IconButton(
@@ -307,7 +359,7 @@ fun WishlistCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = "찜 취소",
+                    contentDescription = stringResource(id = R.string.wishlist_cancel),
                     tint = Color(0xFFFF6B6B), // Red-pinkish color
                     modifier = Modifier.size(28.dp)
                 )
@@ -321,19 +373,23 @@ fun WishlistCard(
                     .padding(8.dp)
             ) {
                 meeting.tags.forEach { tag ->
-                    val isCrowded = tag == "혼잡"
-                    val isFree = tag == "여유"
+                    val congestionColor = when (tag) {
+                        "여유" -> Color(0xFF6CF0A0)         // 초록 (RELAXED)
+                        "보통" -> Color(0xFF4A90E2)         // 파랑 (NORMAL)
+                        "약간 붐빔" -> Color(0xFFFF9500)   // 주황 (SLIGHTLY_BUSY)
+                        "붐빔" -> Color(0xFFFF6B6B)         // 빨강 (BUSY)
+                        "혼잡" -> Color(0xFFFF6B6B)         // 빨강 (BUSY - 하위 호환)
+                        "정보 없음" -> Color(0xFF9E9E9E)   // 회색 (UNKNOWN)
+                        else -> Color(0xFF6C60FD)            // 보라색 (카테고리 태그)
+                    }
+
                     Surface(
-                        color = when {
-                            isCrowded -> Color(0xFFFF6B6B) // Orange/Red
-                            isFree -> Color.White // White with dark text
-                            else -> Color(0xFF6C60FD) // Purple
-                        },
+                        color = congestionColor,
                         shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
                             text = tag,
-                            color = if (isFree) Color(0xFF6C60FD) else Color.White,
+                            color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -368,20 +424,20 @@ fun WishlistCard(
         // Price & Rating
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "예상 ${meeting.price}",
+                text = stringResource(id = R.string.wishlist_expected_price, meeting.price),
                 color = Color(0xFF888888),
                 fontSize = 13.sp,
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.Star,
-                contentDescription = "평점",
+                contentDescription = stringResource(id = R.string.wishlist_rating),
                 tint = Color(0xFF888888),
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(2.dp))
             Text(
-                text = meeting.rating,
+                text = String.format("%.1f", meeting.ratingAvg ?: 0.0),
                 color = Color(0xFF888888),
                 fontSize = 13.sp,
             )

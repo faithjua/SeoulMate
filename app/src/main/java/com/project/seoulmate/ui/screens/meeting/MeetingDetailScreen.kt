@@ -1,6 +1,9 @@
 package com.project.seoulmate.ui.screens.meeting
 
+import com.project.seoulmate.config.AppConfig
+import com.project.seoulmate.R
 import android.widget.Toast
+import coil.compose.AsyncImage
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +16,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -29,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -45,8 +51,13 @@ import com.naver.maps.map.compose.MarkerState
 import com.naver.maps.map.compose.NaverMap
 import com.naver.maps.map.compose.PathOverlay
 import com.naver.maps.map.compose.rememberCameraPositionState
+import com.google.firebase.auth.FirebaseAuth
 import com.project.seoulmate.data.model.*
+import com.project.seoulmate.ui.components.CommentSection
 import com.project.seoulmate.ui.components.RecommendationCard
+import com.project.seoulmate.ui.components.TranslateInlineButton
+import com.project.seoulmate.ui.components.TranslatedBlock
+import com.project.seoulmate.util.TranslationService
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -56,7 +67,18 @@ fun MeetingDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+    val comments by viewModel.comments.collectAsStateWithLifecycle()
+    val commentsLoading by viewModel.commentsLoading.collectAsStateWithLifecycle()
+    val translatedById by viewModel.translatedById.collectAsStateWithLifecycle()
+    val translatingIds by viewModel.translatingIds.collectAsStateWithLifecycle()
+    val translatedTitle by viewModel.translatedTitle.collectAsStateWithLifecycle()
+    val translatedDescription by viewModel.translatedDescription.collectAsStateWithLifecycle()
+    val isTranslatingTitle by viewModel.isTranslatingTitle.collectAsStateWithLifecycle()
+    val isTranslatingDescription by viewModel.isTranslatingDescription.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // 메이트 신청 다이얼로그 상태
+    var showApplicationDialog by remember { mutableStateOf(false) }
 
     // 신고/차단 결과에 따른 Toast 노출
     LaunchedEffect(viewModel.userActionEvent) {
@@ -78,12 +100,26 @@ fun MeetingDetailScreen(
         }
     } else {
         val detail = uiState!!
+        val reportPostDesc = stringResource(id = R.string.meeting_report_post_inappropriate)
+        val reportUserDesc = stringResource(id = R.string.meeting_report_user_inappropriate)
+        // 메이트 신청 다이얼로그
+        if (showApplicationDialog) {
+            ApplicationMessageDialog(
+                onDismiss = { showApplicationDialog = false },
+                onConfirm = { message ->
+                    showApplicationDialog = false
+                    viewModel.applyForMeeting(message)
+                }
+            )
+        }
+
         Scaffold(
-            bottomBar = { 
+            bottomBar = {
                 DetailBottomBar(
                     isFavorite = isFavorite,
-                    onFavoriteClick = { viewModel.toggleFavorite() }
-                ) 
+                    onFavoriteClick = { viewModel.toggleFavorite() },
+                    onApplyClick = { showApplicationDialog = true }
+                )
             },
             containerColor = Color.White
         ) { paddingValues ->
@@ -95,22 +131,39 @@ fun MeetingDetailScreen(
             ) {
                 // 상단 이미지 & TopBar
                 HeaderSection(
-                    imageRes = detail.meeting.imageRes,
+                    meeting = detail.meeting,
                     onBackClick = { navController.popBackStack() },
                     onSearchClick = { /* TODO */ }
                 )
 
                 // 기본 정보 섹션
-                InfoSection(detail = detail)
+                InfoSection(
+                    detail = detail,
+                    translatedTitle = translatedTitle,
+                    isTranslatingTitle = isTranslatingTitle,
+                    onTranslateTitle = { viewModel.toggleTranslateTitle() },
+                    onEditClick = if (detail.isHost) {
+                        { /* TODO: 수정 화면으로 이동 */ }
+                    } else null,
+                    onDeleteClick = if (detail.isHost) {
+                        { viewModel.deleteMeeting { navController.popBackStack() } }
+                    } else null,
+                    onStatusChange = if (detail.isHost) {
+                        { status -> viewModel.updateMeetingStatus(status) }
+                    } else null
+                )
 
                 Divider(color = Color(0xFFF0F0F0), thickness = 8.dp)
 
                 // 설명 섹션
                 DescriptionSection(
                     detail = detail,
+                    translatedDescription = translatedDescription,
+                    isTranslatingDescription = isTranslatingDescription,
+                    onTranslateDescription = { viewModel.toggleTranslateDescription() },
                     onReportMeeting = {
                         // 게시글 신고 (임시로 '게시글 문제' 사유 사용)
-                        viewModel.reportUser(reason = "POST_CONTENT", description = "게시글 부적절")
+                        viewModel.reportUser(reason = "POST_CONTENT", description = reportPostDesc)
                     }
                 )
 
@@ -127,7 +180,7 @@ fun MeetingDetailScreen(
                     otherMeetings = detail.mateOtherMeetings,
                     onReportUser = {
                         // 사용자 신고 (임시로 '기타' 사후 사용)
-                        viewModel.reportUser(reason = "USER_BEHAVIOR", description = "사용자 부적절")
+                        viewModel.reportUser(reason = "USER_BEHAVIOR", description = reportUserDesc)
                     },
                     onBlockUser = { viewModel.blockUser() },
                     onMeetingClick = { meetingId ->
@@ -135,27 +188,80 @@ fun MeetingDetailScreen(
                         navController.navigate("meeting_detail/$meetingId")
                     }
                 )
-                
+
+                Divider(color = Color(0xFFF0F0F0), thickness = 8.dp)
+
+                // 댓글 영역
+                CommentSection(
+                    comments = comments,
+                    isLoading = commentsLoading,
+                    isLoggedIn = FirebaseAuth.getInstance().currentUser != null,
+                    onSubmit = { content, isPrivate ->
+                        viewModel.submitComment(content, isPrivate)
+                    },
+                    onDelete = { commentId -> viewModel.deleteComment(commentId) },
+                    onEdit = { commentId, newContent ->
+                        viewModel.editComment(commentId, newContent)
+                    },
+                    onTranslate = { commentId, text ->
+                        viewModel.toggleTranslate(commentId, text)
+                    },
+                    translatedById = translatedById,
+                    translatingIds = translatingIds
+                )
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun HeaderSection(imageRes: Int, onBackClick: () -> Unit, onSearchClick: () -> Unit) {
+fun HeaderSection(meeting: Meeting, onBackClick: () -> Unit, onSearchClick: () -> Unit) {
+    // 이미지가 없으면 기본 이미지 사용
+    val images = if (meeting.imageUrls.isNotEmpty()) {
+        meeting.imageUrls
+    } else if (meeting.imageRes != 0) {
+        listOf("drawable://${meeting.imageRes}")
+    } else {
+        listOf("drawable://${R.drawable.img_recommend_1}")
+    }
+
+    val pagerState = rememberPagerState(pageCount = { images.size })
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp)
     ) {
-        // 배경 이미지
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
+        // 이미지 페이저
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier.fillMaxSize()
-        )
+        ) { page ->
+            val imageUrl = images[page]
+
+            if (imageUrl.startsWith("http")) {
+                // 서버 이미지 (S3 URL)
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = stringResource(id = R.string.meeting_image_indexed, page + 1),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    error = painterResource(id = R.drawable.img_recommend_1)
+                )
+            } else if (imageUrl.startsWith("drawable://")) {
+                // 로컬 drawable 리소스
+                val resId = imageUrl.removePrefix("drawable://").toIntOrNull() ?: R.drawable.img_recommend_1
+                Image(
+                    painter = painterResource(id = resId),
+                    contentDescription = stringResource(id = R.string.meeting_image_indexed, page + 1),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
 
         // TopBar (투명)
         Row(
@@ -167,42 +273,52 @@ fun HeaderSection(imageRes: Int, onBackClick: () -> Unit, onSearchClick: () -> U
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "뒤로가기",
+                    contentDescription = stringResource(id = R.string.meeting_back),
                     tint = Color.White
                 )
             }
             IconButton(onClick = onSearchClick) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "검색",
+                    contentDescription = stringResource(id = R.string.meeting_search),
                     tint = Color.White
                 )
             }
         }
 
-        // 뷰페이저 인디케이터 형태 (가상)
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            repeat(6) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(if (index == 1) 8.dp else 6.dp)
-                        .background(
-                            color = if (index == 1) Color(0xFF7A6BFF) else Color.White.copy(alpha = 0.5f),
-                            shape = CircleShape
-                        )
-                )
+        // 페이지 인디케이터 (동적)
+        if (images.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                repeat(images.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                            .background(
+                                color = if (index == pagerState.currentPage) Color(0xFF7A6BFF) else Color.White.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun InfoSection(detail: MeetingDetail) {
+fun InfoSection(
+    detail: MeetingDetail,
+    translatedTitle: String? = null,
+    isTranslatingTitle: Boolean = false,
+    onTranslateTitle: () -> Unit = {},
+    onEditClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
+    onStatusChange: ((String) -> Unit)? = null
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -220,12 +336,123 @@ fun InfoSection(detail: MeetingDetail) {
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
+                if (TranslationService.isEnabled) {
+                    TranslateInlineButton(
+                        isTranslating = isTranslatingTitle,
+                        isTranslated = translatedTitle != null,
+                        onClick = onTranslateTitle,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                if (translatedTitle != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TranslatedBlock(
+                        translated = translatedTitle,
+                        targetLabel = TranslationService.targetLabel(),
+                        contentFontSize = 16.sp
+                    )
+                }
                 Text(
                     text = detail.location,
                     fontSize = 12.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+
+            // 호스트일 경우 관리 버튼 표시
+            if (onEditClick != null || onDeleteClick != null || onStatusChange != null) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // 상태 변경 버튼들 (호스트 전용)
+                    if (onStatusChange != null) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val currentStatus = detail.status
+                            val maxMembers = detail.maxMembers
+                            val currentMembers = detail.currentMembers
+
+                            // 정원 정보 표시
+                            if (maxMembers != null && currentMembers != null) {
+                                Text(
+                                    text = stringResource(id = R.string.meeting_capacity_format, currentMembers, maxMembers),
+                                    fontSize = 11.sp,
+                                    color = if (currentMembers >= maxMembers) Color.Red else Color.Gray,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                            }
+
+                            when (currentStatus) {
+                                "OPEN" -> {
+                                    OutlinedButton(
+                                        onClick = { onStatusChange("CLOSED") },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        border = BorderStroke(1.dp, Color(0xFFFF9800))
+                                    ) {
+                                        Text(stringResource(id = R.string.meeting_action_close), fontSize = 11.sp, color = Color(0xFFFF9800))
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onStatusChange("COMPLETED") },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF4CAF50))
+                                    ) {
+                                        Text(stringResource(id = R.string.meeting_action_complete), fontSize = 11.sp, color = Color(0xFF4CAF50))
+                                    }
+                                }
+                                "CLOSED" -> {
+                                    OutlinedButton(
+                                        onClick = { onStatusChange("OPEN") },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF6C60FD))
+                                    ) {
+                                        Text(stringResource(id = R.string.meeting_action_reopen), fontSize = 11.sp, color = Color(0xFF6C60FD))
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onStatusChange("COMPLETED") },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF4CAF50))
+                                    ) {
+                                        Text(stringResource(id = R.string.meeting_action_complete), fontSize = 11.sp, color = Color(0xFF4CAF50))
+                                    }
+                                }
+                                "COMPLETED" -> {
+                                    Text(
+                                        text = stringResource(id = R.string.meeting_completed_label),
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF4CAF50),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 수정/삭제 버튼
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (onEditClick != null) {
+                            OutlinedButton(
+                                onClick = onEditClick,
+                                modifier = Modifier.height(28.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                border = BorderStroke(1.dp, Color(0xFF6C60FD))
+                            ) {
+                                Text(stringResource(id = R.string.meeting_action_edit), fontSize = 11.sp, color = Color(0xFF6C60FD))
+                            }
+                        }
+                        if (onDeleteClick != null) {
+                            OutlinedButton(
+                                onClick = onDeleteClick,
+                                modifier = Modifier.height(28.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                border = BorderStroke(1.dp, Color.Red)
+                            ) {
+                                Text(stringResource(id = R.string.meeting_action_delete), fontSize = 11.sp, color = Color.Red)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -276,13 +503,13 @@ fun InfoSection(detail: MeetingDetail) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "좋아요",
+                    contentDescription = stringResource(id = R.string.meeting_like),
                     tint = Color.Gray,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "13",
+                    text = "",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -292,14 +519,20 @@ fun InfoSection(detail: MeetingDetail) {
 }
 
 @Composable
-fun DescriptionSection(detail: MeetingDetail, onReportMeeting: () -> Unit) {
+fun DescriptionSection(
+    detail: MeetingDetail,
+    translatedDescription: String? = null,
+    isTranslatingDescription: Boolean = false,
+    onTranslateDescription: () -> Unit = {},
+    onReportMeeting: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(24.dp)
     ) {
         Text(
-            text = "일시/시간 : ${detail.dateAndTime}",
+            text = stringResource(id = R.string.meeting_datetime_label, detail.dateAndTime),
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -308,16 +541,32 @@ fun DescriptionSection(detail: MeetingDetail, onReportMeeting: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "만남 소개 : ${detail.description}",
+            text = stringResource(id = R.string.meeting_introduction_label, detail.description),
             fontSize = 14.sp,
             color = Color(0xFF4A4A4A),
             lineHeight = 22.sp
         )
 
+        if (TranslationService.isEnabled) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TranslateInlineButton(
+                isTranslating = isTranslatingDescription,
+                isTranslated = translatedDescription != null,
+                onClick = onTranslateDescription
+            )
+        }
+        if (translatedDescription != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TranslatedBlock(
+                translated = translatedDescription,
+                targetLabel = TranslationService.targetLabel()
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "이 게시글 신고하기",
+            text = stringResource(id = R.string.meeting_report_post),
             fontSize = 12.sp,
             color = Color.Gray,
             textDecoration = TextDecoration.Underline,
@@ -335,6 +584,163 @@ fun CourseSection(courses: List<CoursePoint>) {
             .padding(24.dp)
     ) {
         Text(
+            text = stringResource(id = R.string.meeting_course),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (courses.isEmpty()) {
+            Text(
+                text = stringResource(id = R.string.meeting_course_empty),
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            return@Column
+        }
+
+        // 타임라인 UI
+        courses.forEachIndexed { index, course ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 아이콘 및 선
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(32.dp)
+                ) {
+                    if (course.isStart) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = stringResource(id = R.string.meeting_start),
+                            tint = Color(0xFF6C60FD),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else if (course.isEnd) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = stringResource(id = R.string.meeting_end),
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(Color(0xFFE0E0E0), CircleShape)
+                                .padding(4.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(Color(0xFF6C60FD), RoundedCornerShape(4.dp))
+                        )
+                    }
+
+                    if (index < courses.size - 1) {
+                        // 세로 선 (점선 대신 실선으로 간단히 구현)
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(32.dp)
+                                .padding(vertical = 4.dp)
+                                .background(Color(0xFF6C60FD))
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                //  텍스트 영역: 장소 이름과 (위치 미지원) 안내 문구
+                Column {
+                    Text(
+                        text = course.name,
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+
+                    // 좌표가 null이거나 0.0이면 위치 미지원 안내 표시
+                    val isInvalidLocation = course.lat == null || course.lat == 0.0 || course.lng == null || course.lng == 0.0
+                    if (isInvalidLocation) {
+                        Text(
+                            text = stringResource(id = R.string.meeting_course_no_location),
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        //  지도 영역 방어 로직 (크래시 방지)
+        // 1. 유효한(정상적인) 좌표만 필터링합니다.
+        val validCourses = courses.filter {
+            it.lat != null && it.lat != 0.0 && it.lng != null && it.lng != 0.0
+        }
+
+        // 2. 유효한 좌표가 있을 때만 지도를 그립니다.
+        if (validCourses.isNotEmpty()) {
+            // 필터링된 애들로만 평균을 구해야 에러(NaN)가 나지 않습니다.
+            val centerLat = validCourses.map { it.lat!! }.average()
+            val centerLng = validCourses.map { it.lng!! }.average()
+
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition(LatLng(centerLat, centerLng), 13.0)
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                NaverMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState
+                ) {
+                    // 유효한 애들만 마커 표시
+                    validCourses.forEach { course ->
+                        Marker(
+                            state = MarkerState(position = LatLng(course.lat!!, course.lng!!)),
+                            captionText = course.name
+                        )
+                    }
+                }
+            }
+        } else {
+            // 모든 장소가 유효한 좌표가 없을 경우 (지도를 아예 숨기거나 안내 박스를 보여줌)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(Color(0xFFF8F8F8), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(id = R.string.meeting_map_empty),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+/*
+@OptIn(ExperimentalNaverMapApi::class)
+@Composable
+fun CourseSection(courses: List<CoursePoint>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+    ) {
+        Text(
             text = "코스",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
@@ -342,6 +748,16 @@ fun CourseSection(courses: List<CoursePoint>) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (courses.isEmpty()) {
+            Text(
+                text = stringResource(id = R.string.meeting_course_empty),
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            return@Column
+        }
 
         // 타임라인 UI
         courses.forEachIndexed { index, course ->
@@ -409,7 +825,7 @@ fun CourseSection(courses: List<CoursePoint>) {
         if (courses.isNotEmpty()) {
             val centerLat = courses.map { it.lat }.average()
             val centerLng = courses.map { it.lng }.average()
-            
+
             val cameraPositionState = rememberCameraPositionState {
                 position = CameraPosition(LatLng(centerLat, centerLng), 13.0)
             }
@@ -431,7 +847,7 @@ fun CourseSection(courses: List<CoursePoint>) {
                             captionText = course.name
                         )
                     }
-                    
+
                     // PathOverlay 가능 여부는 naver-map-compose API 확인 필요
                     // 간단히 마커만 표시
                 }
@@ -440,10 +856,12 @@ fun CourseSection(courses: List<CoursePoint>) {
     }
 }
 
+ */
+
 @Composable
 fun MateInfoSection(
-    mateInfo: MateInfo, 
-    otherMeetings: List<Meeting>, 
+    mateInfo: MateInfo,
+    otherMeetings: List<Meeting>,
     onReportUser: () -> Unit,
     onBlockUser: () -> Unit,
     onMeetingClick: (String) -> Unit
@@ -461,22 +879,22 @@ fun MateInfoSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "메이트 정보",
+                text = stringResource(id = R.string.meeting_mate_info),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-            
+
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "차단하기",
+                    text = stringResource(id = R.string.meeting_block),
                     fontSize = 12.sp,
                     color = Color.Gray,
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable { onBlockUser() }
                 )
                 Text(
-                    text = "신고하기",
+                    text = stringResource(id = R.string.meeting_report),
                     fontSize = 12.sp,
                     color = Color.Gray,
                     textDecoration = TextDecoration.Underline,
@@ -496,7 +914,7 @@ fun MateInfoSection(
         ) {
             Image(
                 painter = painterResource(id = mateInfo.profileRes),
-                contentDescription = "프로필 이미지",
+                contentDescription = stringResource(id = R.string.meeting_profile_image),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(64.dp)
@@ -517,7 +935,7 @@ fun MateInfoSection(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "인증됨",
+                            contentDescription = stringResource(id = R.string.meeting_mate_verified),
                             tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
@@ -525,7 +943,7 @@ fun MateInfoSection(
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.Favorite,
-                        contentDescription = "평점",
+                        contentDescription = stringResource(id = R.string.meeting_mate_rating_desc),
                         tint = Color(0xFF6C60FD),
                         modifier = Modifier.size(14.dp)
                     )
@@ -567,7 +985,8 @@ fun MateInfoSection(
 @Composable
 fun DetailBottomBar(
     isFavorite: Boolean = false,
-    onFavoriteClick: () -> Unit = {}
+    onFavoriteClick: () -> Unit = {},
+    onApplyClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -587,37 +1006,119 @@ fun DetailBottomBar(
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "찜하기",
+                contentDescription = stringResource(id = R.string.meeting_favorite),
                 tint = if (isFavorite) Color(0xFFF44336) else Color.Gray
             )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 쪽지 버튼
+        // 메이트 신청 버튼
         Button(
-            onClick = { /* TODO */ },
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8D8D8D)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text(text = "쪽지", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 예약 요청 버튼
-        Button(
-            onClick = { /* TODO */ },
+            onClick = onApplyClick,
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C60FD)),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = "예약 요청", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                text = stringResource(id = R.string.meeting_apply),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
+
     }
+}
+
+/**
+ * 메이트 신청 메시지 입력 다이얼로그
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ApplicationMessageDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var message by remember { mutableStateOf("") }
+    val maxLength = 200
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(id = R.string.meeting_apply),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(id = R.string.meeting_apply_dialog_message),
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = {
+                        if (it.length <= maxLength) {
+                            message = it
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    placeholder = {
+                        Text(
+                            text = stringResource(id = R.string.meeting_apply_dialog_placeholder),
+                            fontSize = 14.sp,
+                            color = Color.LightGray
+                        )
+                    },
+                    supportingText = {
+                        Text(
+                            text = stringResource(id = R.string.comment_char_count, message.length, maxLength),
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C60FD),
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (message.isNotBlank()) {
+                        onConfirm(message.trim())
+                    }
+                },
+                enabled = message.isNotBlank()
+            ) {
+                Text(
+                    text = stringResource(id = R.string.meeting_apply_confirm),
+                    color = if (message.isNotBlank()) Color(0xFF6C60FD) else Color.Gray,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(id = R.string.meeting_apply_cancel),
+                    color = Color.Gray
+                )
+            }
+        }
+    )
 }

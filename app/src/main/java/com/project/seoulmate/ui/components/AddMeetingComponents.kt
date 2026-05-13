@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,52 +19,92 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.project.seoulmate.R
+import com.project.seoulmate.data.model.CategoryItem
 import com.project.seoulmate.ui.theme.SeoulMatePrimary
+import com.project.seoulmate.util.getCategoryLabel
 
 @Composable
 fun PhotoUploadSection(
-    photoCount: Int = 0,
+    imageUrls: List<String> = emptyList(),
     onCameraClick: () -> Unit = {},
     onGalleryClick: () -> Unit = {}
 ) {
+    val photoCount = imageUrls.size
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Camera Button
+        // Camera Button (현시점에서는 갤러리와 동일한 동작 혹은 비활성화)
         PhotoUploadButton(
             icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_camera),
-                    contentDescription = "사진",
+                    contentDescription = stringResource(id = R.string.addmeeting_photo),
                     tint = Color.Unspecified,
-                    // contentScale = ContentScale.None
                     modifier = Modifier.size(30.dp)
                 )
             },
-            label = "사진",
+            label = stringResource(id = R.string.addmeeting_photo),
             onClick = onCameraClick
         )
 
         // Gallery Button with counter
         PhotoUploadButton(
             icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_image),
-                    contentDescription = "갤러리",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(30.dp)
-                )
+                if (imageUrls.isNotEmpty()) {
+                    // 업로드된 이미지가 있으면 첫 번째 이미지를 썸네일로 표시
+                    AsyncImage(
+                        model = imageUrls.first(),
+                        contentDescription = stringResource(id = R.string.addmeeting_gallery_thumb),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_image),
+                        contentDescription = stringResource(id = R.string.addmeeting_gallery),
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
             },
             label = "$photoCount/9",
             onClick = onGalleryClick
         )
+
+        // 업로드된 이미지 프리뷰 (최대 3개 정도만 추가로 표시)
+        if (imageUrls.size > 1) {
+            imageUrls.drop(1).take(2).forEach { url ->
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                ) {
+                    AsyncImage(
+                        model = url,
+                        contentDescription = stringResource(id = R.string.addmeeting_image_preview),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -77,7 +118,7 @@ fun PhotoUploadButton(
         modifier = Modifier
             .size(80.dp)
             .shadow(
-                elevation = 2.dp, 
+                elevation = 2.dp,
                 shape = RoundedCornerShape(12.dp)
             )
             .clip(RoundedCornerShape(12.dp))
@@ -100,22 +141,23 @@ fun PhotoUploadButton(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryTagSection(
+    categories: List<CategoryItem>,
     selectedCategories: Set<String>,
     onCategoryToggle: (String) -> Unit
 ) {
-    val categories = listOf(
-        "#관광", "# K-팝", "#K-뷰티", "#쇼핑",
-        "#한식", "#카페", "#교통 가이드", "#숙소·지역",
-        "#클래스", "#커뮤니티", "#전시·스타일", "#안전·생활"
-    )
+    val context = LocalContext.current
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        categories.forEach { category ->
-            val isSelected = selectedCategories.contains(category)
+        categories.forEach { categoryItem ->
+            // 기기 언어에 맞는 라벨 가져오기
+            val displayLabel = context.getCategoryLabel(categoryItem.code, categoryItem.label)
+            val categoryTag = "#$displayLabel"
+
+            val isSelected = selectedCategories.contains(categoryTag)
             Surface(
                 modifier = Modifier
                     .shadow(
@@ -124,14 +166,14 @@ fun CategoryTagSection(
                         spotColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f),
                         ambientColor = if (isSelected) SeoulMatePrimary else Color.Black.copy(alpha = 0.5f)
                     )
-                    .clickable { onCategoryToggle(category) },
+                    .clickable { onCategoryToggle(categoryTag) },
                 shape = RoundedCornerShape(24.dp),
                 color = if (isSelected) SeoulMatePrimary else Color.White,
                 border = null,
                 shadowElevation = 5.dp
             ) {
                 Text(
-                    text = category,
+                    text = categoryTag,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     color = if (isSelected) Color.White else Color.Gray,
                     fontSize = 14.sp
@@ -200,7 +242,7 @@ fun CourseSection(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "코스 추가",
+                    contentDescription = stringResource(id = R.string.addmeeting_add_course),
                     tint = Color.White,
                     modifier = Modifier.size(16.dp)
                 )
@@ -212,7 +254,8 @@ fun CourseSection(
 @Composable
 fun TimeSlotSection(
     timeSlots: List<String>,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    onRemoveClick: (Int) -> Unit = {}
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -220,19 +263,32 @@ fun TimeSlotSection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Display existing time slots
-        timeSlots.forEach { slot ->
+        timeSlots.forEachIndexed { index, slot ->
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White,
                 border = null,
                 shadowElevation = 4.dp
             ) {
-                Text(
-                    text = slot,
+                Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    fontSize = 14.sp,
-                    color = Color.DarkGray
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = slot,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(id = R.string.addcourse_delete),
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { onRemoveClick(index) }
+                    )
+                }
             }
         }
 
@@ -247,7 +303,7 @@ fun TimeSlotSection(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "시간 추가",
+                contentDescription = stringResource(id = R.string.addmeeting_add_time),
                 tint = Color.White,
                 modifier = Modifier.size(18.dp)
             )
@@ -260,8 +316,9 @@ fun RepeatRegistrationSection(
     isRepeating: Boolean?,
     onRepeatChange: (Boolean) -> Unit
 ) {
+    val frequencySettingLabel = stringResource(id = R.string.addmeeting_frequency_setting)
     var showFrequencyDialog by remember { mutableStateOf(false) }
-    var frequency by remember { mutableStateOf("주기 설정") }
+    var frequency by remember { mutableStateOf(frequencySettingLabel) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Frequency setting button
@@ -279,11 +336,11 @@ fun RepeatRegistrationSection(
             Text(
                 text = frequency,
                 fontSize = 14.sp,
-                color = if (frequency == "주기 설정") Color.Gray else Color.Black
+                color = if (frequency == frequencySettingLabel) Color.Gray else Color.Black
             )
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = "주기 설정",
+                contentDescription = frequencySettingLabel,
                 tint = SeoulMatePrimary,
                 modifier = Modifier.size(20.dp)
             )
@@ -306,7 +363,7 @@ fun RepeatRegistrationSection(
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("예", fontSize = 14.sp)
+                Text(stringResource(id = R.string.dialog_yes), fontSize = 14.sp)
             }
 
             Row(
@@ -321,19 +378,25 @@ fun RepeatRegistrationSection(
                     )
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("아니오", fontSize = 14.sp)
+                Text(stringResource(id = R.string.dialog_no), fontSize = 14.sp)
             }
         }
     }
 
     // Frequency Dialog
     if (showFrequencyDialog) {
+        val freqOptions = listOf(
+            stringResource(id = R.string.addmeeting_freq_daily),
+            stringResource(id = R.string.addmeeting_freq_weekly),
+            stringResource(id = R.string.addmeeting_freq_biweekly),
+            stringResource(id = R.string.addmeeting_freq_monthly)
+        )
         AlertDialog(
             onDismissRequest = { showFrequencyDialog = false },
-            title = { Text("반복 주기 설정") },
+            title = { Text(stringResource(id = R.string.addmeeting_repeat_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("매일", "매주", "격주", "매월").forEach { option ->
+                    freqOptions.forEach { option ->
                         TextButton(
                             onClick = {
                                 frequency = option
@@ -349,7 +412,7 @@ fun RepeatRegistrationSection(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showFrequencyDialog = false }) {
-                    Text("취소")
+                    Text(stringResource(id = R.string.dialog_cancel))
                 }
             }
         )

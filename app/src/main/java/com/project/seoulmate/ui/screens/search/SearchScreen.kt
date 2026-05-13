@@ -1,6 +1,7 @@
 package com.project.seoulmate.ui.screens.search
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -35,8 +37,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.project.seoulmate.R
+import com.project.seoulmate.config.AppConfig
 import com.project.seoulmate.ui.components.RecommendationCard
 import com.project.seoulmate.ui.navigation.Screen
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
+import com.project.seoulmate.data.model.Meeting
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -127,7 +144,7 @@ fun SearchScreen(
                                 Box(modifier = Modifier.weight(1f)) {
                                     if (textFieldValue.text.isEmpty()) {
                                         Text(
-                                            text = "만남을 검색해보세요!",
+                                            text = stringResource(id = R.string.search_hint),
                                             color = Color.LightGray,
                                             fontSize = 14.sp
                                         )
@@ -195,7 +212,138 @@ fun SearchScreen(
                     if (state.meetings.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = "검색 결과가 없습니다.",
+                                text = stringResource(id = R.string.search_no_result),
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                    } else {
+                        var selectedCategory by remember { mutableStateOf("전체") }
+                        var selectedCongestion by remember { mutableStateOf("전체") }
+
+                        LaunchedEffect(query) {
+                            selectedCategory = "전체"
+                            selectedCongestion = "전체"
+                        }
+
+                        val filteredMeetings = remember(state.meetings, selectedCategory, selectedCongestion) {
+                            var list = state.meetings
+                            if (selectedCategory != "전체" && selectedCategory != "카테고리") {
+                                list = list.filter { meeting ->
+                                    meeting.tags.any { tag -> tag.contains(selectedCategory) }
+                                }
+                            }
+                            if (selectedCongestion != "전체") {
+                                list = list.filter { meeting ->
+                                    meeting.tags.any { tag -> tag.contains(selectedCongestion) }
+                                }
+                            }
+                            list
+                        }
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(16.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            // Filter Row
+                            item(span = { GridItemSpan(2) }) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    FilterChipItem(
+                                        text = "카테고리",
+                                        options = listOf("전체", "관광", "K-팝", "K-뷰티", "쇼핑", "한식", "카페", "교통가이드", "숙소/지역", "클래스", "커뮤니티", "전시·스타일", "안전·생활"),
+                                        selectedOption = if (selectedCategory == "전체") "카테고리" else selectedCategory,
+                                        onOptionSelected = { selectedCategory = it }
+                                    )
+
+                                    FilterChipItem(
+                                        text = "혼잡도",
+                                        options = listOf("전체", "여유", "보통", "약간 붐빔", "붐빔"),
+                                        selectedOption = if (selectedCongestion == "전체") "혼잡도" else selectedCongestion,
+                                        onOptionSelected = { selectedCongestion = it }
+                                    )
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    Surface(
+                                        modifier = Modifier.size(36.dp),
+                                        shape = CircleShape,
+                                        color = Color.White,
+                                        border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clickable { /* Filter popup */ },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Tune,
+                                                contentDescription = "필터 설정",
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Count Text
+                            item(span = { GridItemSpan(2) }) {
+                                Text(
+                                    text = "만남 ${filteredMeetings.size}개",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+
+                            // Grid Cards
+                            items(filteredMeetings) { meeting ->
+                                MeetingGridCard(
+                                    meeting = meeting,
+                                    onClick = {
+                                        focusManager.clearFocus()
+                                        navController.navigate("meeting_detail/${meeting.id}")
+                                    },
+                                    onFavoriteToggle = {
+                                        // No-op or local state toggle if needed, safe by default
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                // 기존의 LazyColumn 블록을 주석처리 또는 대체하기 위해 남은 이전의 불필요한 닫는 괄호/코드를 건너뛰도록 하기 위해 EndLine을 237로 명시하여 targetContent의 끝까지 정확하게 덮어씁니다.
+                /*
+                if (legacyPlaceholder == "remove_next_lines") {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.meetings) { meeting ->
+                            RecommendationCard(
+                                meeting = meeting,
+                                onClick = { meetingId ->
+                                    focusManager.clearFocus()
+                                    navController.navigate("meeting_detail/$meetingId")
+                                }
+                            )
+                        }
+                    }
+                }
+                    if (state.meetings.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(id = R.string.search_no_result),
                                 color = Color.Gray,
                                 fontSize = 16.sp
                             )
@@ -218,7 +366,7 @@ fun SearchScreen(
                             }
                         }
                     }
-                }
+                */
             }
         }
     }
@@ -230,45 +378,47 @@ fun IdleStateContent(
     onSearchClick: (String) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Recent Searches
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "최근 검색어",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "모두 지우기",
-                    fontSize = 12.sp,
-                    color = Color.DarkGray,
-                    modifier = Modifier.clickable { /* TODO: Clear all */ }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val recentSearches = listOf("홍대 베이커리", "경복궁 야간", "맛집", "한강 피크닉")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                recentSearches.forEach { search ->
-                    SearchChip(
-                        text = search,
-                        onClick = { onSearchClick(search) }
+        // Recent Searches (개발 모드에서만 표시)
+        if (!AppConfig.IS_PRODUCTION) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.search_recent),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = stringResource(id = R.string.search_clear_all),
+                        fontSize = 12.sp,
+                        color = Color.DarkGray,
+                        modifier = Modifier.clickable { /* TODO: Clear all */ }
                     )
                 }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val recentSearches = listOf("홍대 베이커리", "경복궁 야간", "맛집", "한강 피크닉")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    recentSearches.forEach { search ->
+                        SearchChip(
+                            text = search,
+                            onClick = { onSearchClick(search) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         // Ad Banner
         Box(
@@ -282,14 +432,14 @@ fun IdleStateContent(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "광고광고광고",
+                    text = stringResource(id = R.string.search_ad_label),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "일석이조의 서울메이트 활동",
+                    text = stringResource(id = R.string.search_ad_title),
                     color = Color.White,
                     fontSize = 12.sp
                 )
@@ -317,28 +467,231 @@ fun IdleStateContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Trending Searches
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Text(
-                text = "주간 급상승 검색어",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+        // Trending Searches (개발 모드에서만 표시)
+        if (!AppConfig.IS_PRODUCTION) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = stringResource(id = R.string.search_trending),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            val trendingSearches = listOf("광화문 광장", "성수동 카페거리", "인사동 쌈지길", "남산 타워", "청계천 야경")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                val trendingSearches = listOf("광화문 광장", "성수동 카페거리", "인사동 쌈지길", "남산 타워", "청계천 야경")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    trendingSearches.forEach { search ->
+                        SearchChip(
+                            text = search,
+                            onClick = { onSearchClick(search) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun FilterChipItem(
+    text: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
+            modifier = Modifier
+                .height(36.dp)
+                .clickable { expanded = true }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                trendingSearches.forEach { search ->
-                    SearchChip(
-                        text = search,
-                        onClick = { onSearchClick(search) }
+                Text(
+                    text = selectedOption,
+                    fontSize = 13.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = Color.Black
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MeetingGridCard(
+    meeting: Meeting,
+    onClick: () -> Unit,
+    onFavoriteToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+            ) {
+                if (meeting.imageUrl != null) {
+                    AsyncImage(
+                        model = meeting.imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        error = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                        placeholder = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1)
                     )
+                } else {
+                    Image(
+                        painter = painterResource(id = if (meeting.imageRes != 0) meeting.imageRes else R.drawable.img_recommend_1),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                IconButton(
+                    onClick = onFavoriteToggle,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (meeting.isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (meeting.isFavorited) Color(0xFFFF6B6B) else Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                ) {
+                    meeting.tags.forEach { tag ->
+                        val cleanTag = if (tag.startsWith("#")) tag.removePrefix("#") else tag
+                        val isCongestion = cleanTag == "여유" || cleanTag == "보통" || cleanTag == "약간 붐빔" || cleanTag == "붐빔" || cleanTag == "혼잡" || cleanTag == "정보 없음"
+                        val tagColor = when (cleanTag) {
+                            "여유" -> Color(0xFF6CF0A0)
+                            "보통" -> Color(0xFF4A90E2)
+                            "약간 붐빔" -> Color(0xFFFF9500)
+                            "붐빔", "혼잡" -> Color(0xFFFF6B6B)
+                            "정보 없음" -> Color(0xFF9E9E9E)
+                            else -> Color(0xFF6C60FD)
+                        }
+
+                        Surface(
+                            color = tagColor,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = if (isCongestion) cleanTag else "#$cleanTag",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = meeting.title,
+                    color = Color.Black,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = meeting.time ?: "",
+                    color = Color(0xFF888888),
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "예상 " + (meeting.price ?: ""),
+                        color = Color(0xFF888888),
+                        fontSize = 11.sp
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = String.format("%.1f", meeting.ratingAvg ?: 0.0),
+                            color = Color(0xFF888888),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

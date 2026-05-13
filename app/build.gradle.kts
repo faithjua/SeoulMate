@@ -12,13 +12,31 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+// local.properties 로드 (BASE_URL, 네이버 키 등)
 val properties = Properties()
 val localPropertiesFile = project.rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { properties.load(it) }
 }
 
+// keystore.properties 로드 (서명 키 정보)
+val keystoreProperties = Properties()
+val keystorePropertiesFile = project.rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
 android {
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
+    }
     namespace = "com.project.seoulmate"
     compileSdk = 34
 
@@ -42,8 +60,8 @@ android {
         applicationId = "com.project.seoulmate"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -53,8 +71,18 @@ android {
 
     buildTypes {
         release {
+            isDebuggable = false
+            // 2. 정의한 도장을 release 빌드에 연결 (이게 핵심!)
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
         }
     }
     compileOptions {
@@ -137,5 +165,21 @@ dependencies {
 
     //로그를 위한 timber
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // 이미지 로딩 Coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // CameraX
+    val camerax_version = "1.3.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+
+    // ML Kit 온디바이스 번역 (한국어 ↔ 영어)
+    implementation("com.google.mlkit:translate:17.0.3")
+
+    // 인앱 로케일 전환 (AppCompatDelegate.setApplicationLocales)
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
 

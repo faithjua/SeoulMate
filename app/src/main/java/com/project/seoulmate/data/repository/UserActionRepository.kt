@@ -1,6 +1,7 @@
 package com.project.seoulmate.data.repository
 
 import com.project.seoulmate.data.model.BlockRequest
+import com.project.seoulmate.data.model.BlockResponse
 import com.project.seoulmate.data.model.ReportRequest
 
 /**
@@ -22,4 +23,9 @@ interface UserActionRepository {
         token: String,
         request: BlockRequest
     ): Result<Unit>
+
+    /**
+     * 내 차단 목록 조회
+     */
+    suspend fun getBlocks(token: String): Result<List<BlockResponse>>
 }

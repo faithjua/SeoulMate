@@ -21,7 +21,7 @@ class MeetingRepositoryImpl @Inject constructor(
 
     override fun getCategories(): List<Category> = listOf(
         Category(id = "all", name = "전체메뉴", isAllMenu = true),
-        Category(id = "daily", name = "당일만남", iconRes = R.drawable.ic_tourism), // 아이콘 적절히 수정 필요
+        Category(id = "daily", name = "당일만남", iconRes = R.drawable.ic_today), // 아이콘 적절히 수정 필요
         Category(id = "tourism", name = "관광", iconRes = R.drawable.ic_tourism),
         Category(id = "kpop", name = "K-팝", iconRes = R.drawable.ic_kpop),
         Category(id = "kbeauty", name = "K-뷰티", iconRes = R.drawable.ic_kbeauty),
@@ -29,14 +29,18 @@ class MeetingRepositoryImpl @Inject constructor(
         Category(id = "food", name = "한식", iconRes = R.drawable.ic_kfood),
         Category(id = "cafe", name = "카페", iconRes = R.drawable.ic_cafe),
         Category(id = "transport", name = "교통 가이드", iconRes = R.drawable.ic_subway),
-        Category(id = "accommodation", name = "숙소/지역", iconRes = R.drawable.ic_accommodation),
+        // Category(id = "accommodation", name = "숙소/지역", iconRes = R.drawable.ic_accommodation),
         Category(id = "class", name = "클래스", iconRes = R.drawable.ic_class),
         Category(id = "community", name = "커뮤니티", iconRes = R.drawable.ic_community),
         Category(id = "exhibition", name = "전시/공연", iconRes = R.drawable.ic_exhibition),
         Category(id = "safety", name = "안전/생활", iconRes = R.drawable.ic_safety)
     )
 
-    override suspend fun getHomeData(category: String?): Result<List<Meeting>> {
+    override suspend fun getHomeData(
+        category: String?,
+        filterCategory: String?,
+        congestion: String?
+    ): Result<List<Meeting>> {
         return try {
             val user = FirebaseAuth.getInstance().currentUser
             val token = user?.let {
@@ -49,11 +53,13 @@ class MeetingRepositoryImpl @Inject constructor(
             }
 
             // "전체메뉴"인 경우 카테고리 필터 제외
-            val filterCategory = if (category == "전체메뉴") null else category
+            val categoryParam = if (category == "전체메뉴") null else category
 
             val response = meetingApi.getHomeData(
                 token = token?.let { "Bearer $it" },
-                category = filterCategory
+                category = categoryParam,
+                filterCategory = filterCategory,
+                congestion = congestion
             )
 
             if (response.isSuccessful && response.body()?.success == true) {
@@ -231,23 +237,130 @@ class MeetingRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun updateMeeting(token: String, meetingId: String, form: MeetingForm): Result<MeetingDetail> {
+        return try {
+            val request = form.toCreateRequest()
+            val response = meetingApi.updateMeeting("Bearer $token", meetingId.toLongOrNull() ?: 0L, request)
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null) {
+                    Result.success(data.toMeetingDetail())
+                } else {
+                    Result.failure(Exception("응답 데이터가 없습니다"))
+                }
+            } else {
+                val errorMsg = response.body()?.message ?: "만남 수정 실패"
+                Timber.e("Meeting update failed: $errorMsg")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Meeting update error")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteMeeting(token: String, meetingId: String): Result<Unit> {
+        return try {
+            val response = meetingApi.deleteMeeting("Bearer $token", meetingId.toLongOrNull() ?: 0L)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.body()?.message ?: "만남 삭제 실패"
+                Timber.e("Meeting deletion failed: $errorMsg")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Meeting deletion error")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUserMeetups(
+        token: String?,
+        memberId: Long,
+        page: Int,
+        size: Int
+    ): Result<PageResponse<Meeting>> {
+        return try {
+            Timber.d("MeetingRepo - getUserMeetups called with memberId: $memberId, page: $page, size: $size")
+            Timber.d("MeetingRepo - Token: ${if (token != null) "Bearer ${token.take(20)}..." else "null"}")
+
+            val response = meetingApi.getUserMeetups(
+                token = token?.let { "Bearer $it" },
+                memberId = memberId,
+                page = page,
+                size = size
+            )
+
+            Timber.d("MeetingRepo - Response code: ${response.code()}")
+            Timber.d("MeetingRepo - Response successful: ${response.isSuccessful}")
+            Timber.d("MeetingRepo - Response body success: ${response.body()?.success}")
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val pageData = response.body()?.data
+                Timber.d("MeetingRepo - Page data: totalElements=${pageData?.totalElements}, content size=${pageData?.content?.size}")
+
+                if (pageData != null) {
+                    val meetings = pageData.content.map { it.toMeeting() }
+                    val resultPage = PageResponse(
+                        content = meetings,
+                        page = pageData.page,
+                        size = pageData.size,
+                        totalElements = pageData.totalElements,
+                        totalPages = pageData.totalPages,
+                        first = pageData.first,
+                        last = pageData.last
+                    )
+                    Timber.d("MeetingRepo - Success! Returning ${meetings.size} meetings")
+                    Result.success(resultPage)
+                } else {
+                    Timber.e("MeetingRepo - Response data is null")
+                    Result.failure(Exception("응답 데이터가 없습니다"))
+                }
+            } else {
+                val errorMsg = response.body()?.message ?: "사용자 만남 목록 조회 실패"
+                val errorBody = response.errorBody()?.string()
+                Timber.e("MeetingRepo - API failed: code=${response.code()}, message=$errorMsg, error=$errorBody")
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "MeetingRepo - Exception in getUserMeetups: ${e.message}")
+            Result.failure(e)
+        }
+    }
 }
 
 /**
  * MeetingListResponse를 UI Meeting 모델로 변환
  */
 private fun MeetingListResponse.toMeeting(): Meeting {
+    // 혼잡도 정보 로깅
+    Timber.d("MeetingList[${this.id}] - congestionLevel: ${this.congestionLevel}, congestionLabel: ${this.congestionLabel}")
+
     return Meeting(
         id = this.id.toString(),
         title = this.title,
-        time = this.schedule ?: "",
-        price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
+        time = this.schedule ?: this.meetDate ?: "",
+        price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0", // 리스트 응답에 평점이 없으므로 기본값 처리
-        imageRes = R.drawable.img_recommend_1, // thumbnailUrl 처리는 추후 Coil 적용 시 수정
+        imageRes = R.drawable.img_recommend_1,
+        imageUrls = listOfNotNull(this.thumbnailUrl?.takeIf { it.isNotBlank() }),
         tags = buildList {
-            this@toMeeting.congestionLevel?.let { add(it) }
+            // congestionLabel을 우선 사용, 없으면 congestionLevel 사용
+            val congestionTag = this@toMeeting.congestionLabel ?: this@toMeeting.congestionLevel
+            congestionTag?.let {
+                Timber.d("Adding congestion tag: $it")
+                add(it)
+            }
             addAll(this@toMeeting.tags.map { "#$it" })
-        }
+        },
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }
 
@@ -255,23 +368,45 @@ private fun MeetingListResponse.toMeeting(): Meeting {
  * MeetingDetailResponse를 UI MeetingDetail 모델로 변환
  */
 private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
+    // 혼잡도 정보 로깅
+    Timber.d("MeetingDetail[${this.id}] - congestion: ${this.congestion?.label}")
+
     val meeting = Meeting(
         id = this.id.toString(),
         title = this.title,
         time = this.schedule ?: "",
         price = this.estimatedCost?.let { "₩$it" } ?: "가격 미정",
         rating = this.host?.rating?.toString() ?: "0.0",
-        imageRes = R.drawable.img_recommend_1, // Coil 적용 시 imageUrls.firstOrNull() 활용
-        tags = this.tags.map { "#$it" }
+        imageRes = R.drawable.img_recommend_1,
+        imageUrls = this.imageUrls.filter { it.isNotBlank() }.ifEmpty {
+            listOfNotNull(this.thumbnailUrl?.takeIf { it.isNotBlank() })
+        },
+        tags = buildList {
+            // 혼잡도 라벨 추가 (찜 화면 등에서 카드에 표시하기 위해)
+            this@toMeetingDetail.congestion?.label?.let {
+                Timber.d("Adding congestion label to detail tags: $it")
+                add(it)
+            }
+            addAll(this@toMeetingDetail.tags.map { "#$it" })
+        },
+        isFavorited = this.isFavorite,
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 
-    val coursePoints = this.courses.sortedBy { it.order }.mapIndexed { index, course ->
+    val places = this.course?.places ?: emptyList()
+    Timber.d("MeetingDetail - course places size: ${places.size}")
+    val coursePoints = places.sortedBy { it.orderIndex }.mapIndexed { index, place ->
+        Timber.d("MeetingDetail - place[$index]: ${place.placeName} (${place.latitude}, ${place.longitude})")
         CoursePoint(
-            name = course.name,
+            name = place.placeName,
             isStart = index == 0,
-            isEnd = index == this.courses.size - 1,
-            lat = course.latitude,
-            lng = course.longitude
+            isEnd = index == places.size - 1,
+            lat = place.latitude ?: 0.0,
+            lng = place.longitude ?: 0.0
         )
     }
 
@@ -289,11 +424,15 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
         meeting = meeting,
         location = this.region ?: "",
         timeElapsed = "", // TODO: 시간 경과 계산 로직 추가
-        dateAndTime = this.meetDate ?: this.schedule ?: "",
+        dateAndTime = this.schedule ?: this.meetDate ?: "",
         description = this.description,
         courses = coursePoints,
         mateInfo = mateInfo,
-        mateOtherMeetings = emptyList() // TODO: 호스트의 다른 만남 조회 추가
+        mateOtherMeetings = emptyList(), // TODO: 호스트의 다른 만남 조회 추가
+        isHost = this.isHost,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }
 
@@ -301,18 +440,29 @@ private fun MeetingDetailResponse.toMeetingDetail(): MeetingDetail {
  * HomeMeetingResponse를 UI Meeting 모델로 변환
  */
 private fun HomeMeetingResponse.toMeeting(): Meeting {
+    // 혼잡도 정보 로깅
+    Timber.d("HomeMeeting[${this.id}] - congestionLevel: ${this.congestionLevel}, congestionLabel: ${this.congestionLabel}")
+
     return Meeting(
         id = this.id.toString(),
         title = this.title,
-        time = this.meetDate ?: "",
-        price = "미정", // 홈 API에 가격 정보가 없는 경우 고정 텍스트 처리
+        time = this.schedule ?: this.meetDate ?: "",
+        price = this.estimatedCost?.let { "₩$it" } ?: "미정",
         rating = "0.0",
         imageRes = R.drawable.img_recommend_1, // 기본 이미지
-        imageUrl = this.imageUrl,
+        imageUrls = listOfNotNull(this.imageUrl?.takeIf { it.isNotBlank() }),
         tags = buildList {
-            this@toMeeting.congestionLabel?.let { add(it) }
+            this@toMeeting.congestionLabel?.let {
+                Timber.d("Adding congestionLabel to tags: $it")
+                add(it)
+            }
             addAll(this@toMeeting.tags.map { "#$it" })
         },
-        isFavorited = this.isFavorited
+        isFavorited = this.isFavorited,
+        meetDate = this.meetDate,
+        ratingAvg = this.ratingAvg ?: 0.0,
+        maxMembers = this.maxMembers,
+        currentMembers = this.currentMembers,
+        status = this.status
     )
 }
